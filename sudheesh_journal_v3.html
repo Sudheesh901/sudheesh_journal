@@ -1030,6 +1030,24 @@ td.hi { color:var(--ink2); font-weight:500; }
 .success-msg.show { display: block; }
 .success-msg h4 { color: var(--sage); margin-bottom: 8px; }
 .success-msg p { font-size: 0.85rem; color: var(--bark); }
+.form-error {
+  display: none;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(196,97,74,0.28);
+  background: var(--terra-pale);
+  color: var(--ink2);
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+.form-error.show { display: block; }
+.hp-field {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
 
 /* ════════════════════════════════════════
    ANIMATIONS & PAGE TRANSITIONS
@@ -2358,7 +2376,7 @@ app = <span class="cl">Celery</span>(<span class="str">"ingest"</span>, broker=<
 
           <div class="contact-info-item">
             <div class="contact-icon">✉️</div>
-            <div><div class="contact-detail-lbl">Email</div><div class="contact-detail-val"><a href="mailto:sudheesh.ofc@gmail.com">sudheesh.ofc@gmail.com</a></div></div>
+            <div><div class="contact-detail-lbl">Email</div><div class="contact-detail-val">Use the secure contact form</div></div>
           </div>
           <div class="contact-info-item">
             <div class="contact-icon">📍</div>
@@ -2418,7 +2436,12 @@ app = <span class="cl">Celery</span>(<span class="str">"ingest"</span>, broker=<
               <label class="form-label">Message *</label>
               <textarea class="form-textarea" rows="5" placeholder="Tell me about what you're working on and what you're looking for…" id="cf-msg"></textarea>
             </div>
-            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="submitContact()">Send Message</button>
+            <div class="hp-field" aria-hidden="true">
+              <label>Website</label>
+              <input type="text" id="cf-website" tabindex="-1" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" id="contactSubmitBtn" onclick="submitContact()">Send Message</button>
+            <div class="form-error" id="contactError"></div>
           </div>
 
           <div class="success-msg" id="contactSuccess">
@@ -2443,7 +2466,7 @@ app = <span class="cl">Celery</span>(<span class="str">"ingest"</span>, broker=<
       <div>
         <div style="font-family:var(--serif);font-size:1.1rem;font-weight:600;color:var(--cream);margin-bottom:6px;">J. Sudheesh Kumar Reddy</div>
         <div style="font-size:0.8rem;color:rgba(232,220,204,0.5);margin-bottom:16px;">AI Engineer · 4 Years · Hyderabad, India</div>
-        <a href="mailto:sudheesh.ofc@gmail.com" style="font-size:0.82rem;color:var(--terra2);text-decoration:none;">sudheesh.ofc@gmail.com</a>
+        <button onclick="showPage('contact')" style="background:none;border:none;font-size:0.82rem;color:var(--terra2);text-decoration:none;cursor:pointer;padding:0;font-family:var(--sans);">Contact via secure form</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;text-align:right;">
         <button onclick="showPage('home')" style="background:none;border:none;font-size:0.78rem;color:rgba(232,220,204,0.45);cursor:pointer;text-align:right;font-family:var(--sans);">Home</button>
@@ -2455,8 +2478,8 @@ app = <span class="cl">Celery</span>(<span class="str">"ingest"</span>, broker=<
     </div>
     <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:20px;"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-      <div style="font-family:var(--mono);font-size:0.62rem;color:rgba(232,220,204,0.25);letter-spacing:0.08em;">© 2025 J. SUDHEESH KUMAR REDDY · ALL RIGHTS RESERVED</div>
-      <div style="font-family:var(--mono);font-size:0.62rem;color:rgba(232,220,204,0.2);">KNOWLEDGE JOURNAL v2025</div>
+      <div style="font-family:var(--mono);font-size:0.62rem;color:rgba(232,220,204,0.25);letter-spacing:0.08em;">© 2026 J. SUDHEESH KUMAR REDDY · ALL RIGHTS RESERVED</div>
+      <div style="font-family:var(--mono);font-size:0.62rem;color:rgba(232,220,204,0.2);">KNOWLEDGE JOURNAL v2026</div>
     </div>
   </div>
 </footer>
@@ -2556,13 +2579,47 @@ function submitRequest() {
   document.querySelector('#reqForm .btn-primary').style.display = 'none';
 }
 
-function submitContact() {
-  const name  = document.getElementById('cf-name').value.trim();
-  const email = document.getElementById('cf-email').value.trim();
-  const msg   = document.getElementById('cf-msg').value.trim();
-  if (!name || !email || !msg) { alert('Please fill in required fields.'); return; }
-  document.getElementById('contactFormWrap').style.display = 'none';
-  document.getElementById('contactSuccess').classList.add('show');
+async function submitContact() {
+  const btn = document.getElementById('contactSubmitBtn');
+  const error = document.getElementById('contactError');
+  const payload = {
+    name: document.getElementById('cf-name').value.trim(),
+    email: document.getElementById('cf-email').value.trim(),
+    organisation: document.getElementById('cf-org').value.trim(),
+    purpose: document.getElementById('cf-purpose').value.trim(),
+    message: document.getElementById('cf-msg').value.trim(),
+    website: document.getElementById('cf-website').value.trim()
+  };
+
+  error.classList.remove('show');
+  error.textContent = '';
+
+  if (!payload.name || !payload.email || !payload.message) {
+    error.textContent = 'Please fill in your name, email, and message.';
+    error.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const response = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Unable to send your message right now.');
+    document.getElementById('contactFormWrap').style.display = 'none';
+    document.getElementById('contactSuccess').classList.add('show');
+  } catch (err) {
+    error.textContent = err.message || 'Unable to send your message right now.';
+    error.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
 }
 
 /* ════════════════════════════════════════

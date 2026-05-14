@@ -1,13 +1,14 @@
 # Sudheesh Knowledge Journal
 
-Static single-file portfolio and knowledge journal prepared for a no-cost Vercel deployment.
+Portfolio and knowledge journal prepared for a no-cost Vercel deployment.
 
 ## Project Shape
 
 - `index.html` is the production entry point Vercel serves.
 - `sudheesh_journal_v3.html` is kept as the original source copy.
+- `api/contact.js` sends contact form notifications without exposing the recipient email in public HTML.
 - `vercel.json` adds clean URLs and baseline security headers.
-- No build step, server, database, paid storage, or paid Vercel feature is required.
+- No build step, database, paid storage, or paid Vercel feature is required.
 
 ## Deploy On Vercel
 
@@ -19,7 +20,7 @@ Recommended production flow:
    - Framework Preset: `Other`
    - Build Command: leave empty
    - Output Directory: leave empty
-   - Install Command: leave empty
+   - Install Command: keep Vercel's default so `nodemailer` is installed
 4. Deploy on the Vercel Hobby plan.
 
 CLI alternative:
@@ -30,7 +31,21 @@ vercel login
 vercel --prod
 ```
 
-The CLI may ask to link/create a project. Choose the current directory and keep the defaults for a static project.
+The CLI may ask to link/create a project. Choose the current directory and keep the defaults for this project.
+
+## Contact Email
+
+The public page posts contact requests to `/api/contact`. The real recipient email is not stored in the browser HTML.
+
+Create these Vercel environment variables before redeploying:
+
+| Name | Value |
+| --- | --- |
+| `SMTP_USER` | Gmail account used to send the notification |
+| `SMTP_PASS` | Gmail app password, not the normal account password |
+| `CONTACT_TO_EMAIL` | Inbox that should receive website contact messages |
+
+For Gmail, enable 2-step verification and create an app password for this site. Add the app password as `SMTP_PASS` in Vercel under **Project Settings > Environment Variables** for Production, Preview, and Development as needed.
 
 ## Cloudflare DNS
 
@@ -52,13 +67,13 @@ After Vercel creates the production deployment:
 ## Cost Controls
 
 - Use Vercel Hobby for static hosting.
-- Keep the project static: no serverless functions, analytics add-ons, image optimization pipeline, database, cron jobs, or paid storage.
+- Keep the project lightweight: one serverless contact endpoint, no analytics add-ons, image optimization pipeline, database, cron jobs, or paid storage.
 - Keep Cloudflare on the Free plan for DNS and standard proxying.
 - Use Google Fonts directly from the browser; there is no hosting cost.
 
 ## Production Checklist
 
-- Confirm contact form behavior. It currently shows an in-browser success message and does not send email.
+- Confirm contact form behavior after setting the Vercel email environment variables.
 - Verify the final custom domain and `www` redirect preference in Vercel.
 - Run a browser smoke test on desktop and mobile after DNS propagation.
 - Keep `.vercel` out of git because it contains local project-link metadata.
