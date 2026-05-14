@@ -134,7 +134,7 @@ body::after {
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   list-style: none;
   flex-wrap: nowrap;
 }
@@ -152,7 +152,7 @@ body::after {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 8px 13px;
+  padding: 8px 10px;
   font-family: var(--sans);
   font-size: 0.875rem;
   font-weight: 500;
@@ -245,13 +245,13 @@ body::after {
 .nav-cta {
   background: var(--ink) !important;
   color: #FFFFFF !important;
-  padding: 9px 20px !important;
+  padding: 9px 16px !important;
   border-radius: 6px !important;
   font-family: var(--sans) !important;
   font-weight: 600 !important;
   font-size: 0.875rem !important;
   letter-spacing: -0.01em !important;
-  margin-left: 10px;
+  margin-left: 4px;
   transition: background 0.15s, opacity 0.15s !important;
   border: none !important;
   cursor: pointer;
@@ -1156,10 +1156,6 @@ td.hi { color:var(--ink2); font-weight:500; }
   </a>
 
   <ul class="nav-links" id="navLinks">
-    <li class="nav-item">
-      <button class="nav-link active" onclick="showPage('home')">Home</button>
-    </li>
-
     <li class="nav-item">
       <button class="nav-link" onclick="showPage('ds')">
         Data Science
