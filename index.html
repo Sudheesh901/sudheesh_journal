@@ -1,0 +1,2589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J. Sudheesh Kumar Reddy — AI Engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN SYSTEM — Anthropic-faithful
+   Warm linen #EAE6DF · Near-black #0D0D0D · Serif display
+   Fonts: Instrument Serif (display) + Figtree (body/nav)
+═══════════════════════════════════════════════════════ */
+:root {
+  /* Palette — taken directly from Anthropic.com tokens */
+  --linen:      #EAE6DF;   /* page background */
+  --linen2:     #E0DCD4;   /* subtle surface */
+  --linen3:     #D5D0C8;   /* borders, dividers */
+  --white:      #FFFFFF;
+  --ink:        #0D0D0D;   /* near-black, primary text */
+  --ink2:       #1A1A1A;
+  --ink3:       #2E2E2E;
+  --muted:      #6B6560;   /* secondary text */
+  --muted2:     #9A9390;   /* tertiary / captions */
+  --terra:      #C4614A;   /* accent – terracotta */
+  --terra2:     #D97355;
+  --terra-pale: #F2E4DF;
+  --sage:       #4A6B50;
+  --sage-pale:  #E4EDE5;
+  --amber:      #B87A28;
+  --amber-pale: #F5ECD8;
+
+  /* Typography */
+  --display: 'Instrument Serif', Georgia, serif;
+  --sans:    'Figtree', system-ui, sans-serif;
+  --mono:    'JetBrains Mono', 'Courier New', monospace;
+
+  /* Legacy aliases so all inner-page components still work */
+  --serif:      var(--display);
+  --cream:      var(--linen);
+  --cream2:     var(--linen2);
+  --cream3:     var(--linen3);
+  --parchment:  var(--linen);
+  --bark:       var(--muted);
+  --bark2:      var(--muted2);
+  --dust:       #B0A9A4;
+  --coral:      #D97355;
+
+  /* Layout */
+  --nav-h:      68px;
+  --page-pad:   clamp(24px, 5.5vw, 80px);
+  --hero-pad:   clamp(60px, 10vh, 120px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  background: var(--linen);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 400;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── GRAIN TEXTURE OVERLAY ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ════════════════════════════════════════
+   NAVIGATION — Anthropic-faithful
+   Flat linen background, no blur, no shadow until scroll
+   Wordmark logo (no icon box), plain text links
+════════════════════════════════════════ */
+#nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  background: var(--linen);
+  border-bottom: 1px solid transparent;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--page-pad);
+  transition: border-color 0.25s;
+}
+#nav.scrolled {
+  border-bottom-color: var(--linen3);
+}
+
+/* ── WORDMARK LOGO (no icon) ── */
+.nav-logo {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  outline: none;
+  user-select: none;
+}
+.nav-wordmark {
+  font-family: var(--sans);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1;
+  text-transform: uppercase;
+}
+/* The slash — Anthropic-style typographic detail */
+.nav-wordmark-slash {
+  color: var(--terra);
+  font-weight: 900;
+  margin-left: 1px;
+}
+/* Keep legacy classes working but hidden */
+.nav-logo-mark, .nav-logo-text, .nav-logo-sub,
+.nlm-svg { display: none; }
+
+/* ── NAV LIST ── */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  flex-wrap: nowrap;
+}
+.nav-item { position: relative; }
+
+/* Hover bridge — mouse can travel into dropdown without losing hover */
+.nav-item:hover::after {
+  content: '';
+  position: absolute;
+  bottom: -8px; left: 0;
+  width: 100%; height: 8px;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 13px;
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-link:hover { color: var(--ink); background: none; }
+.nav-link.active { color: var(--ink); font-weight: 600; }
+.nav-link .chevron {
+  width: 10px; height: 10px;
+  transition: transform 0.18s;
+  opacity: 0.5;
+  flex-shrink: 0;
+  margin-left: 1px;
+}
+.nav-item:hover > .nav-link { color: var(--ink); }
+.nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+
+/* ── DROPDOWN ── */
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 224px;
+  background: var(--white);
+  border: 1px solid var(--linen3);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+  padding: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 500;
+}
+/* Invisible bridge */
+.dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: 0;
+  width: 100%; height: 8px;
+}
+.nav-item:hover > .dropdown {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+.dropdown-item {
+  display: block;
+  padding: 9px 12px;
+  font-family: var(--sans);
+  font-size: 0.83rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.dropdown-item:hover { background: var(--linen); color: var(--ink); }
+.dropdown-item strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 1px;
+  line-height: 1.3;
+}
+.dropdown-item span {
+  font-size: 0.72rem;
+  color: var(--muted2);
+}
+.dropdown-divider {
+  height: 1px;
+  background: var(--linen2);
+  margin: 5px 0;
+}
+
+/* ── CTA — Anthropic "Try Claude" style: solid black pill ── */
+.nav-cta {
+  background: var(--ink) !important;
+  color: #FFFFFF !important;
+  padding: 9px 20px !important;
+  border-radius: 6px !important;
+  font-family: var(--sans) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: -0.01em !important;
+  margin-left: 10px;
+  transition: background 0.15s, opacity 0.15s !important;
+  border: none !important;
+  cursor: pointer;
+}
+.nav-cta:hover {
+  background: var(--ink3) !important;
+  color: #FFFFFF !important;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 0.88 !important;
+}
+
+/* ── HAMBURGER ── */
+.nav-burger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 8px;
+  background: none;
+  border: none;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.nav-burger span {
+  display: block;
+  width: 20px; height: 1.5px;
+  background: var(--ink);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+  transform-origin: center;
+}
+.nav-burger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.nav-burger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav-burger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* ════════════════════════════════════════
+   PAGE SYSTEM — JS-driven SPA
+════════════════════════════════════════ */
+.page {
+  display: none;
+  min-height: 100vh;
+  padding-top: var(--nav-h);
+}
+.page.active { display: block; }
+
+/* ════════════════════════════════════════
+   SHARED COMPONENTS
+════════════════════════════════════════ */
+.container {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 72px);
+}
+.container-sm {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 48px);
+}
+
+.section { padding: 80px 0; }
+.section-sm { padding: 56px 0; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terra);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 24px; height: 1px;
+  background: var(--terra);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--sans);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+h1 { font-size: clamp(2.8rem, 6vw, 4.5rem); font-weight: 900; line-height: 1.0; }
+h2 { font-size: clamp(2rem, 4vw, 3rem); }
+h3 { font-size: 1.3rem; font-weight: 700; }
+h4 { font-size: 1rem; font-weight: 700; }
+
+/* Italic display text uses the serif font — like Anthropic's editorial headings */
+h1 em, h2 em {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: inherit;
+}
+
+p { color: var(--bark); line-height: 1.78; }
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(180,160,140,0.4), transparent);
+  margin: 0;
+}
+
+/* Tag / badge */
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.67rem;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: var(--cream2);
+  color: var(--bark);
+  border: 1px solid rgba(180,160,140,0.35);
+  font-weight: 400;
+}
+.tag.terra  { background: var(--terra-pale); color: var(--terra); border-color: rgba(196,97,74,0.25); }
+.tag.sage   { background: var(--sage-pale);  color: var(--sage);  border-color: rgba(92,122,98,0.25); }
+.tag.amber  { background: var(--amber-pale); color: var(--amber); border-color: rgba(194,134,46,0.25); }
+
+/* Card */
+.card {
+  background: var(--parchment);
+  border: 1px solid rgba(180,160,140,0.28);
+  border-radius: 14px;
+  padding: 28px 30px;
+  transition: box-shadow 0.25s, transform 0.25s, border-color 0.25s;
+}
+.card:hover {
+  box-shadow: 0 8px 40px rgba(80,50,30,0.09);
+  transform: translateY(-2px);
+  border-color: rgba(180,160,140,0.48);
+}
+
+/* Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--cream);
+}
+.btn-primary:hover {
+  background: var(--ink2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(26,22,18,0.2);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid rgba(100,80,60,0.35);
+}
+.btn-secondary:hover {
+  background: var(--cream2);
+  border-color: rgba(100,80,60,0.55);
+}
+.btn-terra {
+  background: var(--terra);
+  color: white;
+}
+.btn-terra:hover {
+  background: var(--terra2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(196,97,74,0.3);
+}
+
+/* Code block */
+.code-wrap {
+  background: var(--ink);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0.8rem;
+  margin: 16px 0;
+}
+.code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--ink2);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.code-lang {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--terra2);
+}
+.code-dots { display:flex; gap:5px; }
+.code-dot { width:9px;height:9px;border-radius:50%; }
+.code-dot.r{background:#FF5F57;}.code-dot.y{background:#FEBC2E;}.code-dot.g{background:#28C840;}
+
+pre {
+  padding: 18px 20px;
+  overflow-x: auto;
+  line-height: 1.75;
+}
+code { font-family: var(--mono); color: #C8D0E0; font-size: 0.78rem; }
+.kw  { color: #F0A0A0; }
+.fn  { color: #A0D4A0; }
+.str { color: #F0D090; }
+.cm  { color: #5A6A7A; font-style: italic; }
+.cl  { color: #90C8F0; }
+.nm  { color: #C090F0; }
+
+/* Formula */
+.formula {
+  background: var(--cream2);
+  border: 1px solid rgba(180,160,140,0.4);
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--ink2);
+  text-align: center;
+  margin: 14px 0;
+}
+
+/* Callout */
+.callout {
+  border-left: 3px solid var(--terra);
+  background: var(--terra-pale);
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  margin: 16px 0;
+}
+.callout.sage { border-color: var(--sage); background: var(--sage-pale); }
+.callout.amber { border-color: var(--amber); background: var(--amber-pale); }
+.callout-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--terra);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+.callout.sage .callout-label { color: var(--sage); }
+.callout.amber .callout-label { color: var(--amber); }
+.callout p { font-size: 0.83rem; line-height: 1.6; color: var(--ink2); }
+
+/* Table */
+.tbl-wrap { overflow-x:auto; border-radius:10px; border:1px solid rgba(180,160,140,0.28); margin:16px 0; }
+table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+th { font-family:var(--mono); font-size:0.64rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--bark2); background:var(--cream2); padding:10px 16px; text-align:left; border-bottom:1px solid rgba(180,160,140,0.3); }
+td { padding:10px 16px; border-bottom:1px solid rgba(180,160,140,0.15); color:var(--bark); vertical-align:top; line-height:1.5; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(235,225,210,0.4); }
+td:first-child { font-family:var(--mono); font-size:0.74rem; color:var(--terra); white-space:nowrap; }
+td.hi { color:var(--ink2); font-weight:500; }
+
+/* Accordion */
+.acc { margin:8px 0; }
+.acc-head {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:13px 18px;
+  background:var(--cream2);
+  border:1px solid rgba(180,160,140,0.3);
+  border-radius:8px;
+  cursor:pointer;
+  font-family:var(--sans);
+  font-size:0.88rem;
+  font-weight:600;
+  color:var(--ink2);
+  user-select:none;
+  transition:all 0.2s;
+}
+.acc-head:hover { border-color:rgba(180,160,140,0.55); background:var(--cream3); }
+.acc-head.open { border-radius:8px 8px 0 0; border-color:rgba(196,97,74,0.35); }
+.acc-arr { font-size:0.75rem; color:var(--dust); transition:transform 0.2s; }
+.acc-head.open .acc-arr { transform:rotate(180deg); color:var(--terra); }
+.acc-body { display:none; padding:18px 20px; background:var(--parchment); border:1px solid rgba(180,160,140,0.28); border-top:none; border-radius:0 0 8px 8px; }
+.acc-body.open { display:block; }
+
+/* Topic grid */
+.topic-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:16px; }
+.topic-card {
+  background:var(--parchment);
+  border:1px solid rgba(180,160,140,0.28);
+  border-radius:12px;
+  padding:22px 24px;
+  transition:all 0.25s;
+  position:relative;
+  overflow:hidden;
+}
+.topic-card::before {
+  content:'';
+  position:absolute; top:0; left:0;
+  width:3px; height:100%;
+  background:var(--topic-accent, var(--terra));
+  border-radius:3px 0 0 3px;
+}
+.topic-card:hover {
+  box-shadow:0 6px 30px rgba(80,50,30,0.09);
+  border-color:rgba(180,160,140,0.48);
+  transform:translateY(-2px);
+}
+.topic-name { font-family:var(--serif); font-size:1rem; font-weight:600; color:var(--ink); margin-bottom:8px; line-height:1.3; }
+.topic-desc { font-size:0.81rem; color:var(--bark2); line-height:1.6; margin-bottom:14px; }
+.topic-tags { display:flex; flex-wrap:wrap; gap:5px; }
+
+/* Arch diagram */
+.arch {
+  background:var(--ink);
+  border-radius:10px;
+  padding:20px 22px;
+  font-family:var(--mono);
+  font-size:0.72rem;
+  line-height:2;
+  color:#8896A8;
+  overflow-x:auto;
+  margin:14px 0;
+}
+.a-node {
+  display:inline-block;
+  padding:3px 10px;
+  border-radius:5px;
+  font-size:0.68rem;
+  margin:2px;
+}
+.a-g  { background:rgba(92,122,98,0.25);  color:#8CB894; border:1px solid rgba(92,122,98,0.4); }
+.a-b  { background:rgba(90,138,180,0.2);  color:#80B0D8; border:1px solid rgba(90,138,180,0.4); }
+.a-r  { background:rgba(196,97,74,0.2);   color:#D4806A; border:1px solid rgba(196,97,74,0.4); }
+.a-y  { background:rgba(194,134,46,0.2);  color:#D4AA5A; border:1px solid rgba(194,134,46,0.4); }
+.a-p  { background:rgba(130,100,180,0.2); color:#B090E0; border:1px solid rgba(130,100,180,0.4); }
+.a-ar { color:#4A5568; margin:0 4px; }
+
+/* Skill bar */
+.skill-bars { display:flex; flex-direction:column; gap:12px; }
+.skill-row { display:flex; align-items:center; gap:14px; }
+.skill-label { font-size:0.82rem; color:var(--bark); width:200px; flex-shrink:0; }
+.skill-track { flex:1; height:5px; background:var(--cream3); border-radius:3px; overflow:hidden; }
+.skill-fill { height:100%; border-radius:3px; background:linear-gradient(90deg, var(--terra), var(--coral)); animation:sk 1.2s ease forwards; transform-origin:left; }
+@keyframes sk { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+.skill-pct { font-family:var(--mono); font-size:0.65rem; color:var(--dust); width:30px; text-align:right; }
+
+/* Tabs */
+.tabs { display:flex; gap:0; border-bottom:1px solid rgba(180,160,140,0.28); margin-bottom:24px; overflow-x:auto; scrollbar-width:none; }
+.tab-btn {
+  font-size:0.82rem; font-weight:500; font-family:var(--sans);
+  padding:10px 18px;
+  color:var(--bark2);
+  background:none; border:none; border-bottom:2px solid transparent;
+  cursor:pointer; white-space:nowrap;
+  transition:all 0.2s;
+}
+.tab-btn:hover { color:var(--ink); }
+.tab-btn.active { color:var(--terra); border-bottom-color:var(--terra); font-weight:600; }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+
+/* Interview Q card */
+.iq-card {
+  background:var(--parchment);
+  border:1px solid rgba(180,160,140,0.28);
+  border-radius:12px;
+  padding:22px 24px;
+}
+.iq-level { font-family:var(--mono); font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px; }
+.iq-l1 { color:var(--sage); }
+.iq-l2 { color:var(--amber); }
+.iq-l3 { color:var(--terra); }
+.iq-title { font-family:var(--serif); font-size:1rem; font-weight:600; color:var(--ink); margin-bottom:12px; }
+.iq-list { list-style:none; }
+.iq-list li {
+  font-size:0.81rem; color:var(--bark); padding:6px 0 6px 18px;
+  border-bottom:1px dashed rgba(180,160,140,0.3);
+  position:relative; line-height:1.5;
+}
+.iq-list li:last-child { border-bottom:none; }
+.iq-list li::before { content:'Q'; font-family:var(--mono); font-size:0.58rem; font-weight:700; position:absolute; left:0; top:9px; color:var(--dust); }
+
+/* ════════════════════════════════════════
+   HERO — Anthropic-faithful split layout
+   Left: oversized heading
+   Right: body paragraph + CTA + meta chips
+   No cards. No panels. Pure typography.
+════════════════════════════════════════ */
+.hero {
+  min-height: calc(100vh - var(--nav-h));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 0;
+  padding: var(--hero-pad) var(--page-pad);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Left: big heading block */
+.hero-left {
+  padding-right: clamp(32px, 5vw, 72px);
+}
+
+/* Right: everything else */
+.hero-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: clamp(20px, 3vw, 48px);
+  border-left: 1px solid var(--linen3);
+}
+
+/* Remove panel-based elements from v2 (unused in this layout) */
+.hero-panel, .hp-bar, .hp-body, .hp-identity, .hp-monogram,
+.hp-stats, .hp-stat, .hp-achievement, .hp-tags { display: none; }
+
+.hero-availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 0.67rem;
+  font-weight: 500;
+  color: var(--sage);
+  margin-bottom: 40px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.pulse {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--sage);
+  flex-shrink: 0;
+  animation: pulse 2.4s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,107,80,0.5); }
+  60% { opacity: 0.8; box-shadow: 0 0 0 5px rgba(74,107,80,0); }
+}
+
+/* Bio text on the right side */
+.hero-bio {
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  color: var(--ink);
+  font-family: var(--display);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  margin-bottom: 40px;
+  max-width: 480px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+/* Meta row — replaces chips */
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--muted2);
+  padding: 3px 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--linen3);
+  padding-right: 12px;
+}
+.hero-chip:last-child { border-right: none; padding-right: 0; }
+.hero-chip svg { display: none; }
+
+/* ── HERO STATS BAR ── */
+.hero-stats-bar {
+  background: var(--linen2);
+  border-top: 1px solid var(--linen3);
+  border-bottom: 1px solid var(--linen3);
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.hero-stats-bar::-webkit-scrollbar { display: none; }
+
+.hs-stat {
+  flex: 1;
+  min-width: 160px;
+  text-align: center;
+  padding: 28px var(--page-pad);
+  border-right: 1px solid var(--linen3);
+}
+.hs-stat:last-child { border-right: none; }
+.hs-val {
+  font-family: var(--sans);
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.04em;
+}
+.hs-lbl {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── EXPERTISE GRID ── */
+.expertise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1px;
+  margin-top: 40px;
+  background: var(--linen3);
+  border: 1px solid var(--linen3);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.expertise-card {
+  padding: 28px;
+  background: var(--linen);
+  transition: background 0.2s;
+}
+.expertise-card:hover { background: var(--linen2); }
+.exp-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.exp-title {
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 7px;
+  letter-spacing: -0.01em;
+}
+.exp-desc { font-size: 0.81rem; color: var(--muted); line-height: 1.65; }
+
+/* ════════════════════════════════════════
+   EXPERIENCE PAGE — GATED
+════════════════════════════════════════ */
+.exp-hero {
+  background: var(--cream2);
+  border-bottom: 1px solid rgba(180,160,140,0.3);
+  padding: 60px clamp(20px,5vw,72px);
+  text-align: center;
+}
+.exp-hero h2 { margin-bottom: 12px; }
+.exp-hero p { max-width: 580px; margin: 0 auto 28px; }
+
+.exp-public-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 40px 0;
+}
+.exp-pub-card {
+  padding: 24px 26px;
+  background: var(--parchment);
+  border: 1px solid rgba(180,160,140,0.28);
+  border-radius: 12px;
+}
+.exp-pub-icon {
+  width: 40px; height: 40px;
+  border-radius: 9px;
+  background: var(--terra-pale);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+  font-size: 1.2rem;
+}
+.exp-pub-title { font-family:var(--serif); font-size:0.95rem; font-weight:600; color:var(--ink); margin-bottom:6px; }
+.exp-pub-desc { font-size:0.79rem; color:var(--bark2); line-height:1.6; }
+
+/* Gated panel */
+.gated-banner {
+  background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+  border-radius: 16px;
+  padding: 48px 40px;
+  text-align: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  margin: 48px 0;
+}
+.gated-banner::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, rgba(196,97,74,0.2) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.gated-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; left: 40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(92,122,98,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.gated-lock {
+  font-size: 2.5rem;
+  margin-bottom: 16px;
+}
+.gated-banner h3 {
+  color: var(--cream);
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+}
+.gated-banner p {
+  color: rgba(232,220,204,0.7);
+  max-width: 440px;
+  margin: 0 auto 28px;
+  font-size: 0.9rem;
+}
+
+/* Request form */
+.request-form {
+  display: none;
+  background: var(--parchment);
+  border: 1px solid rgba(180,160,140,0.35);
+  border-radius: 14px;
+  padding: 36px 40px;
+  max-width: 580px;
+  margin: 0 auto;
+  text-align: left;
+}
+.request-form.visible { display: block; }
+.form-group { margin-bottom: 18px; }
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(180,160,140,0.4);
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: white;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--terra);
+  box-shadow: 0 0 0 3px rgba(196,97,74,0.1);
+}
+.form-textarea { resize: vertical; min-height: 90px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ════════════════════════════════════════
+   KNOWLEDGE / NOTES PAGES
+════════════════════════════════════════ */
+.page-hero {
+  background: linear-gradient(180deg, var(--cream2) 0%, var(--parchment) 100%);
+  border-bottom: 1px solid rgba(180,160,140,0.28);
+  padding: 56px clamp(20px,5vw,72px) 48px;
+}
+.page-hero-inner { max-width: 1160px; margin: 0 auto; }
+.page-hero h2 { margin-bottom: 10px; }
+.page-hero p { max-width: 600px; font-size: 0.95rem; }
+
+/* ════════════════════════════════════════
+   COLLABORATION PAGE
+════════════════════════════════════════ */
+.collab-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+  margin-top: 48px;
+}
+.collab-card-big {
+  background: var(--cream2);
+  border: 1px solid rgba(180,160,140,0.28);
+  border-radius: 16px;
+  padding: 32px;
+}
+.collab-type {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+.collab-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--parchment);
+  border: 1px solid rgba(180,160,140,0.25);
+  border-radius: 10px;
+}
+.collab-item-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.collab-item-title { font-weight: 600; font-size: 0.88rem; color: var(--ink); margin-bottom: 3px; }
+.collab-item-desc { font-size: 0.78rem; color: var(--bark2); line-height: 1.55; }
+
+/* ════════════════════════════════════════
+   CONTACT PAGE
+════════════════════════════════════════ */
+.contact-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 48px;
+  align-items: start;
+  margin-top: 48px;
+}
+.contact-info {}
+.contact-info-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(180,160,140,0.2);
+}
+.contact-icon {
+  width: 40px; height: 40px;
+  background: var(--cream2);
+  border: 1px solid rgba(180,160,140,0.3);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.contact-detail-lbl { font-size: 0.72rem; color: var(--dust); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+.contact-detail-val { font-size: 0.88rem; color: var(--ink2); font-weight: 500; }
+.contact-detail-val a { color: var(--terra); text-decoration: none; }
+.contact-detail-val a:hover { text-decoration: underline; }
+
+.contact-form-card {
+  background: var(--cream2);
+  border: 1px solid rgba(180,160,140,0.28);
+  border-radius: 16px;
+  padding: 36px;
+}
+.success-msg {
+  display: none;
+  text-align: center;
+  padding: 24px;
+}
+.success-msg.show { display: block; }
+.success-msg h4 { color: var(--sage); margin-bottom: 8px; }
+.success-msg p { font-size: 0.85rem; color: var(--bark); }
+
+/* ════════════════════════════════════════
+   ANIMATIONS & PAGE TRANSITIONS
+════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.5s ease forwards; }
+.fade-up.d1 { animation-delay: 0.08s; }
+.fade-up.d2 { animation-delay: 0.16s; }
+.fade-up.d3 { animation-delay: 0.24s; }
+.fade-up.d4 { animation-delay: 0.32s; }
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .nav-links { display: none; }
+  .nav-links.open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    position: fixed;
+    top: var(--nav-h); left: 0; right: 0;
+    background: var(--linen);
+    border-bottom: 1px solid var(--linen3);
+    padding: 12px 16px 20px;
+    gap: 2px;
+    z-index: 999;
+    max-height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  }
+  .nav-links.open .nav-link {
+    padding: 11px 14px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    width: 100%;
+    justify-content: flex-start;
+    color: var(--ink);
+  }
+  .nav-links.open .nav-link:hover { background: var(--linen2); }
+  .nav-links.open .nav-cta {
+    margin-left: 0; margin-top: 8px;
+    justify-content: center;
+    text-align: center;
+  }
+  .nav-links.open .dropdown {
+    position: static;
+    transform: none !important;
+    opacity: 1; pointer-events: all;
+    box-shadow: none; border: none;
+    background: var(--linen2);
+    border-radius: 8px;
+    margin: 2px 0 4px 8px;
+    padding: 4px;
+  }
+  .nav-links.open .dropdown::before { display: none; }
+  .nav-burger { display: flex; }
+}
+
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: 48px;
+    padding-bottom: 56px;
+    min-height: auto;
+    gap: 40px;
+  }
+  .hero-left { padding-right: 0; }
+  .hero-right {
+    border-left: none;
+    border-top: 1px solid var(--linen3);
+    padding-left: 0;
+    padding-top: 36px;
+  }
+  .hero-bio { max-width: 100%; }
+  .collab-grid, .contact-layout { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  :root { --page-pad: 20px; }
+  .hero-stats-bar { flex-wrap: wrap; }
+  .hs-stat {
+    flex: 0 0 50%;
+    border-right: none;
+    border-bottom: 1px solid var(--linen3);
+    padding: 20px;
+  }
+  .hs-stat:nth-child(odd) { border-right: 1px solid var(--linen3); }
+  .expertise-grid { gap: 0; border-radius: 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     NAVIGATION
+════════════════════════════════════════ -->
+<nav id="nav">
+  <!-- WORDMARK LOGO — pure typographic, no icon box -->
+  <a class="nav-logo" onclick="showPage('home')">
+    <span class="nav-wordmark">SUDHEESH K. REDDY<span class="nav-wordmark-slash">\</span></span>
+  </a>
+
+  <ul class="nav-links" id="navLinks">
+    <li class="nav-item">
+      <button class="nav-link active" onclick="showPage('home')">Home</button>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('ds')">
+        Data Science
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="dropdown">
+        <a class="dropdown-item" onclick="showPage('ds');scrollToSection('ds-ml')"><strong>ML Fundamentals</strong><span>Algorithms, evaluation, ensembles</span></a>
+        <a class="dropdown-item" onclick="showPage('ds');scrollToSection('ds-feat')"><strong>Feature Engineering</strong><span>Encoding, pipelines, feature stores</span></a>
+        <a class="dropdown-item" onclick="showPage('ds');scrollToSection('ds-summ')"><strong>Text Summarization</strong><span>BART, PEGASUS, fine-tuning</span></a>
+        <a class="dropdown-item" onclick="showPage('ds');scrollToSection('ds-stats')"><strong>Statistics & A/B Testing</strong><span>Hypothesis testing, experiment design</span></a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" onclick="showPage('recsys')"><strong>Recommendation Systems</strong><span>Collaborative filtering, hybrid models</span></a>
+      </div>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('nlp')">
+        NLP & Transformers
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="dropdown">
+        <a class="dropdown-item" onclick="showPage('nlp');scrollToSection('nlp-transformer')"><strong>Transformer Architecture</strong><span>Attention, KV-cache, positional encoding</span></a>
+        <a class="dropdown-item" onclick="showPage('nlp');scrollToSection('nlp-rag')"><strong>RAG Systems</strong><span>Hybrid retrieval, reranking, evaluation</span></a>
+        <a class="dropdown-item" onclick="showPage('nlp');scrollToSection('nlp-agents')"><strong>LLM Agents (LangGraph)</strong><span>Multi-agent, supervisor, state</span></a>
+        <a class="dropdown-item" onclick="showPage('nlp');scrollToSection('nlp-eval')"><strong>LLM Evaluation</strong><span>LLM-as-Judge, RAGAS, hallucination</span></a>
+        <a class="dropdown-item" onclick="showPage('nlp');scrollToSection('nlp-finetune')"><strong>Fine-Tuning & PEFT</strong><span>LoRA, QLoRA, instruction tuning</span></a>
+      </div>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('mlops')">
+        MLOps
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="dropdown">
+        <a class="dropdown-item" onclick="showPage('mlops');scrollToSection('mo-cicd')"><strong>CI/CD for ML</strong><span>Pipelines, model registry, canary</span></a>
+        <a class="dropdown-item" onclick="showPage('mlops');scrollToSection('mo-drift')"><strong>Drift Detection</strong><span>PSI, KS test, auto-retraining</span></a>
+        <a class="dropdown-item" onclick="showPage('mlops');scrollToSection('mo-obs')"><strong>LLMOps & Observability</strong><span>LangSmith, Prometheus, tracing</span></a>
+        <a class="dropdown-item" onclick="showPage('mlops');scrollToSection('mo-infra')"><strong>Async Pipelines</strong><span>Celery, Redis, queuing patterns</span></a>
+      </div>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('cloud')">
+        Cloud & Infra
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="dropdown">
+        <a class="dropdown-item" onclick="showPage('cloud');scrollToSection('cl-aws')"><strong>AWS for ML Engineers</strong><span>SageMaker, ECS, S3, RDS</span></a>
+        <a class="dropdown-item" onclick="showPage('cloud');scrollToSection('cl-docker')"><strong>Docker & Containers</strong><span>Multi-stage builds, orchestration</span></a>
+        <a class="dropdown-item" onclick="showPage('cloud');scrollToSection('cl-auth')"><strong>Auth — JWT / OAuth2 / RBAC</strong><span>Security patterns for AI APIs</span></a>
+        <a class="dropdown-item" onclick="showPage('cloud');scrollToSection('cl-pg')"><strong>PostgreSQL & Redis</strong><span>pgvector, caching, queuing</span></a>
+      </div>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('sysdesign')">System Design</button>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('experience')">Experience</button>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('interview')">
+        Interview Prep
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="dropdown">
+        <a class="dropdown-item" onclick="showPage('interview');switchTab('tab-ml','interview')"><strong>ML Concepts</strong></a>
+        <a class="dropdown-item" onclick="showPage('interview');switchTab('tab-llm','interview')"><strong>LLM & RAG</strong></a>
+        <a class="dropdown-item" onclick="showPage('interview');switchTab('tab-mlops','interview')"><strong>MLOps</strong></a>
+        <a class="dropdown-item" onclick="showPage('interview');switchTab('tab-sd','interview')"><strong>System Design</strong></a>
+        <a class="dropdown-item" onclick="showPage('interview');switchTab('tab-beh','interview')"><strong>Behavioral / STAR</strong></a>
+      </div>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link" onclick="showPage('collab')">Collaborate</button>
+    </li>
+
+    <li class="nav-item">
+      <button class="nav-link nav-cta" onclick="showPage('contact')">Contact</button>
+    </li>
+  </ul>
+
+  <button class="nav-burger" id="burger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: HOME
+════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+
+  <!-- HERO — Anthropic split: heading left, content right -->
+  <div class="hero">
+
+    <!-- LEFT: Oversized display heading -->
+    <div class="hero-left">
+      <h1>AI Engineering<br>at production<br><em>scale.</em></h1>
+    </div>
+
+    <!-- RIGHT: Availability + bio + CTAs + meta -->
+    <div class="hero-right">
+      <div class="hero-availability">
+        <div class="pulse"></div>
+        Open to new opportunities
+      </div>
+
+      <p class="hero-bio">I'm J. Sudheesh Kumar Reddy — an AI Engineer with 4 years building systems that serve real users. From recommendation engines at 500K+ scale to production multi-agent LLM platforms, I build end-to-end with rigour.</p>
+
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="showPage('experience')">View Experience</button>
+        <button class="btn btn-secondary" onclick="showPage('contact')">Get in Touch</button>
+      </div>
+
+      <div class="hero-chips">
+        <span class="hero-chip">4 Years in AI/ML</span>
+        <span class="hero-chip">EdTech · India</span>
+        <span class="hero-chip">LLM · RAG · MLOps</span>
+        <span class="hero-chip">Hyderabad</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="hero-stats-bar">
+    <div class="hs-stat"><div class="hs-val">4</div><div class="hs-lbl">Years in AI/ML</div></div>
+    <div class="hs-stat"><div class="hs-val">2+2</div><div class="hs-lbl">DS → AI Engineer</div></div>
+    <div class="hs-stat"><div class="hs-val">500K+</div><div class="hs-lbl">Users Served</div></div>
+    <div class="hs-stat"><div class="hs-val">−52%</div><div class="hs-lbl">LLM Cost Reduction</div></div>
+    <div class="hs-stat"><div class="hs-val">9</div><div class="hs-lbl">Knowledge Domains</div></div>
+  </div>
+
+  <!-- What I bring -->
+  <section class="section">
+    <div class="container">
+      <div class="eyebrow">Core Expertise</div>
+      <h2>From raw data to shipped AI</h2>
+      <p style="max-width:540px;margin-top:10px;">I don't just build models — I build systems. Every line of code I write considers monitoring, evaluation, cost, and the engineer who maintains it at 2am.</p>
+
+      <div class="expertise-grid">
+        <div class="expertise-card fade-up">
+          <div class="exp-icon" style="background:var(--terra-pale);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="8" width="14" height="8" rx="2" stroke="var(--terra)" stroke-width="1.3"/><path d="M5 8V5.5a4 4 0 018 0V8" stroke="var(--terra)" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="12" r="1.2" fill="var(--terra)"/></svg>
+          </div>
+          <div class="exp-title">LLM & Agent Engineering</div>
+          <p class="exp-desc">Production multi-agent systems with LangGraph, Hybrid RAG pipelines, semantic caching, and LLM-as-Judge evaluation. Built for real user loads, not demos.</p>
+        </div>
+        <div class="expertise-card fade-up d1">
+          <div class="exp-icon" style="background:var(--sage-pale);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6.5" stroke="var(--sage)" stroke-width="1.3"/><path d="M9 5v4l2.5 2.5" stroke="var(--sage)" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </div>
+          <div class="exp-title">Recommendation Systems</div>
+          <p class="exp-desc">End-to-end systems from feature engineering and SVD++ training through to A/B testing, drift monitoring, and real-time Redis-cached serving.</p>
+        </div>
+        <div class="expertise-card fade-up d2">
+          <div class="exp-icon" style="background:var(--amber-pale);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 15V9l6-6 6 6v6H11v-4H7v4H3z" stroke="var(--amber)" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="exp-title">MLOps & Production ML</div>
+          <p class="exp-desc">CI/CD for models, automated drift detection (PSI/KS), Evidently AI dashboards, MLflow registry, canary deployments, and auto-retraining pipelines.</p>
+        </div>
+        <div class="expertise-card fade-up d3">
+          <div class="exp-icon" style="background:rgba(90,138,180,0.1);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 11c-1.1-.4-2-1.5-2-2.8C2 6.3 3.6 5 5.5 5c.2 0 .4 0 .6.1C6.7 3.3 8.2 2 10 2c2.2 0 4 1.8 4 4 0 .2 0 .4-.1.6C15.1 7 16 7.9 16 9c0 1.1-.9 2-2 2H4z" stroke="#5A8AB4" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="exp-title">Cloud Infrastructure</div>
+          <p class="exp-desc">AWS (SageMaker, ECS Fargate, RDS, ElastiCache), Docker, JWT/OAuth2/RBAC, Celery async pipelines, and PostgreSQL + Redis at scale.</p>
+        </div>
+        <div class="expertise-card fade-up">
+          <div class="exp-icon" style="background:rgba(130,100,180,0.08);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L2 6v6l7 4 7-4V6L9 2z" stroke="#8264B4" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 2v10M2 6l7 4 7-4" stroke="#8264B4" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="exp-title">NLP & Model Development</div>
+          <p class="exp-desc">Full model lifecycle: problem framing → data curation → transformer fine-tuning → multi-metric evaluation → ONNX quantization → handoff documentation.</p>
+        </div>
+        <div class="expertise-card fade-up d1">
+          <div class="exp-icon" style="background:var(--cream3);">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" stroke="var(--bark)" stroke-width="1.3"/><rect x="10" y="2" width="6" height="6" rx="1.2" stroke="var(--bark)" stroke-width="1.3"/><rect x="2" y="10" width="6" height="6" rx="1.2" stroke="var(--bark)" stroke-width="1.3"/><rect x="10" y="10" width="6" height="6" rx="1.2" stroke="var(--bark)" stroke-width="1.3"/></svg>
+          </div>
+          <div class="exp-title">System Design for AI</div>
+          <p class="exp-desc">Designing for scale: request routing, caching strategies, async ingestion pipelines, auth layers, observability stacks, and cost optimisation frameworks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Skills radar -->
+  <div class="divider"></div>
+  <section class="section-sm">
+    <div class="container-sm">
+      <div class="eyebrow">Competency Map</div>
+      <h3 style="margin-bottom:24px;">Technical depth, not just breadth</h3>
+      <div class="skill-bars">
+        <div class="skill-row"><span class="skill-label">LLM / GenAI Engineering</span><div class="skill-track"><div class="skill-fill" style="width:92%"></div></div><span class="skill-pct">92%</span></div>
+        <div class="skill-row"><span class="skill-label">RAG & Vector Search</span><div class="skill-track"><div class="skill-fill" style="width:90%"></div></div><span class="skill-pct">90%</span></div>
+        <div class="skill-row"><span class="skill-label">Multi-Agent Systems</span><div class="skill-track"><div class="skill-fill" style="width:85%"></div></div><span class="skill-pct">85%</span></div>
+        <div class="skill-row"><span class="skill-label">ML Model Development</span><div class="skill-track"><div class="skill-fill" style="width:88%"></div></div><span class="skill-pct">88%</span></div>
+        <div class="skill-row"><span class="skill-label">MLOps & Monitoring</span><div class="skill-track"><div class="skill-fill" style="width:82%"></div></div><span class="skill-pct">82%</span></div>
+        <div class="skill-row"><span class="skill-label">Cloud Architecture (AWS)</span><div class="skill-track"><div class="skill-fill" style="width:78%"></div></div><span class="skill-pct">78%</span></div>
+        <div class="skill-row"><span class="skill-label">Data Engineering</span><div class="skill-track"><div class="skill-fill" style="width:80%"></div></div><span class="skill-pct">80%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA strip -->
+  <section style="background:var(--ink);padding:56px clamp(20px,5vw,72px);text-align:center;">
+    <div style="font-family:var(--serif);font-size:clamp(1.4rem,3vw,2rem);color:var(--cream);margin-bottom:10px;font-weight:600;">Ready to build something exceptional?</div>
+    <p style="color:rgba(232,220,204,0.65);max-width:480px;margin:0 auto 28px;font-size:0.9rem;">Whether it's a new AI system, a collaboration, or just a technical conversation — I'm here.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-terra" onclick="showPage('contact')">Send a Message</button>
+      <button class="btn" style="background:rgba(255,255,255,0.08);color:var(--cream);border:1.5px solid rgba(255,255,255,0.15);" onclick="showPage('collab')">Explore Collaboration</button>
+    </div>
+  </section>
+
+</div><!-- /page-home -->
+
+
+<!-- ════════════════════════════════════════
+     PAGE: EXPERIENCE (GATED)
+════════════════════════════════════════ -->
+<div class="page" id="page-experience">
+
+  <div class="exp-hero">
+    <div class="eyebrow" style="justify-content:center;">Professional Background</div>
+    <h2>4 Years · EdTech AI · Production Scale</h2>
+    <p>A focused track record building AI infrastructure that serves hundreds of thousands of users. Progression from data science to AI engineering with clear ownership at each stage.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
+      <span class="tag terra">2 yrs Data Science</span>
+      <span class="tag sage">2 yrs AI Engineering</span>
+      <span class="tag amber">End-to-End Ownership</span>
+      <span class="tag">EdTech Domain</span>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+
+      <!-- Public information -->
+      <div class="eyebrow">What I can share openly</div>
+      <h3 style="margin-bottom:8px;">Verified Expertise & Project Types</h3>
+      <p style="margin-bottom:0;max-width:580px;">The overview below covers what kind of work I've done, the domains and scales involved, and the technologies I've worked with — without disclosing confidential client information.</p>
+
+      <div class="exp-public-grid">
+        <div class="exp-pub-card">
+          <div class="exp-pub-icon">📊</div>
+          <div class="exp-pub-title">Personalisation & Recommendation</div>
+          <p class="exp-pub-desc">Built and owned a content recommendation system end-to-end — from data pipeline design and model development through A/B testing, drift monitoring, and production deployment. Serving hundreds of thousands of users with real-time latency requirements.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;">
+            <span class="tag">Collaborative Filtering</span><span class="tag">Feature Stores</span><span class="tag">A/B Testing</span><span class="tag">MLOps</span>
+          </div>
+        </div>
+
+        <div class="exp-pub-card">
+          <div class="exp-pub-icon">📝</div>
+          <div class="exp-pub-title">NLP & Generative Summarization</div>
+          <p class="exp-pub-desc">Led the complete model development lifecycle for an abstractive text summarization system. Covered problem framing, domain-specific corpus curation, transformer fine-tuning, multi-metric evaluation, and production handoff documentation.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;">
+            <span class="tag">Transformers</span><span class="tag">ROUGE/BERTScore</span><span class="tag">Hallucination Mitigation</span>
+          </div>
+        </div>
+
+        <div class="exp-pub-card">
+          <div class="exp-pub-icon">🤖</div>
+          <div class="exp-pub-title">Production Multi-Agent AI System</div>
+          <p class="exp-pub-desc">Architected and shipped an end-to-end conversational AI agent system with multi-agent orchestration, hybrid RAG, persistent state management, authentication, async ingestion pipelines, LLMOps observability, and nightly evaluation pipelines.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;">
+            <span class="tag terra">LangGraph</span><span class="tag sage">Hybrid RAG</span><span class="tag amber">LLMOps</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline of progression -->
+      <div class="divider" style="margin:40px 0 36px;"></div>
+      <div class="eyebrow">Career Progression</div>
+      <h3 style="margin-bottom:24px;">Data Scientist → AI Engineer</h3>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="background:var(--terra-pale);border:1px solid rgba(196,97,74,0.25);border-radius:8px;padding:6px 12px;font-family:var(--mono);font-size:0.65rem;color:var(--terra);">YEAR 1 – 2</div>
+            <div style="font-family:var(--serif);font-size:1rem;font-weight:600;">Data Scientist</div>
+          </div>
+          <p style="font-size:0.82rem;color:var(--bark2);line-height:1.7;">Focus on model development, experimentation, and statistical analysis. Owned full ML lifecycle for two major product features. Developed deep expertise in NLP, recommendation systems, and evaluation frameworks.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:14px;">
+            <span class="tag">Python</span><span class="tag">PyTorch</span><span class="tag">HuggingFace</span><span class="tag">scikit-learn</span><span class="tag">MLflow</span><span class="tag">Airflow</span>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="background:var(--sage-pale);border:1px solid rgba(92,122,98,0.25);border-radius:8px;padding:6px 12px;font-family:var(--mono);font-size:0.65rem;color:var(--sage);">YEAR 3 – 4</div>
+            <div style="font-family:var(--serif);font-size:1rem;font-weight:600;">AI Engineer</div>
+          </div>
+          <p style="font-size:0.82rem;color:var(--bark2);line-height:1.7;">Expanded scope to full system architecture: authentication, async pipelines, caching, monitoring, evaluation, and cloud deployment. Led end-to-end delivery of a complex multi-agent production system used by hundreds of thousands.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:14px;">
+            <span class="tag terra">LangGraph</span><span class="tag">FastAPI</span><span class="tag">PostgreSQL</span><span class="tag">Redis</span><span class="tag">AWS ECS</span><span class="tag">Docker</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GATED SECTION -->
+      <div class="gated-banner">
+        <div class="gated-lock">🔒</div>
+        <h3>Detailed Project Documentation</h3>
+        <p style="color:rgba(232,220,204,0.7);">Full project breakdowns, architecture diagrams, metrics, and company-specific context are available on request. Submit your details below and I'll share the relevant documentation within 24 hours.</p>
+        <button class="btn btn-terra" onclick="document.getElementById('reqForm').classList.toggle('visible');this.style.display='none';">Request Full Access</button>
+      </div>
+
+      <!-- Request form -->
+      <div class="request-form" id="reqForm">
+        <div class="eyebrow">Access Request</div>
+        <h3 style="margin-bottom:6px;">Request Detailed Experience</h3>
+        <p style="font-size:0.83rem;margin-bottom:24px;">I'll review your request and share the appropriate documentation — typically within 24 hours on working days.</p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Your Name *</label>
+            <input class="form-input" type="text" placeholder="Jane Smith">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company / Organisation *</label>
+            <input class="form-input" type="text" placeholder="Acme AI Labs">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Work Email *</label>
+          <input class="form-input" type="email" placeholder="jane@company.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your Role</label>
+          <select class="form-select">
+            <option value="">Select your role</option>
+            <option>Hiring Manager</option>
+            <option>Technical Recruiter</option>
+            <option>Engineering Lead</option>
+            <option>Founder / CTO</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">What specifically are you looking for?</label>
+          <textarea class="form-textarea" placeholder="e.g. Details on the LLM agent system, MLOps practices, or the recommendation engine…"></textarea>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:4px;">
+          <button class="btn btn-primary" onclick="submitRequest()">Submit Request</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('reqForm').classList.remove('visible');document.querySelector('.btn-terra').style.display='inline-flex';">Cancel</button>
+        </div>
+        <div id="reqSuccess" style="display:none;margin-top:16px;padding:14px;background:var(--sage-pale);border-radius:8px;border:1px solid rgba(92,122,98,0.25);">
+          <p style="color:var(--sage);font-weight:600;font-size:0.85rem;">✓ Request received! I'll be in touch at your email within 24 hours.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: DATA SCIENCE
+════════════════════════════════════════ -->
+<div class="page" id="page-ds">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Knowledge Notes</div>
+      <h2>Data Science</h2>
+      <p>Core concepts, algorithms, evaluation frameworks, and production practices from 2 years of hands-on data science work. Interview-ready notes with code, formulas, and mental models.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+
+      <!-- ML Fundamentals -->
+      <div id="ds-ml" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 1</div>
+        <h3 style="margin-bottom:20px;">ML Fundamentals & Algorithms</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">Supervised vs Unsupervised</div>
+            <p class="topic-desc">Supervised: labelled targets, learns mapping f(X)→y. Unsupervised: structure discovery without labels. Semi-supervised: sparse labels + unlabelled data. Self-supervised: labels from data itself (GPT pretraining).</p>
+            <div class="topic-tags"><span class="tag">classification</span><span class="tag">clustering</span><span class="tag">representation</span></div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">Bias-Variance Tradeoff</div>
+            <p class="topic-desc">MSE = Bias² + Variance + Irreducible Noise. High bias → underfitting (simple model). High variance → overfitting (complex model). Regularisation (L1/L2), dropout, cross-validation, and ensemble methods manage this tradeoff.</p>
+            <div class="formula">Error = Bias² + Variance + ε</div>
+            <div class="topic-tags"><span class="tag">regularisation</span><span class="tag">cross-val</span></div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--amber)">
+            <div class="topic-name">Ensemble Methods</div>
+            <p class="topic-desc">Bagging (Random Forest): parallel trees, reduce variance. Boosting (XGBoost, LightGBM): sequential, reduce bias. LightGBM: histogram-based, leaf-wise growth → 10x faster on large datasets. Stacking: meta-learner over base models.</p>
+            <div class="topic-tags"><span class="tag">XGBoost</span><span class="tag">LightGBM</span><span class="tag">RF</span></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="callout amber">
+            <div class="callout-label">Interview Tip</div>
+            <p>When asked XGBoost vs LightGBM: LightGBM is ~10x faster on large data because it uses histogram binning + leaf-wise growth vs XGBoost's level-wise. But LightGBM is more prone to overfitting on small datasets.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- Evaluation -->
+      <div id="ds-eval" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 2</div>
+        <h3 style="margin-bottom:20px;">Model Evaluation & Metrics</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Metric</th><th>Best For</th><th>Caveat</th><th>Formula Hint</th></tr></thead>
+            <tbody>
+              <tr><td>ROC-AUC</td><td class="hi">Imbalanced classification</td><td>Misleading if positives are very rare</td><td>Area under TPR vs FPR</td></tr>
+              <tr><td>PR-AUC</td><td class="hi">Rare positive events</td><td>Sensitive to threshold choice</td><td>Precision vs Recall</td></tr>
+              <tr><td>F1</td><td class="hi">Balanced P/R needed</td><td>Doesn't distinguish FP/FN costs</td><td>2·P·R / (P+R)</td></tr>
+              <tr><td>NDCG@K</td><td class="hi">Ranked retrieval</td><td>Needs relevance grades, not binary</td><td>DCG/IDCG</td></tr>
+              <tr><td>MRR</td><td class="hi">First relevant result quality</td><td>Only considers first hit</td><td>Mean(1/rank)</td></tr>
+              <tr><td>ROUGE-L</td><td class="hi">Text summarization</td><td>Surface form, not semantics</td><td>LCS-based recall</td></tr>
+              <tr><td>BERTScore</td><td class="hi">Semantic text similarity</td><td>Expensive at scale</td><td>Cosine sim of BERT embeddings</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- Feature Engineering -->
+      <div id="ds-feat" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 3</div>
+        <h3 style="margin-bottom:20px;">Feature Engineering & Pipelines</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">Categorical Encoding</div>
+            <p class="topic-desc">OHE: low cardinality. Target encoding: high cardinality (risk of leakage — use K-fold target encoding). Hashing: very high cardinality with collisions. Embeddings: learned representations for neural models.</p>
+            <div class="callout" style="margin-top:10px;">
+              <div class="callout-label">Leakage Warning</div>
+              <p>Never compute target encoding statistics using the full training set before cross-validation splits. Always compute within the fold to prevent target leakage.</p>
+            </div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">Feature Stores (Feast)</div>
+            <p class="topic-desc">Solves training-serving skew: offline store (S3/Parquet) for batch training, online store (Redis/DynamoDB) for real-time serving. Point-in-time correctness ensures no data leakage across time boundaries.</p>
+            <div class="topic-tags"><span class="tag">Feast</span><span class="tag">Tecton</span><span class="tag">Redis</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- Text Summarization -->
+      <div id="ds-summ" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 4</div>
+        <h3 style="margin-bottom:20px;">Text Summarization — Deep Dive</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--amber);grid-column:1/-1">
+            <div class="topic-name">Abstractive Summarization Pipeline</div>
+            <p class="topic-desc" style="margin-bottom:14px;">Extractive (BM25/TextRank, selects existing sentences) vs Abstractive (generates new text). PEGASUS pre-trained on gap-sentence prediction makes it the best out-of-the-box choice for domain-specific summarisation with fine-tuning.</p>
+            <div class="arch">
+              <div><span class="a-b">Raw Docs</span><span class="a-ar">→</span><span class="a-y">Preprocessing</span><span class="a-ar">→</span><span class="a-g">Corpus Curation (60K pairs)</span><span class="a-ar">→</span><span class="a-p">PEGASUS Fine-tune</span></div>
+              <div style="padding-left:20px;color:#3A4A5A">↓  Curriculum: short → long docs  |  fp16  |  gradient checkpointing</div>
+              <div><span class="a-r">Multi-metric Eval</span><span class="a-ar">→</span><span class="a-y">ROUGE-L + BERTScore + FactCC + Human Rubric</span></div>
+              <div style="padding-left:20px;color:#3A4A5A">↓  Entity hallucination: 12% → &lt;3% via constrained decoding</div>
+              <div><span class="a-g">ONNX INT8 Export</span><span class="a-ar">→</span><span class="a-b">3× inference speedup</span><span class="a-ar">→</span><span class="a-g">Handoff + Model Card</span></div>
+            </div>
+            <div class="code-wrap">
+              <div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">PYTHON · PEGASUS FINE-TUNE</span></div>
+              <pre><code><span class="kw">from</span> transformers <span class="kw">import</span> <span class="cl">AutoModelForSeq2SeqLM</span>, <span class="cl">Seq2SeqTrainingArguments</span>
+<span class="cm"># fp16 + gradient checkpointing for memory efficiency</span>
+training_args = <span class="cl">Seq2SeqTrainingArguments</span>(
+    fp16=<span class="kw">True</span>, gradient_checkpointing=<span class="kw">True</span>,
+    predict_with_generate=<span class="kw">True</span>,
+    generation_max_length=<span class="nm">256</span>,
+    per_device_train_batch_size=<span class="nm">4</span>,
+)
+<span class="cm"># Constrained decoding to prevent entity hallucination</span>
+outputs = model.<span class="fn">generate</span>(
+    input_ids, num_beams=<span class="nm">4</span>,
+    force_words_ids=entity_ids,   <span class="cm"># enforce key entities</span>
+    no_repeat_ngram_size=<span class="nm">3</span>,
+)</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- Stats -->
+      <div id="ds-stats" style="margin-bottom:16px;">
+        <div class="eyebrow">Section 5</div>
+        <h3 style="margin-bottom:20px;">Statistics & A/B Testing</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">Hypothesis Testing Toolkit</div>
+            <p class="topic-desc">t-test (continuous, normal). Mann-Whitney U (continuous, non-normal — preferred for click rates). Chi-square (categorical). Fisher's exact (small counts). Always: pre-register, define MDE, compute required sample size before running.</p>
+            <div class="formula">Power = P(reject H₀ | H₁ is true) ≥ 0.8</div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">CUPED Variance Reduction</div>
+            <p class="topic-desc">Controlled-experiment Using Pre-Experiment Data. Use pre-experiment covariate (e.g. prior week CTR) to reduce metric variance, gaining same statistical power with smaller samples. Used extensively at Airbnb, Booking.com.</p>
+            <div class="formula">Y_cuped = Y − θ·(X − E[X])</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: RECOMMENDATION SYSTEMS
+════════════════════════════════════════ -->
+<div class="page" id="page-recsys">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Knowledge Notes</div>
+      <h2>Recommendation Systems</h2>
+      <p>End-to-end architecture from candidate generation through ranking, serving, cold-start, A/B testing, and continuous monitoring. Based on production experience.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+
+      <div style="margin-bottom:40px;">
+        <h3 style="margin-bottom:16px;">Full System Architecture</h3>
+        <div class="arch">
+          <div style="color:#6A7A8A;margin-bottom:4px;">── OFFLINE PIPELINE ──────────────────────────────────────────</div>
+          <div><span class="a-b">User Events (Kafka)</span><span class="a-ar">→</span><span class="a-y">Feature Store (Feast)</span><span class="a-ar">→</span><span class="a-p">SVD++ + Content Emb.</span><span class="a-ar">→</span><span class="a-g">Model Registry (MLflow)</span></div>
+          <div style="padding-left:20px;color:#3A4A5A">↓  Auto-retrain trigger on PSI drift  |  Airflow orchestrated</div>
+          <div style="color:#6A7A8A;margin:8px 0 4px;">── SERVING PIPELINE ──────────────────────────────────────────</div>
+          <div><span class="a-b">User Request</span><span class="a-ar">→</span><span class="a-g">Redis Cache (pre-computed)</span><span class="a-ar">→</span><span class="a-y">Cache Miss?</span><span class="a-ar">→</span><span class="a-r">Real-time Scorer</span></div>
+          <div style="padding-left:20px;color:#3A4A5A">↓  A/B test layer  |  p99 &lt; 120ms</div>
+          <div><span class="a-g">Ranked Items</span><span class="a-ar">→</span><span class="a-b">User  ·  Log to monitoring</span></div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <h3 style="margin-bottom:16px;">Key Concepts</h3>
+      <div class="topic-grid">
+        <div class="topic-card" style="--topic-accent:var(--terra)">
+          <div class="topic-name">Collaborative Filtering (SVD++)</div>
+          <p class="topic-desc">Matrix factorisation: decomposes user-item interaction matrix into latent factors. SVD++ adds implicit feedback (clicks, dwells) on top of explicit ratings. ALS (Alternating Least Squares) scales better for sparse data.</p>
+          <div class="formula">r̂ᵤᵢ = μ + bᵤ + bᵢ + qᵢᵀ(pᵤ + |N(u)|⁻½Σyⱼ)</div>
+        </div>
+        <div class="topic-card" style="--topic-accent:var(--sage)">
+          <div class="topic-name">Cold-Start Solutions</div>
+          <p class="topic-desc">New user: popularity fallback + onboarding survey embeddings + demographic proxies. New item: content-based similarity from metadata embeddings. Exploration budget (ε-greedy or Thompson sampling) to gather signal fast.</p>
+          <div class="callout sage">
+            <div class="callout-label">Production Note</div>
+            <p>Never show pure popularity to new users. Even basic onboarding questions (3-5 topics) dramatically improve first-session relevance and reduce immediate churn.</p>
+          </div>
+        </div>
+        <div class="topic-card" style="--topic-accent:var(--amber)">
+          <div class="topic-name">Evaluation: Offline vs Online</div>
+          <p class="topic-desc">Offline: NDCG@K, MRR, Hit-Rate@K on held-out set. Critically: offline metrics and online business metrics often don't agree — always validate with A/B test. Use multi-armed bandit for faster winner selection. Track novelty and diversity too.</p>
+          <div class="topic-tags"><span class="tag">NDCG</span><span class="tag">A/B test</span><span class="tag">MAB</span></div>
+        </div>
+        <div class="topic-card" style="--topic-accent:var(--terra)">
+          <div class="topic-name">Drift & Retraining</div>
+          <p class="topic-desc">User preferences shift with content, seasons, and cohorts. Monitor feature PSI (interaction features, user activity rates). Monitor prediction distribution. Set PSI &gt; 0.2 threshold for auto-retraining trigger via Airflow + Evidently AI.</p>
+          <div class="topic-tags"><span class="tag">Evidently AI</span><span class="tag">PSI</span><span class="tag">Airflow</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: NLP & TRANSFORMERS
+════════════════════════════════════════ -->
+<div class="page" id="page-nlp">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Knowledge Notes</div>
+      <h2>NLP, Transformers & LLM Engineering</h2>
+      <p>From attention mechanisms to production multi-agent systems. Deep notes on RAG architectures, LangGraph orchestration, fine-tuning, evaluation, and cost optimisation.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+
+      <!-- Transformer -->
+      <div id="nlp-transformer" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 1</div>
+        <h3 style="margin-bottom:20px;">Transformer Architecture</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">Scaled Dot-Product Attention</div>
+            <p class="topic-desc">Queries, keys, values come from the same sequence (self-attention) or different sequences (cross-attention). Scaling by √d_k prevents softmax saturation in high dimensions. Multi-head: run H attention heads in parallel, concatenate and project.</p>
+            <div class="formula">Attention(Q,K,V) = softmax( QKᵀ / √d_k ) · V</div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">KV-Cache & GQA</div>
+            <p class="topic-desc">KV-Cache: store computed key/value pairs across autoregressive steps — avoids recomputing O(n²) attention on prior tokens. GQA (Grouped Query Attention): multiple query heads share fewer KV heads → reduces memory bandwidth significantly at inference.</p>
+            <div class="callout sage">
+              <div class="callout-label">Why it matters</div>
+              <p>Without KV-cache, a 4K context generates 4096 new attention operations per token. Cache makes inference latency linear, not quadratic.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- RAG -->
+      <div id="nlp-rag" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 2</div>
+        <h3 style="margin-bottom:20px;">Production RAG Systems</h3>
+        <div class="arch">
+          <div style="color:#6A7A8A;margin-bottom:4px;">── INDEXING PIPELINE (async Celery) ─────────────────────────</div>
+          <div><span class="a-b">PDF Upload</span><span class="a-ar">→</span><span class="a-y">Docling Parse</span><span class="a-ar">→</span><span class="a-p">Semantic Chunker</span><span class="a-ar">→</span><span class="a-g">text-embedding-3</span><span class="a-ar">→</span><span class="a-r">pgvector + Elasticsearch</span></div>
+          <div style="color:#6A7A8A;margin:8px 0 4px;">── QUERY PIPELINE (sync FastAPI) ────────────────────────────</div>
+          <div><span class="a-b">User Query</span><span class="a-ar">→</span><span class="a-y">Semantic Cache (Redis)</span><span class="a-ar">→</span><span class="a-g">Cache Hit?</span><span class="a-ar">→ return</span></div>
+          <div><span class="a-ar" style="margin-left:20px;">↓ miss</span></div>
+          <div><span class="a-p">Dense (pgvector)</span><span class="a-ar">+</span><span class="a-y">Sparse (BM25)</span><span class="a-ar">→</span><span class="a-g">RRF Fusion</span><span class="a-ar">→</span><span class="a-r">Cross-Encoder Reranker</span><span class="a-ar">→</span><span class="a-b">LLM</span></div>
+        </div>
+        <div class="topic-grid" style="margin-top:16px;">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">Hybrid Search — Why it Works</div>
+            <p class="topic-desc">Dense (vector): captures semantic intent, handles synonyms. BM25 (sparse): exact keyword match, good for rare terms and named entities. RRF (Reciprocal Rank Fusion) merges both ranked lists without needing score calibration. +10–20% NDCG over pure vector.</p>
+            <div class="formula">RRF(d) = Σ 1 / (k + rankᵢ(d))  where k=60</div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">Semantic Caching</div>
+            <p class="topic-desc">Embed the user query, search cache with cosine similarity threshold (e.g. 0.92). If similar query found → return cached answer. Cuts LLM API calls by 45–68% in production. Use Redis LangCache or custom implementation with pgvector.</p>
+            <div class="callout sage">
+              <div class="callout-label">Cost Impact</div>
+              <p>At 15K queries/day, semantic caching at 45% hit rate saves ~6,750 LLM calls/day. At $0.01/call (GPT-4o-mini), that's ~$24K/year saved.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- LangGraph / Agents -->
+      <div id="nlp-agents" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 3</div>
+        <h3 style="margin-bottom:20px;">Multi-Agent Systems with LangGraph</h3>
+        <div class="code-wrap">
+          <div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">PYTHON · LANGGRAPH SUPERVISOR PATTERN</span></div>
+          <pre><code><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cl">StateGraph</span>
+<span class="kw">from</span> langgraph.checkpoint.postgres <span class="kw">import</span> <span class="cl">PostgresSaver</span>
+
+<span class="cm"># PostgresSaver: durable session state, survives failures</span>
+checkpointer = <span class="cl">PostgresSaver</span>.<span class="fn">from_conn_string</span>(DATABASE_URL)
+
+<span class="kw">def</span> <span class="fn">supervisor_router</span>(state):
+    intent = <span class="fn">classify_intent</span>(state[<span class="str">"messages"</span>][-<span class="nm">1</span>])
+    <span class="cm"># Routes to: rag_agent | test_agent | affairs_agent</span>
+    <span class="kw">return</span> {<span class="str">"next"</span>: intent}
+
+graph = <span class="cl">StateGraph</span>(<span class="cl">AgentState</span>)
+graph.<span class="fn">add_node</span>(<span class="str">"supervisor"</span>, supervisor_router)
+graph.<span class="fn">add_node</span>(<span class="str">"rag_agent"</span>, rag_node)
+graph.<span class="fn">add_conditional_edges</span>(<span class="str">"supervisor"</span>, <span class="fn">route_fn</span>)
+app = graph.<span class="fn">compile</span>(checkpointer=checkpointer)</code></pre>
+        </div>
+        <div class="callout amber">
+          <div class="callout-label">Design Decision</div>
+          <p>Use PostgresSaver over Redis for LangGraph checkpointing when you need durability across pod restarts and long-horizon sessions. Redis is fine for sub-session state but loses data on restart without AOF/RDB persistence.</p>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- LLM Eval -->
+      <div id="nlp-eval" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 4</div>
+        <h3 style="margin-bottom:20px;">LLM Evaluation Frameworks</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Metric</th><th>Measures</th><th>Ground Truth?</th><th>When to Use</th></tr></thead>
+            <tbody>
+              <tr><td>ROUGE-L</td><td class="hi">Summarization recall</td><td>✅ Required</td><td>Fine-tuning eval against reference summaries</td></tr>
+              <tr><td>BERTScore</td><td class="hi">Semantic similarity</td><td>✅ Required</td><td>When wording varies but meaning matters</td></tr>
+              <tr><td>FactCC</td><td class="hi">Factual consistency</td><td>Source doc only</td><td>Summarization hallucination detection</td></tr>
+              <tr><td>RAGAS Faithfulness</td><td class="hi">Answer grounded in context</td><td>❌ Reference-free</td><td>RAG pipeline evaluation</td></tr>
+              <tr><td>LLM-as-Judge</td><td class="hi">Holistic 4-axis quality</td><td>❌ Reference-free</td><td>Production nightly eval on 500 samples</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-wrap" style="margin-top:16px;">
+          <div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">PYTHON · LLM-AS-JUDGE NIGHTLY EVAL</span></div>
+          <pre><code>JUDGE = <span class="str">"""Evaluate on 4 axes (1-5 each):
+1. Factual Accuracy  2. Completeness
+3. Hallucination (5=none)  4. Helpfulness
+Return: {{"accuracy":X, "completeness":X, "hallucination":X, "helpful":X}}
+Question: {q}  Context: {ctx}  Answer: {ans}"""</span>
+
+<span class="kw">async def</span> <span class="fn">nightly_eval</span>(sample_ids):
+    results = []
+    <span class="kw">async for</span> sid <span class="kw">in</span> sample_ids:
+        q, ctx, ans = <span class="fn">fetch_production_sample</span>(sid)
+        score = json.<span class="fn">loads</span>(<span class="kw">await</span> llm.<span class="fn">ainvoke</span>(JUDGE.<span class="fn">format</span>(...)))
+        results.<span class="fn">append</span>(score)
+    <span class="cm"># Alert if avg hallucination &lt; 3.5 or accuracy &lt; 4.0</span>
+    <span class="fn">alert_if_regression</span>(results)</code></pre>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <!-- Fine-tuning -->
+      <div id="nlp-finetune">
+        <div class="eyebrow">Section 5</div>
+        <h3 style="margin-bottom:20px;">Fine-Tuning & PEFT</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">When to Fine-tune vs RAG</div>
+            <p class="topic-desc"><strong>Fine-tune when:</strong> domain vocabulary is highly specialized, you have 1K+ quality examples, latency is critical, and knowledge is relatively static. <strong>RAG when:</strong> knowledge updates frequently, source attribution is required, data is proprietary/can't be in weights, or you need to scale context.</p>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">LoRA / QLoRA</div>
+            <p class="topic-desc">LoRA: inject low-rank adapter matrices (rank 4-64) into attention projections. Trains only ~0.1% of parameters. QLoRA adds 4-bit quantization of frozen model → fine-tune 70B models on consumer GPUs. VRAM: 7B needs ~6GB with QLoRA vs ~28GB full fine-tune.</p>
+            <div class="topic-tags"><span class="tag">LoRA</span><span class="tag">QLoRA</span><span class="tag">4-bit</span><span class="tag">PEFT</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: MLOPS
+════════════════════════════════════════ -->
+<div class="page" id="page-mlops">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Knowledge Notes</div>
+      <h2>MLOps & LLMOps</h2>
+      <p>Production ML operations: CI/CD pipelines, drift detection, automated retraining, LLMOps observability, async infrastructure, and model serving optimisation.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+
+      <div id="mo-cicd" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 1</div>
+        <h3 style="margin-bottom:16px;">CI/CD for ML — The 3-Level Model</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Level</th><th>What's Automated</th><th>Trigger</th></tr></thead>
+            <tbody>
+              <tr><td>Level 0</td><td class="hi">Nothing. Manual train/deploy by DS.</td><td>Human only</td></tr>
+              <tr><td>Level 1</td><td class="hi">Training pipeline automated. Model re-trains on schedule/drift.</td><td>Cron or drift alert</td></tr>
+              <tr><td>Level 2</td><td class="hi">Full CI/CD: automated testing, eval gates, canary deploy, rollback.</td><td>Any code change or data drift</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="arch" style="margin-top:16px;">
+          <div><span class="a-b">Code Push</span><span class="a-ar">→</span><span class="a-y">Data Validation</span><span class="a-ar">→</span><span class="a-p">Train (Airflow)</span><span class="a-ar">→</span><span class="a-g">Eval Gate</span></div>
+          <div style="padding-left:20px;color:#3A4A5A">↓  If gate passes (metrics ≥ threshold)</div>
+          <div><span class="a-b">MLflow Registry</span><span class="a-ar">→</span><span class="a-r">Canary 5%</span><span class="a-ar">→</span><span class="a-y">Monitor 24h</span><span class="a-ar">→</span><span class="a-g">Promote / Rollback</span></div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <div id="mo-drift" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 2</div>
+        <h3 style="margin-bottom:16px;">Drift Detection — Production Guide</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">Types of Drift</div>
+            <p class="topic-desc"><strong>Covariate (data) drift:</strong> P(X) changes, P(Y|X) stable. Feature distributions shift (e.g. user behaviour changes seasonally). <strong>Concept drift:</strong> P(Y|X) changes — the model's learned relationship becomes invalid. <strong>Label drift:</strong> P(Y) changes — class proportions shift.</p>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">Statistical Tests</div>
+            <p class="topic-desc"><strong>PSI:</strong> Population Stability Index. Best for feature drift. &gt;0.2 = significant. <strong>KS test:</strong> Kolmogorov-Smirnov for continuous features. p &lt; 0.05 = drift. <strong>JS Divergence:</strong> for prediction distribution. <strong>Chi-square:</strong> categorical feature drift.</p>
+            <div class="formula">PSI = Σ (Aᵢ − Eᵢ) × ln(Aᵢ / Eᵢ)  [threshold: &gt;0.2]</div>
+          </div>
+        </div>
+        <div class="code-wrap" style="margin-top:16px;">
+          <div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">PYTHON · EVIDENTLY AI DRIFT MONITOR</span></div>
+          <pre><code><span class="kw">from</span> evidently.report <span class="kw">import</span> <span class="cl">Report</span>
+<span class="kw">from</span> evidently.metric_preset <span class="kw">import</span> <span class="cl">DataDriftPreset</span>
+
+report = <span class="cl">Report</span>(metrics=[<span class="cl">DataDriftPreset</span>()])
+report.<span class="fn">run</span>(reference_data=train_df, current_data=prod_df)
+drift_results = report.<span class="fn">as_dict</span>()
+
+<span class="cm"># Auto-trigger retraining if PSI > 0.2</span>
+<span class="kw">if</span> drift_results[<span class="str">"drift_share"</span>] > <span class="nm">0.2</span>:
+    airflow_client.<span class="fn">trigger_dag</span>(<span class="str">"retraining_pipeline"</span>)
+    <span class="fn">alert_on_call</span>(<span class="str">"Significant drift detected — retraining triggered"</span>)</code></pre>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <div id="mo-obs" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 3</div>
+        <h3 style="margin-bottom:16px;">LLMOps Observability Stack</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">What to Track in Production</div>
+            <p class="topic-desc">Infrastructure metrics: p50/p95/p99 latency per agent node, throughput, error rates. LLM-specific: token cost per session, cache hit rate, model routing distribution. Quality metrics: LLM-as-Judge scores, hallucination rate trend, self-resolution rate, user satisfaction proxy.</p>
+            <div class="topic-tags"><span class="tag">LangSmith</span><span class="tag">Prometheus</span><span class="tag">Grafana</span></div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">Distributed Tracing with LangSmith</div>
+            <p class="topic-desc">Every LangGraph node execution, LLM call, retrieval step, and tool invocation is traced with latency, token count, intermediate outputs, and cost. Enables root-cause diagnosis of failures in minutes. Alert on: agent node p99 &gt; 3s, cost spike &gt; 2× baseline, judge score drop.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <div id="mo-infra">
+        <div class="eyebrow">Section 4</div>
+        <h3 style="margin-bottom:16px;">Async Pipelines — Celery + Redis</h3>
+        <div class="code-wrap">
+          <div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">PYTHON · CELERY DOCUMENT INGESTION</span></div>
+          <pre><code><span class="kw">from</span> celery <span class="kw">import</span> <span class="cl">Celery</span>
+
+app = <span class="cl">Celery</span>(<span class="str">"ingest"</span>, broker=<span class="str">"redis://redis:6379/0"</span>,
+             backend=<span class="str">"redis://redis:6379/1"</span>)
+
+<span class="fn">@app.task</span>(bind=<span class="kw">True</span>, max_retries=<span class="nm">3</span>, default_retry_delay=<span class="nm">60</span>)
+<span class="kw">def</span> <span class="fn">ingest_document</span>(self, doc_id, s3_uri):
+    <span class="kw">try</span>:
+        text   = <span class="fn">parse_pdf_docling</span>(s3_uri)    <span class="cm"># Docling</span>
+        chunks = <span class="fn">semantic_chunk</span>(text)          <span class="cm"># ~300 token chunks</span>
+        embs   = <span class="fn">embed_batch</span>(chunks)           <span class="cm"># text-embedding-3</span>
+        <span class="fn">upsert_pgvector</span>(embs, doc_id)          <span class="cm"># dense index</span>
+        <span class="fn">upsert_elasticsearch</span>(chunks, doc_id)   <span class="cm"># BM25 index</span>
+    <span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+        <span class="kw">raise</span> self.<span class="fn">retry</span>(exc=e)</code></pre>
+        </div>
+        <div class="callout">
+          <div class="callout-label">Architecture Principle</div>
+          <p>Always decouple ingestion from serving. Running document processing synchronously in the request path causes latency spikes and timeouts. Celery workers handle ingestion independently; serving always reads from the already-indexed store.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: CLOUD & INFRA
+════════════════════════════════════════ -->
+<div class="page" id="page-cloud">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Knowledge Notes</div>
+      <h2>Cloud & Infrastructure</h2>
+      <p>AWS services for ML engineers, Docker patterns, authentication design, PostgreSQL optimisation, and Redis caching strategies — grounded in production use.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+
+      <div id="cl-aws" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 1</div>
+        <h3 style="margin-bottom:16px;">AWS for ML Engineers</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Service</th><th>ML Use Case</th><th>When to Use Instead</th></tr></thead>
+            <tbody>
+              <tr><td>SageMaker Training</td><td class="hi">Managed training jobs, spot instances</td><td>ECS if you need full Docker control</td></tr>
+              <tr><td>ECS Fargate</td><td class="hi">Containerised API serving (no GPU)</td><td>SageMaker Endpoints for GPU inference</td></tr>
+              <tr><td>S3</td><td class="hi">Data lake, model artefacts, training data</td><td>EFS for shared file access between pods</td></tr>
+              <tr><td>RDS PostgreSQL</td><td class="hi">Conversation store, pgvector search</td><td>Aurora Serverless for variable load</td></tr>
+              <tr><td>ElastiCache Redis</td><td class="hi">Semantic cache, session state, broker</td><td>DynamoDB for globally distributed KV</td></tr>
+              <tr><td>MSK (Kafka)</td><td class="hi">Real-time event streaming for feature store</td><td>Kinesis for lighter AWS-native setup</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <div id="cl-docker" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 2</div>
+        <h3 style="margin-bottom:16px;">Docker — Production ML Patterns</h3>
+        <div class="code-wrap">
+          <div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">DOCKERFILE · MULTI-STAGE ML SERVICE</span></div>
+          <pre><code><span class="cm"># Stage 1: build — install heavy deps once</span>
+<span class="kw">FROM</span> python:3.11-slim <span class="kw">AS</span> builder
+<span class="kw">WORKDIR</span> /app
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip install --no-cache-dir -r requirements.txt
+
+<span class="cm"># Stage 2: runtime — lean image</span>
+<span class="kw">FROM</span> python:3.11-slim
+<span class="kw">WORKDIR</span> /app
+<span class="kw">COPY</span> --from=builder /usr/local/lib /usr/local/lib
+<span class="kw">COPY</span> src/ .
+<span class="cm"># Health check before ECS considers container healthy</span>
+<span class="kw">HEALTHCHECK</span> --interval=30s --timeout=5s \
+    CMD curl -f http://localhost:8000/health || exit 1
+<span class="kw">CMD</span> [<span class="str">"uvicorn"</span>, <span class="str">"main:app"</span>, <span class="str">"--host"</span>, <span class="str">"0.0.0.0"</span>, <span class="str">"--workers"</span>, <span class="str">"4"</span>]</code></pre>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <div id="cl-auth" style="margin-bottom:48px;">
+        <div class="eyebrow">Section 3</div>
+        <h3 style="margin-bottom:16px;">Auth — JWT / OAuth2 / RBAC</h3>
+        <div class="topic-grid">
+          <div class="topic-card" style="--topic-accent:var(--terra)">
+            <div class="topic-name">JWT Structure & Flow</div>
+            <p class="topic-desc">Header.Payload.Signature (base64url). Access token: short-lived (15 min). Refresh token: long-lived (7 days), stored httpOnly cookie. On expiry, client uses refresh token silently. For AI APIs: embed user tier in JWT claims to enforce RBAC at gateway.</p>
+            <div class="code-wrap"><div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">PYTHON · FASTAPI JWT</span></div>
+            <pre><code><span class="kw">async def</span> <span class="fn">get_current_user</span>(token=<span class="cl">Depends</span>(oauth2_scheme)):
+    payload = jwt.<span class="fn">decode</span>(token, SECRET, [<span class="str">"HS256"</span>])
+    role = payload[<span class="str">"role"</span>]    <span class="cm"># "free"|"premium"|"admin"</span>
+    tier = payload[<span class="str">"tier"</span>]    <span class="cm"># enforces rate limits + features</span>
+    <span class="kw">return</span> <span class="cl">UserContext</span>(id=payload[<span class="str">"sub"</span>], role=role, tier=tier)</code></pre></div>
+          </div>
+          <div class="topic-card" style="--topic-accent:var(--sage)">
+            <div class="topic-name">RBAC for AI Systems</div>
+            <p class="topic-desc">Role matrix for EdTech AI: <br><br><strong>Free:</strong> basic Q&A, 20 queries/day, no test analysis.<br><strong>Premium:</strong> all agents, 200 queries/day, test feedback.<br><strong>Admin:</strong> system management, eval dashboard access.<br><br>Enforce at FastAPI dependency level, not inside agent logic.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <div id="cl-pg">
+        <div class="eyebrow">Section 4</div>
+        <h3 style="margin-bottom:16px;">PostgreSQL & Redis for AI Systems</h3>
+        <div class="acc">
+          <div class="acc-head" onclick="toggleAcc(this)">pgvector — Vector Search in PostgreSQL <span class="acc-arr">▼</span></div>
+          <div class="acc-body">
+            <p style="font-size:0.83rem;color:var(--bark2);margin-bottom:12px;">pgvector adds ANN (approximate nearest neighbour) search directly in Postgres. HNSW index for performance, IVFFlat for memory efficiency. Pair with pg_trgm for BM25-like text search to get hybrid retrieval without a separate vector DB.</p>
+            <div class="code-wrap"><div class="code-bar"><div class="code-dots"><div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div></div><span class="code-lang">SQL · HNSW INDEX + SEARCH</span></div>
+            <pre><code><span class="cm">-- Create HNSW index (best for recall/speed balance)</span>
+<span class="kw">CREATE INDEX</span> ON embeddings
+  <span class="kw">USING</span> hnsw (embedding vector_cosine_ops)
+  <span class="kw">WITH</span> (m = <span class="nm">16</span>, ef_construction = <span class="nm">64</span>);
+
+<span class="cm">-- Semantic search with metadata filter</span>
+<span class="kw">SELECT</span> chunk_text, <span class="nm">1</span> - (embedding &lt;=&gt; $1) AS similarity
+<span class="kw">FROM</span> document_chunks
+<span class="kw">WHERE</span> user_id = $2  <span class="cm">-- tenant isolation</span>
+<span class="kw">ORDER BY</span> embedding &lt;=&gt; $1  <span class="kw">LIMIT</span> <span class="nm">10</span>;</code></pre></div>
+          </div>
+        </div>
+        <div class="acc" style="margin-top:8px;">
+          <div class="acc-head" onclick="toggleAcc(this)">Redis Caching Patterns <span class="acc-arr">▼</span></div>
+          <div class="acc-body">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Pattern</th><th>How</th><th>Best For</th></tr></thead>
+                <tbody>
+                  <tr><td>Cache-aside</td><td class="hi">App checks cache, populates on miss</td><td>Read-heavy, tolerance for stale data</td></tr>
+                  <tr><td>Semantic cache</td><td class="hi">Embed query, cosine search cache</td><td>LLM response caching (45–68% hit rate)</td></tr>
+                  <tr><td>Write-through</td><td class="hi">Write to cache and DB simultaneously</td><td>Strong consistency required</td></tr>
+                  <tr><td>TTL invalidation</td><td class="hi">Key expires after N seconds</td><td>Recommendation pre-compute (24h TTL)</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: SYSTEM DESIGN
+════════════════════════════════════════ -->
+<div class="page" id="page-sysdesign">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Knowledge Notes</div>
+      <h2>System Design for AI</h2>
+      <p>Production blueprints for ML systems — the thinking framework, common patterns, and trade-off analysis for designing recommendation, RAG, multi-agent, and inference systems.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+
+      <div style="margin-bottom:40px;">
+        <div class="eyebrow">Framework</div>
+        <h3 style="margin-bottom:16px;">6-Step ML System Design Framework</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+          <div style="background:var(--cream2);border:1px solid rgba(180,160,140,0.3);border-radius:10px;padding:16px 18px;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--terra);margin-bottom:6px;">STEP 1</div>
+            <div style="font-weight:600;font-size:0.88rem;color:var(--ink);margin-bottom:4px;">Define the Problem</div>
+            <p style="font-size:0.78rem;color:var(--bark2);">Clarify task type, success metrics, constraints (latency, cost, scale). Separate business metrics from ML metrics.</p>
+          </div>
+          <div style="background:var(--cream2);border:1px solid rgba(180,160,140,0.3);border-radius:10px;padding:16px 18px;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--terra);margin-bottom:6px;">STEP 2</div>
+            <div style="font-weight:600;font-size:0.88rem;color:var(--ink);margin-bottom:4px;">Data Pipeline Design</div>
+            <p style="font-size:0.78rem;color:var(--bark2);">Collection, labelling, validation, feature engineering, feature store, training/serving parity.</p>
+          </div>
+          <div style="background:var(--cream2);border:1px solid rgba(180,160,140,0.3);border-radius:10px;padding:16px 18px;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--terra);margin-bottom:6px;">STEP 3</div>
+            <div style="font-weight:600;font-size:0.88rem;color:var(--ink);margin-bottom:4px;">Model Architecture</div>
+            <p style="font-size:0.78rem;color:var(--bark2);">Simple baseline first. Scale complexity with data. Consider inference cost and latency budgets.</p>
+          </div>
+          <div style="background:var(--cream2);border:1px solid rgba(180,160,140,0.3);border-radius:10px;padding:16px 18px;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--terra);margin-bottom:6px;">STEP 4</div>
+            <div style="font-weight:600;font-size:0.88rem;color:var(--ink);margin-bottom:4px;">Serving Infrastructure</div>
+            <p style="font-size:0.78rem;color:var(--bark2);">Online vs batch vs streaming. Caching strategy. Auth. Rate limiting. SLO definition.</p>
+          </div>
+          <div style="background:var(--cream2);border:1px solid rgba(180,160,140,0.3);border-radius:10px;padding:16px 18px;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--terra);margin-bottom:6px;">STEP 5</div>
+            <div style="font-weight:600;font-size:0.88rem;color:var(--ink);margin-bottom:4px;">Evaluation & Testing</div>
+            <p style="font-size:0.78rem;color:var(--bark2);">A/B test plan, offline eval metrics, shadow mode, eval gates in CI/CD.</p>
+          </div>
+          <div style="background:var(--cream2);border:1px solid rgba(180,160,140,0.3);border-radius:10px;padding:16px 18px;">
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--terra);margin-bottom:6px;">STEP 6</div>
+            <div style="font-weight:600;font-size:0.88rem;color:var(--ink);margin-bottom:4px;">Monitoring & Iteration</div>
+            <p style="font-size:0.78rem;color:var(--bark2);">Drift detection, alerting, auto-retraining triggers, feedback loops.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:32px 0;"></div>
+
+      <h3 style="margin-bottom:20px;">Design Blueprints</h3>
+      <div class="topic-grid">
+        <div class="topic-card" style="--topic-accent:var(--terra)">
+          <div class="topic-name">Production Recommendation System</div>
+          <p class="topic-desc">Candidate gen (ANN/two-tower) → feature engineering → LightGBM ranker → A/B test layer → Redis cache → feature drift monitoring → auto-retraining. Cold-start: popularity fallback + onboarding survey embeddings. Scale: pre-compute nightly for active users.</p>
+        </div>
+        <div class="topic-card" style="--topic-accent:var(--sage)">
+          <div class="topic-name">Production RAG System</div>
+          <p class="topic-desc">Async Celery indexing + sync FastAPI serving. Hybrid BM25 + dense retrieval with RRF fusion. Cross-encoder reranking. Redis semantic cache. Guardrails (intent filter + output validator). Nightly LLM-as-Judge eval. LangSmith distributed tracing.</p>
+        </div>
+        <div class="topic-card" style="--topic-accent:var(--amber)">
+          <div class="topic-name">Multi-Agent System</div>
+          <p class="topic-desc">LangGraph supervisor with intent routing to specialised sub-agents. PostgresSaver for durable session state. Failure isolation: each agent retries independently. HITL interrupts for high-stakes decisions. Per-node latency and cost tracking via Prometheus.</p>
+        </div>
+        <div class="topic-card" style="--topic-accent:var(--terra)">
+          <div class="topic-name">Real-Time ML Serving</div>
+          <p class="topic-desc">FastAPI + uvicorn workers. Pre-computed batch predictions in Redis (TTL 24h). Cache-aside for real-time fallback. Auto-scaling ECS tasks on CPU/RPS. Canary rollout 5% → 20% → 100%. Shadow mode for new model validation. SLO: p99 &lt; 200ms.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: INTERVIEW PREP
+════════════════════════════════════════ -->
+<div class="page" id="page-interview">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Interview Preparation</div>
+      <h2>Question Bank & Answer Frameworks</h2>
+      <p>60+ curated questions across ML concepts, LLM/RAG, MLOps, system design, and behavioural. Organised by seniority level with answer frameworks.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-ml','interview')">ML Concepts</button>
+        <button class="tab-btn" onclick="switchTab('tab-llm','interview')">LLM & RAG</button>
+        <button class="tab-btn" onclick="switchTab('tab-mlops','interview')">MLOps</button>
+        <button class="tab-btn" onclick="switchTab('tab-sd','interview')">System Design</button>
+        <button class="tab-btn" onclick="switchTab('tab-beh','interview')">Behavioural</button>
+      </div>
+
+      <div id="tab-ml" class="tab-pane active">
+        <div class="topic-grid">
+          <div class="iq-card"><div class="iq-level iq-l1">L1 · Fundamentals</div><div class="iq-title">Bias, Variance & Regularisation</div><ul class="iq-list"><li>What's the bias-variance tradeoff? How does model complexity affect it?</li><li>Explain L1 vs L2 regularisation. When would you use each?</li><li>How does dropout work as regularisation vs Bayesian ensembling?</li><li>What's the difference between overfitting and high variance?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l2">L2 · Intermediate</div><div class="iq-title">Ensemble Methods</div><ul class="iq-list"><li>How does gradient boosting differ from bagging? What does XGBoost add?</li><li>Why is LightGBM faster than XGBoost on large datasets?</li><li>When would you choose Random Forest over XGBoost?</li><li>Explain stacking. What's the risk of data leakage in stacking?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l3">L3 · Advanced</div><div class="iq-title">Recommendation System Design</div><ul class="iq-list"><li>Design a recommendation system for an EdTech platform with 500K students. Walk through the full pipeline.</li><li>How do you handle cold-start for new students and new content?</li><li>How do you measure recommendation quality offline vs online?</li><li>How do you detect and correct position bias in training data?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l2">L2 · Intermediate</div><div class="iq-title">Evaluation & A/B Testing</div><ul class="iq-list"><li>When is ROC-AUC misleading? What do you use instead?</li><li>Explain NDCG. How is it different from MAP?</li><li>How would you design an A/B test for a model change? What sample size do you need?</li><li>What's CUPED? Why is it useful?</li></ul></div>
+        </div>
+      </div>
+
+      <div id="tab-llm" class="tab-pane">
+        <div class="topic-grid">
+          <div class="iq-card"><div class="iq-level iq-l1">L1 · Fundamentals</div><div class="iq-title">Transformer Architecture</div><ul class="iq-list"><li>Explain scaled dot-product attention. Why scale by √d_k?</li><li>Encoder-only vs decoder-only vs encoder-decoder — give examples of each.</li><li>How does KV-caching work and why does it reduce inference cost?</li><li>What is GQA and why do modern models use it?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l3">L3 · Advanced</div><div class="iq-title">RAG System Design</div><ul class="iq-list"><li>RAG vs fine-tuning — when do you choose each? Failure modes?</li><li>How does hybrid RAG outperform pure vector search? Explain RRF.</li><li>RAG relevance degraded over time even though inputs are stable. How do you diagnose?</li><li>How do you evaluate a RAG pipeline end-to-end?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l2">L2 · Intermediate</div><div class="iq-title">LLM Cost & Latency</div><ul class="iq-list"><li>How would you cut LLM inference cost by 50% without degrading quality?</li><li>What is semantic caching? How is it different from exact-match caching?</li><li>Explain model routing/cascading. How do you decide when to escalate?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l3">L3 · Advanced</div><div class="iq-title">Multi-Agent Systems</div><ul class="iq-list"><li>How does LangGraph differ from a simple LangChain chain? When does the graph model win?</li><li>Design a multi-agent system for 200K students. State, failures, observability?</li><li>What is the supervisor pattern? How do you isolate sub-agent failures?</li><li>How do you evaluate an LLM agent in production?</li></ul></div>
+        </div>
+      </div>
+
+      <div id="tab-mlops" class="tab-pane">
+        <div class="topic-grid">
+          <div class="iq-card"><div class="iq-level iq-l2">L2 · Intermediate</div><div class="iq-title">Drift Detection & Monitoring</div><ul class="iq-list"><li>What's the difference between data drift, concept drift, and label drift?</li><li>What is PSI? What threshold triggers retraining?</li><li>How would you build an automated retraining pipeline triggered by drift?</li><li>How do you monitor an LLM app differently from a classical ML model?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l2">L2 · Intermediate</div><div class="iq-title">CI/CD for ML</div><ul class="iq-list"><li>What's the difference between MLOps maturity Level 0, 1, and 2?</li><li>What tests do you run before promoting a new model to production?</li><li>Explain blue-green vs canary deployment for ML models.</li><li>What is shadow mode deployment?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l3">L3 · Advanced</div><div class="iq-title">Feature Stores</div><ul class="iq-list"><li>What is training-serving skew and how does a feature store prevent it?</li><li>Explain point-in-time correctness in feature retrieval.</li><li>When would you use online vs offline store in Feast?</li></ul></div>
+        </div>
+      </div>
+
+      <div id="tab-sd" class="tab-pane">
+        <div class="topic-grid">
+          <div class="iq-card"><div class="iq-level iq-l3">L3 · Design</div><div class="iq-title">Classic ML System Design</div><ul class="iq-list"><li>Design a content recommendation system for 10M users. Data pipeline, model, serving, monitoring.</li><li>Design a fraud detection system with &lt;100ms SLO.</li><li>Design a search ranking system combining BM25 with ML ranking.</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l3">L3 · Design</div><div class="iq-title">LLM System Design</div><ul class="iq-list"><li>Design a production RAG for a 10K-document knowledge base. Cost, latency, quality.</li><li>Design a multi-agent customer support system. Failures, state, escalation.</li><li>How would you serve a 70B model with &lt;200ms p99 latency?</li><li>Design a continuous LLM evaluation pipeline for production.</li></ul></div>
+        </div>
+      </div>
+
+      <div id="tab-beh" class="tab-pane">
+        <div class="topic-grid">
+          <div class="iq-card"><div class="iq-level iq-l1">STAR Format</div><div class="iq-title">Impact & Ownership</div><ul class="iq-list"><li>Describe the most complex technical system you built end-to-end. What did you own?</li><li>Tell me about a time your ML model failed in production. How did you detect, diagnose, and fix it?</li><li>How have you improved a production system's cost or performance significantly?</li><li>A technical trade-off under time pressure — what was your decision framework?</li></ul></div>
+          <div class="iq-card"><div class="iq-level iq-l1">STAR Format</div><div class="iq-title">Collaboration & Influence</div><ul class="iq-list"><li>How have you worked with product/business teams to translate ML results into business decisions?</li><li>Tell me about a time you pushed back on a stakeholder for technical reasons.</li><li>How have you raised engineering standards on a team?</li></ul></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: COLLABORATION
+════════════════════════════════════════ -->
+<div class="page" id="page-collab">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Collaboration</div>
+      <h2>Let's Build Something Together</h2>
+      <p>I'm actively looking for high-impact roles and collaboration opportunities. If you're working on problems at the intersection of AI, scale, and real user value — let's talk.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+      <div class="collab-grid">
+        <div>
+          <div class="eyebrow">What I'm Looking For</div>
+          <h3 style="margin-bottom:20px;">The right fit</h3>
+          <div class="collab-type">
+            <div class="collab-item">
+              <div class="collab-item-icon">🚀</div>
+              <div><div class="collab-item-title">Senior / Staff AI Engineer Role</div><div class="collab-item-desc">End-to-end ownership. LLM systems, RAG, multi-agent, MLOps. Companies building with genuine scale and real users. Strong engineering culture.</div></div>
+            </div>
+            <div class="collab-item">
+              <div class="collab-item-icon">🔬</div>
+              <div><div class="collab-item-title">Applied AI Research Engineering</div><div class="collab-item-desc">Where the line between research and production is thin. Problems that require both modelling depth and systems thinking simultaneously.</div></div>
+            </div>
+            <div class="collab-item">
+              <div class="collab-item-icon">🤝</div>
+              <div><div class="collab-item-title">Technical Advisory / Consulting</div><div class="collab-item-desc">Helping teams level up their AI systems — from prototype to production. Architecture reviews, MLOps strategy, LLM evaluation frameworks.</div></div>
+            </div>
+            <div class="collab-item">
+              <div class="collab-item-icon">📚</div>
+              <div><div class="collab-item-title">Open-Source Collaboration</div><div class="collab-item-desc">Interested in contributing to tooling around LLM evaluation, RAG systems, or MLOps infrastructure. Especially production-focused work.</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="collab-card-big">
+            <div class="eyebrow">What I Bring</div>
+            <h3 style="margin-bottom:14px;">At a Glance</h3>
+            <p style="font-size:0.83rem;color:var(--bark2);line-height:1.75;margin-bottom:20px;">
+              Four years of building AI systems that serve real users at real scale. I think in systems, not models — every technical decision considers cost, monitoring, failure modes, and the engineer who maintains it.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;font-size:0.82rem;color:var(--bark);">
+                <span style="color:var(--sage);">✓</span> End-to-end ownership — data to deployment
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:0.82rem;color:var(--bark);">
+                <span style="color:var(--sage);">✓</span> Production LLM systems with real monitoring
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:0.82rem;color:var(--bark);">
+                <span style="color:var(--sage);">✓</span> Recommendation systems at 500K+ user scale
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:0.82rem;color:var(--bark);">
+                <span style="color:var(--sage);">✓</span> MLOps culture: drift detection, eval pipelines
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:0.82rem;color:var(--bark);">
+                <span style="color:var(--sage);">✓</span> AWS, Docker, PostgreSQL, Redis at production depth
+              </div>
+            </div>
+            <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(180,160,140,0.25);">
+              <div style="font-size:0.78rem;color:var(--dust);margin-bottom:10px;">Currently based in</div>
+              <div style="font-weight:600;color:var(--ink);">📍 Hyderabad, Andhra Pradesh, India</div>
+              <div style="font-size:0.78rem;color:var(--bark2);margin-top:4px;">Open to remote roles globally · Relocation considered for the right opportunity</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="showPage('contact')">Start a Conversation →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE: CONTACT
+════════════════════════════════════════ -->
+<div class="page" id="page-contact">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="eyebrow">Contact</div>
+      <h2>Get in Touch</h2>
+      <p>Whether you're a hiring manager, a potential collaborator, or just want to discuss something technical — I read every message and respond thoughtfully.</p>
+    </div>
+  </div>
+  <section class="section">
+    <div class="container">
+      <div class="contact-layout">
+        <div class="contact-info">
+          <div class="eyebrow">Direct Channels</div>
+          <h3 style="margin-bottom:4px;">Reach me at</h3>
+          <p style="font-size:0.83rem;margin-bottom:20px;">Response time is typically within 24 hours on working days.</p>
+
+          <div class="contact-info-item">
+            <div class="contact-icon">✉️</div>
+            <div><div class="contact-detail-lbl">Email</div><div class="contact-detail-val"><a href="mailto:sudheesh.ofc@gmail.com">sudheesh.ofc@gmail.com</a></div></div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-icon">📍</div>
+            <div><div class="contact-detail-lbl">Location</div><div class="contact-detail-val">Hyderabad, Andhra Pradesh, India</div></div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-icon">🕒</div>
+            <div><div class="contact-detail-lbl">Availability</div><div class="contact-detail-val">Open to opportunities</div></div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-icon">🌐</div>
+            <div><div class="contact-detail-lbl">Time Zone</div><div class="contact-detail-val">IST (UTC +5:30)</div></div>
+          </div>
+
+          <div style="margin-top:28px;padding:20px;background:var(--cream2);border-radius:12px;border:1px solid rgba(180,160,140,0.25);">
+            <div style="font-size:0.78rem;font-weight:600;color:var(--ink2);margin-bottom:8px;">What to include in your message</div>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+              <li style="font-size:0.78rem;color:var(--bark2);">· Your company / team context</li>
+              <li style="font-size:0.78rem;color:var(--bark2);">· The problem or opportunity you're working on</li>
+              <li style="font-size:0.78rem;color:var(--bark2);">· What you're looking for (hire / collab / consult)</li>
+              <li style="font-size:0.78rem;color:var(--bark2);">· Any relevant links or JD</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="contact-form-card">
+          <div class="eyebrow">Send a Message</div>
+          <h3 style="margin-bottom:20px;">Let's start a conversation</h3>
+
+          <div id="contactFormWrap">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Name *</label>
+                <input class="form-input" type="text" placeholder="Your name" id="cf-name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email *</label>
+                <input class="form-input" type="email" placeholder="your@email.com" id="cf-email">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Organisation</label>
+              <input class="form-input" type="text" placeholder="Company or team name" id="cf-org">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purpose *</label>
+              <select class="form-select" id="cf-purpose">
+                <option value="">Select a purpose</option>
+                <option>Job Opportunity</option>
+                <option>Technical Collaboration</option>
+                <option>Consulting Enquiry</option>
+                <option>Open Source / Research</option>
+                <option>General Discussion</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Message *</label>
+              <textarea class="form-textarea" rows="5" placeholder="Tell me about what you're working on and what you're looking for…" id="cf-msg"></textarea>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="submitContact()">Send Message</button>
+          </div>
+
+          <div class="success-msg" id="contactSuccess">
+            <div style="font-size:2rem;margin-bottom:12px;">✉️</div>
+            <h4>Message sent!</h4>
+            <p>Thanks for reaching out. I'll review your message and get back to you at the email you provided — typically within 24 hours.</p>
+            <p style="margin-top:8px;font-size:0.78rem;color:var(--dust);">In the meantime, feel free to explore the knowledge notes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════ -->
+<footer style="background:var(--ink);padding:48px clamp(20px,5vw,72px) 32px;">
+  <div style="max-width:1160px;margin:0 auto;">
+    <div style="display:grid;grid-template-columns:1fr auto;gap:32px;align-items:start;margin-bottom:40px;">
+      <div>
+        <div style="font-family:var(--serif);font-size:1.1rem;font-weight:600;color:var(--cream);margin-bottom:6px;">J. Sudheesh Kumar Reddy</div>
+        <div style="font-size:0.8rem;color:rgba(232,220,204,0.5);margin-bottom:16px;">AI Engineer · 4 Years · Hyderabad, India</div>
+        <a href="mailto:sudheesh.ofc@gmail.com" style="font-size:0.82rem;color:var(--terra2);text-decoration:none;">sudheesh.ofc@gmail.com</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;text-align:right;">
+        <button onclick="showPage('home')" style="background:none;border:none;font-size:0.78rem;color:rgba(232,220,204,0.45);cursor:pointer;text-align:right;font-family:var(--sans);">Home</button>
+        <button onclick="showPage('ds')" style="background:none;border:none;font-size:0.78rem;color:rgba(232,220,204,0.45);cursor:pointer;text-align:right;font-family:var(--sans);">Data Science Notes</button>
+        <button onclick="showPage('nlp')" style="background:none;border:none;font-size:0.78rem;color:rgba(232,220,204,0.45);cursor:pointer;text-align:right;font-family:var(--sans);">NLP & Transformers</button>
+        <button onclick="showPage('experience')" style="background:none;border:none;font-size:0.78rem;color:rgba(232,220,204,0.45);cursor:pointer;text-align:right;font-family:var(--sans);">Experience</button>
+        <button onclick="showPage('contact')" style="background:none;border:none;font-size:0.78rem;color:var(--terra2);cursor:pointer;text-align:right;font-family:var(--sans);">Contact →</button>
+      </div>
+    </div>
+    <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:20px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div style="font-family:var(--mono);font-size:0.62rem;color:rgba(232,220,204,0.25);letter-spacing:0.08em;">© 2025 J. SUDHEESH KUMAR REDDY · ALL RIGHTS RESERVED</div>
+      <div style="font-family:var(--mono);font-size:0.62rem;color:rgba(232,220,204,0.2);">KNOWLEDGE JOURNAL v2025</div>
+    </div>
+  </div>
+</footer>
+
+
+<script>
+/* ════════════════════════════════════════
+   SPA NAVIGATION
+════════════════════════════════════════ */
+const pages = ['home','experience','ds','recsys','nlp','mlops','cloud','sysdesign','interview','collab','contact'];
+
+function showPage(id) {
+  pages.forEach(p => {
+    const el = document.getElementById('page-'+p);
+    if (el) el.classList.remove('active');
+  });
+  const target = document.getElementById('page-'+id);
+  if (target) {
+    target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  // Update nav active state
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  // close mobile menu
+  document.getElementById('navLinks').classList.remove('open');
+  document.getElementById('burger').classList.remove('open');
+}
+
+function scrollToSection(sectionId) {
+  setTimeout(() => {
+    const el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+/* ════════════════════════════════════════
+   TABS
+════════════════════════════════════════ */
+function switchTab(tabId, pageCtx) {
+  const container = document.getElementById('page-'+pageCtx);
+  if (!container) return;
+  container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const pane = document.getElementById(tabId);
+  if (pane) pane.classList.add('active');
+  // Activate corresponding button
+  container.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId)) {
+      b.classList.add('active');
+    }
+  });
+}
+
+/* ════════════════════════════════════════
+   ACCORDION
+════════════════════════════════════════ */
+function toggleAcc(header) {
+  const body = header.nextElementSibling;
+  const isOpen = header.classList.contains('open');
+  document.querySelectorAll('.acc-head').forEach(h => {
+    h.classList.remove('open');
+    if (h.nextElementSibling) h.nextElementSibling.classList.remove('open');
+  });
+  if (!isOpen) {
+    header.classList.add('open');
+    if (body) body.classList.add('open');
+  }
+}
+
+/* ════════════════════════════════════════
+   NAV SCROLL SHADOW
+════════════════════════════════════════ */
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+/* ════════════════════════════════════════
+   MOBILE MENU
+════════════════════════════════════════ */
+function toggleMenu() {
+  const links = document.getElementById('navLinks');
+  const burger = document.getElementById('burger');
+  const isOpen = links.classList.contains('open');
+  links.classList.toggle('open');
+  burger.classList.toggle('open');
+  // Prevent body scroll when menu open on mobile
+  document.body.style.overflow = isOpen ? '' : '';
+}
+
+/* ════════════════════════════════════════
+   FORM SUBMISSIONS
+════════════════════════════════════════ */
+function submitRequest() {
+  const name = document.querySelector('#reqForm .form-input').value.trim();
+  if (!name) { alert('Please fill in your name.'); return; }
+  document.getElementById('reqSuccess').style.display = 'block';
+  document.querySelector('#reqForm .btn-primary').style.display = 'none';
+}
+
+function submitContact() {
+  const name  = document.getElementById('cf-name').value.trim();
+  const email = document.getElementById('cf-email').value.trim();
+  const msg   = document.getElementById('cf-msg').value.trim();
+  if (!name || !email || !msg) { alert('Please fill in required fields.'); return; }
+  document.getElementById('contactFormWrap').style.display = 'none';
+  document.getElementById('contactSuccess').classList.add('show');
+}
+
+/* ════════════════════════════════════════
+   SCROLL ANIMATIONS (IntersectionObserver)
+════════════════════════════════════════ */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.08 });
+
+document.querySelectorAll('.expertise-card, .topic-card, .iq-card, .collab-item, .exp-pub-card').forEach((el, i) => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(18px)';
+  el.style.transition = `opacity 0.4s ease ${(i % 6) * 0.06}s, transform 0.4s ease ${(i % 6) * 0.06}s`;
+  io.observe(el);
+});
+</script>
+</body>
+</html>
