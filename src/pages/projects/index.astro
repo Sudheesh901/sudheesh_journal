@@ -1,0 +1,17 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import CollectionIndex from '@/components/CollectionIndex.astro';
+
+const entries = await getCollection('projects');
+---
+
+<BaseLayout title="Projects - Sudheesh Knowledge Base" active="projects">
+  <CollectionIndex
+    eyebrow="Build Roadmap"
+    title="Projects"
+    description="Website-native projects that turn the knowledge base into working systems: search, retrieval, chatbot, accounts, and paid services."
+    basePath="/projects"
+    entries={entries}
+  />
+</BaseLayout>

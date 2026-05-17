@@ -1,0 +1,15 @@
+---
+import { getCollection } from 'astro:content';
+import KBArticleLayout from '@/layouts/KBArticleLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('ai-engineering');
+  return entries
+    .filter(e => !['ai-engineer-roadmap', 'llms-nlp'].includes(e.slug))
+    .map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<KBArticleLayout entry={entry} active="ai-engineering" />

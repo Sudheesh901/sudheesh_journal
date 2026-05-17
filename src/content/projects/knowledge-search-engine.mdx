@@ -1,0 +1,44 @@
+---
+title: "Knowledge Search Engine"
+description: "A planned website-native search engine over the knowledge base using lexical search first, then hybrid retrieval."
+status: "Planned"
+order: 1
+tags: ["search", "information retrieval", "BM25", "hybrid retrieval"]
+tools: ["Pagefind", "Typesense", "PostgreSQL", "pgvector"]
+updated: "2026-05-15"
+---
+
+## Product Goal
+
+Visitors should be able to search concepts, tools, patterns, and interview questions across the knowledge base without knowing the exact section.
+
+## Architecture Path
+
+Phase 1:
+
+- Static indexing with Pagefind.
+- Search across MDX content.
+- Filters by collection, tag, and level.
+
+Phase 2:
+
+- Hybrid search using BM25 plus embeddings.
+- Query expansion for related concepts.
+- Result explanations.
+
+Phase 3:
+
+- Personalized saved searches for accounts.
+- Search analytics to discover missing content.
+
+## Evaluation
+
+Create a query set:
+
+- "RAG hallucination debugging"
+- "difference between drift and skew"
+- "recommendation cold start"
+- "LLM cost optimization"
+- "system design for vector search"
+
+Evaluate result relevance manually before adding complexity.

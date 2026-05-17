@@ -1,0 +1,161 @@
+---
+title: "AI Engineer Roadmap"
+description: "A 12-stage practical progression from Python async architecture to shipping production GenAI systems and landing AI engineering roles."
+domain: "AI Engineering"
+level: "Roadmap"
+order: 0
+tags: ["roadmap", "LLMs", "RAG", "agents", "MLOps", "production", "career"]
+tools: ["FastAPI", "LangGraph", "vLLM", "RAGAS", "LlamaIndex", "DeepEval"]
+updated: "2026-05-17"
+---
+
+## Python + Async Architecture
+
+The engineering foundation everything else runs on. Not beginner Python — production Python.
+
+- **FastAPI** with async route handlers and dependency injection
+- **asyncio** patterns: tasks, queues, semaphores, timeouts
+- **Typing** with Pydantic v2: strict models, validators, serialization
+- **Event-driven design**: pub/sub patterns, webhooks, background workers
+- API integration patterns: retries, circuit breakers, rate-limit handling
+
+Most LLM engineers skip this and pay for it in production when their async pipeline deadlocks at 2 AM.
+
+## Multimodal LLM Fundamentals
+
+Understand the machinery before you use the API.
+
+- **Transformer architecture**: attention, positional encoding, KV cache mechanics
+- **SLMs vs LLMs**: parameter count trade-offs, latency, cost, capability boundaries
+- **Context window management**: chunking strategies, long-context models, sliding windows
+- **Vision + audio inputs**: tokenization of non-text modalities, interleaved inputs
+- **Token economics**: cost per token, prompt compression, caching strategies
+
+Knowing why a model behaves the way it does is what separates debugging in minutes from debugging in days.
+
+## Structured Outputs + Prompt Ops
+
+The gap between a demo and a system is structured, reproducible outputs.
+
+- **JSON schema enforcement**: constrained decoding, tool call schemas, Pydantic integration
+- **Function calling**: tool definitions, parallel tool calls, error recovery
+- **Prompt versioning**: treating prompts as code — diffs, changelogs, rollback
+- **Template management**: Jinja2 templates, partial prompts, composition patterns
+- **Few-shot optimization**: example selection strategies, dynamic few-shot retrieval
+
+A prompt that works once is not an asset. A versioned, tested, monitored prompt is.
+
+## Advanced RAG + Knowledge Graphs
+
+RAG is not a vector search call. It is a retrieval pipeline with many failure points.
+
+- **Hybrid search**: combining dense (embedding) + sparse (BM25) retrieval, RRF fusion
+- **Graph RAG**: knowledge graphs as retrieval structures, entity-relationship traversal
+- **Semantic reranking**: cross-encoder rerankers, Cohere Rerank, BGE Reranker
+- **Metadata filtering**: pre-filtering by date, source, user, document type
+- **Citation grounding**: source attribution, chunk provenance, answer faithfulness
+- **Incremental indexing**: update strategies without full re-embed, delta ingestion
+
+The retrieval step determines the ceiling of your answer quality. No prompt tricks the model into knowing what was never retrieved.
+
+## Agentic Workflows + Orchestration
+
+Agents are state machines with LLM-driven transitions. Treat them that way.
+
+- **LangGraph**: graph-based agent execution, conditional edges, state management
+- **LlamaIndex**: data connectors, query pipelines, agent abstractions
+- **Tool use**: designing robust tool schemas, handling tool errors gracefully
+- **Planning loops**: ReAct, Reflexion, plan-and-solve patterns
+- **Multi-agent collaboration**: supervisor patterns, specialist sub-agents, shared memory
+- **Human-in-the-loop handoffs**: approval gates, interrupts, resume from checkpoint
+
+Agents that cannot fail gracefully are not production agents.
+
+## Production GenAI Applications
+
+A real product is the composition of all prior stages under operational constraints.
+
+- **Streaming responses**: Server-Sent Events, chunked transfer, progressive rendering
+- **Optimistic UI**: showing partial results while retrieval/generation completes
+- **Fallback models**: cascade routing — fast/cheap to capable to expensive
+- **Rate limiting**: per-user token budgets, queue management, backpressure
+- **Cost-aware routing**: routing by prompt complexity, user tier, time of day
+- **Session management**: conversation history pruning, multi-turn context windows
+
+Ship the simplest version that holds under load before adding intelligence.
+
+## Evaluation + Quality Assurance
+
+You cannot improve what you do not measure. Evaluation is an engineering discipline.
+
+- **LLM-as-a-judge**: rubric design, bias mitigation, calibration against human ratings
+- **Automated eval harnesses**: test suites triggered on every prompt or pipeline change
+- **Regression testing**: golden dataset comparison, diff alerts on metric drops
+- **Hallucination metrics**: faithfulness, answer relevance, context precision
+- **RAGAS**: RAG-specific evaluation framework — retrieval and generation metrics
+- **DeepEval**: unit-test style assertions for LLM outputs
+
+Stage 7 is the reason Stages 4 through 6 do not silently regress in production.
+
+## Inference + Infrastructure Optimization
+
+When cost or latency is the constraint, optimization becomes an engineering problem.
+
+- **vLLM / SGLang**: PagedAttention, continuous batching, OpenAI-compatible serving
+- **Quantization**: FP8, INT4, GPTQ, AWQ — trade-offs between accuracy and speed
+- **KV caching**: prefix caching, cache-aware scheduling, shared prefix prompts
+- **Speculative decoding**: draft model + verifier, latency reduction at no quality cost
+- **Edge deployment**: ONNX export, llama.cpp, model sharding across devices
+- **Model distillation**: teacher-student training, task-specific smaller models
+
+Optimization without measurement is guessing. Profile first.
+
+## MLOps + Observability
+
+A system you cannot observe is a system you cannot trust.
+
+- **Distributed tracing**: OpenTelemetry, LangSmith, Arize — trace every LLM call
+- **Latency monitoring**: p50/p95/p99 per endpoint, time-to-first-token tracking
+- **Cost dashboards**: per-model, per-user, per-feature spend attribution
+- **Drift detection**: embedding drift, output distribution shift, topic drift
+- **CI/CD for prompts and models**: automated evaluation gates before deployment
+
+Production AI engineering is 80% observability and 20% model.
+
+## AI Safety + Compliance
+
+Not optional. Increasingly regulated.
+
+- **Guardrails**: input/output filtering, topic restrictions, Guardrails AI, NeMo Guardrails
+- **Prompt injection defense**: indirect injection via retrieved documents, sandboxing
+- **PII redaction**: entity recognition, masking, differential privacy patterns
+- **Copyright checks**: training data lineage, output similarity detection
+- **EU AI Act compliance**: risk classification, documentation requirements, prohibited use cases
+- **Content filtering**: toxicity classifiers, multi-layer moderation pipelines
+
+Compliance is cheaper to build in than retrofit.
+
+## Open Source + Portfolio Ship
+
+Builders get hired. Watchers do not.
+
+- **Ship multimodal agents publicly**: demo video, README, live endpoint — not a private repo
+- **Write technical deep dives**: architecture decisions, failure modes, production lessons
+- **Record demo videos**: showing a system end-to-end is stronger than describing it
+- **Contribute to orchestration libs**: LangGraph, LlamaIndex, RAGAS — even documentation PRs count
+- **Build in public**: share what breaks, not just what works
+
+A portfolio with one production system that failed interestingly is worth more than ten clean tutorial reproductions.
+
+## Apply
+
+Roles that value this exact stack:
+
+- **GenAI Engineer** — building LLM-powered products end-to-end
+- **AI Application Developer** — integrating LLMs into existing product surfaces
+- **LLM Infrastructure Engineer** — inference serving, fine-tuning pipelines, model ops
+- **Autonomous Systems Engineer** — multi-agent systems, agentic product development
+
+Most people stay stuck watching tutorials.
+
+Builders get hired.

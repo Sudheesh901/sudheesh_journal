@@ -1,0 +1,17 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import CollectionIndex from '@/components/CollectionIndex.astro';
+
+const entries = await getCollection('ai-engineering');
+---
+
+<BaseLayout title="AI Engineering - Sudheesh Knowledge Base" active="ai-engineering">
+  <CollectionIndex
+    eyebrow="Production Notes"
+    title="AI Engineering"
+    description="Practical notes for building reliable AI systems: LLMs, retrieval, data stores, evaluation, MLOps, observability, and system design tradeoffs."
+    basePath="/ai-engineering"
+    entries={entries}
+  />
+</BaseLayout>

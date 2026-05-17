@@ -1,0 +1,62 @@
+---
+title: "MLOps & LLMOps"
+description: "Production practices for model lifecycle, evaluation gates, deployment, monitoring, drift detection, and LLM observability."
+domain: "AI Engineering"
+level: "Advanced"
+order: 3
+tags: ["MLOps", "LLMOps", "monitoring", "deployment", "drift"]
+tools: ["MLflow", "Docker", "Airflow", "Prometheus", "LangSmith"]
+updated: "2026-05-15"
+---
+
+## The Lifecycle
+
+MLOps is the discipline of making model behavior reproducible, deployable, observable, and reversible.
+
+```text
+Data version -> Training -> Evaluation gate -> Registry -> Deployment -> Monitoring -> Retraining
+```
+
+LLMOps adds prompt versions, retrieval indexes, tool traces, model-provider changes, hallucination checks, and cost observability.
+
+## Production Gates
+
+Before promotion, check:
+
+- Data schema validation
+- Training reproducibility
+- Offline model metrics
+- Slice-based error analysis
+- Latency and memory
+- Cost per request
+- Regression tests on golden examples
+- Rollback plan
+
+## Monitoring
+
+Monitor four layers:
+
+1. Infrastructure: CPU, memory, queue depth, error rate.
+2. Data: missing values, schema drift, embedding drift.
+3. Model: prediction distribution, confidence, retrieval quality.
+4. Product: user outcomes, correction rate, escalation.
+
+## Deployment Patterns
+
+- Shadow mode for observation without user impact.
+- Canary for small traffic promotion.
+- Blue-green for fast rollback.
+- Batch inference for non-real-time use cases.
+- Streaming inference for interactive LLM UX.
+
+## Failure Modes
+
+- No model registry, so production cannot be reproduced.
+- Monitoring only infrastructure while model quality silently decays.
+- Retraining on biased feedback loops.
+- Prompt changes deployed without eval comparison.
+- Vendor model update changing behavior unexpectedly.
+
+## Operating Habit
+
+Every production model should have an owner, a dashboard, an eval suite, a rollback path, and a written definition of unacceptable behavior.

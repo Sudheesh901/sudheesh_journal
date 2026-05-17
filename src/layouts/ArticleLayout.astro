@@ -1,0 +1,48 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+interface Props {
+  entry: {
+    slug: string;
+    body: string;
+    collection: string;
+    data: {
+      title: string;
+      description: string;
+      domain?: string;
+      level?: string;
+      status?: string;
+      role?: string;
+      tags: string[];
+      tools: string[];
+      updated: Date;
+    };
+    render: () => Promise<{ Content: any }>;
+  };
+  active: string;
+}
+
+const { entry, active } = Astro.props;
+const { Content } = await entry.render();
+---
+
+<BaseLayout title={`${entry.data.title} - Sudheesh Knowledge Base`} description={entry.data.description} active={active}>
+  <main class="page active">
+    <div class="page-hero">
+      <div class="page-hero-inner">
+        <div class="eyebrow">{entry.data.domain || entry.data.level || entry.data.status || entry.data.role}</div>
+        <h2>{entry.data.title}</h2>
+        <p>{entry.data.description}</p>
+        <div class="topic-tags" style="margin-top:18px;">
+          {entry.data.tags.map((tag) => <span class="tag">{tag}</span>)}
+        </div>
+      </div>
+    </div>
+
+    <section class="section">
+      <article class="container-sm kb-prose">
+        <Content />
+      </article>
+    </section>
+  </main>
+</BaseLayout>

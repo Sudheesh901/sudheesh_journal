@@ -1,0 +1,676 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+interface HeadingItem {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  entry: {
+    slug: string;
+    body: string;
+    collection: string;
+    data: {
+      title: string;
+      description: string;
+      domain?: string;
+      level?: string;
+      status?: string;
+      role?: string;
+      order?: number;
+      tags: string[];
+      tools: string[];
+      updated: string;
+    };
+    render: () => Promise<{ Content: any; headings: HeadingItem[] }>;
+  };
+  active: string;
+}
+
+const { entry, active } = Astro.props;
+const { Content, headings } = await entry.render();
+
+const siblings = await getCollection(entry.collection as any);
+const otherEntries = siblings
+  .filter(e => e.slug !== entry.slug)
+  .sort((a, b) => ((a.data as any).order || 0) - ((b.data as any).order || 0));
+
+const h2Headings = headings.filter(h => h.depth === 2);
+
+const updatedDate = entry.data.updated
+  ? new Date(entry.data.updated).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  : null;
+
+const collectionLabel: Record<string, string> = {
+  foundations: 'Foundations',
+  'ai-engineering': 'AI Engineering',
+  interview: 'Interview Prep',
+  projects: 'Projects',
+  experience: 'Experience',
+};
+const collectionHref: Record<string, string> = {
+  foundations: '/foundations',
+  'ai-engineering': '/ai-engineering',
+  interview: '/interview',
+  projects: '/projects',
+  experience: '/experience',
+};
+const badge = entry.data.domain || entry.data.level || entry.data.status || entry.data.role || '';
+---
+
+<BaseLayout
+  title={`${entry.data.title} — Sudheesh Knowledge Base`}
+  description={entry.data.description}
+  active={active}
+>
+  <main class="page active kba-page">
+
+    <!-- ── HERO ── -->
+    <header class="kba-hero">
+      <div class="kba-hero-inner">
+
+        <nav class="kba-breadcrumb" aria-label="breadcrumb">
+          <a href="/">Home</a>
+          <span class="sep" aria-hidden="true">›</span>
+          <a href={collectionHref[entry.collection] || '/'}>{collectionLabel[entry.collection] || entry.collection}</a>
+          <span class="sep" aria-hidden="true">›</span>
+          <span class="current">{entry.data.title}</span>
+        </nav>
+
+        <div class="kba-hero-grid">
+          <div class="kba-hero-left">
+            <div class="kba-eyebrow-row">
+              {badge && <span class="kba-badge">{badge}</span>}
+              {updatedDate && <span class="kba-updated">Updated {updatedDate}</span>}
+            </div>
+            <h1 class="kba-title">{entry.data.title}</h1>
+            <p class="kba-desc">{entry.data.description}</p>
+          </div>
+
+          <aside class="kba-hero-meta">
+            {entry.data.tags.length > 0 && (
+              <div class="kba-meta-group">
+                <div class="kba-meta-label">Topics</div>
+                <div class="kba-chip-row">
+                  {entry.data.tags.map(tag => <span class="kba-chip">{tag}</span>)}
+                </div>
+              </div>
+            )}
+            {entry.data.tools.length > 0 && (
+              <div class="kba-meta-group">
+                <div class="kba-meta-label">Tools</div>
+                <div class="kba-chip-row">
+                  {entry.data.tools.map(tool => <span class="kba-chip kba-chip--dark">{tool}</span>)}
+                </div>
+              </div>
+            )}
+            {h2Headings.length > 0 && (
+              <div class="kba-meta-group">
+                <div class="kba-meta-label">Coverage</div>
+                <div class="kba-stage-stat">
+                  <span class="kba-stage-num">{h2Headings.length}</span>
+                  <span class="kba-stage-lbl">sections</span>
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ── BODY: wide two-column ── -->
+    <div class="kba-body">
+      <div class="kba-body-grid">
+
+        <article class="kba-article kba-article-prose">
+          <Content />
+        </article>
+
+        <aside class="kba-sidebar">
+
+          {h2Headings.length > 0 && (
+            <div class="kba-sb-block">
+              <div class="kba-sb-label">On this page</div>
+              <nav class="kba-toc" aria-label="Table of contents">
+                {h2Headings.map((h, i) => (
+                  <a class="kba-toc-item" href={`#${h.slug}`} data-toc-target={h.slug}>
+                    <span class="kba-toc-n">{String(i + 1).padStart(2, '0')}</span>
+                    <span class="kba-toc-t">{h.text}</span>
+                  </a>
+                ))}
+              </nav>
+            </div>
+          )}
+
+          {otherEntries.length > 0 && (
+            <div class="kba-sb-block">
+              <div class="kba-sb-label">In this collection</div>
+              <div class="kba-related">
+                {otherEntries.map(e => (
+                  <a class="kba-rel-item" href={`/${entry.collection}/${e.slug}`}>
+                    <span class="kba-rel-title">{(e.data as any).title}</span>
+                    {(e.data as any).level && (
+                      <span class="kba-rel-level">{(e.data as any).level}</span>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div class="kba-sb-block">
+            <a href={collectionHref[entry.collection] || '/'} class="kba-back-link">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Back to {collectionLabel[entry.collection]}
+            </a>
+          </div>
+
+        </aside>
+      </div>
+    </div>
+
+  </main>
+</BaseLayout>
+
+<style is:global>
+
+/* ═══════════════════════════════════════════════════
+   KB ARTICLE LAYOUT  ·  Premium editorial
+   Designed for foundations/[slug] and equivalents
+═══════════════════════════════════════════════════ */
+
+.kba-page {
+  background: var(--linen);
+}
+
+/* ── HERO ─────────────────────────────────────────── */
+.kba-hero {
+  padding-top: var(--nav-h);
+  background: var(--linen);
+  border-bottom: 1px solid var(--linen3);
+  position: relative;
+  overflow: hidden;
+}
+.kba-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 80% at 90% 10%, rgba(196,97,74,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 60% at 10% 90%, rgba(74,107,80,0.04) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.kba-hero-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 40px clamp(24px, 5vw, 80px) 64px;
+  position: relative;
+  z-index: 1;
+}
+
+/* breadcrumb */
+.kba-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+.kba-breadcrumb a {
+  color: var(--muted2);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.kba-breadcrumb a:hover { color: var(--terra); }
+.kba-breadcrumb .sep  { color: var(--linen3); }
+.kba-breadcrumb .current { color: var(--muted); }
+
+/* hero grid: title left, meta card right */
+.kba-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 72px;
+  align-items: start;
+}
+
+.kba-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.kba-badge {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--terra);
+  background: var(--terra-pale);
+  border: 1px solid rgba(196,97,74,0.2);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.kba-updated {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted2);
+  letter-spacing: 0.06em;
+}
+
+.kba-title {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(2.6rem, 4.5vw, 4.2rem);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 22px;
+}
+
+.kba-desc {
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
+  line-height: 1.75;
+  color: var(--muted);
+  max-width: 580px;
+  font-weight: 400;
+}
+
+/* hero meta card */
+.kba-hero-meta {
+  background: var(--white);
+  border: 1px solid var(--linen3);
+  border-radius: 14px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-top: 12px;
+}
+.kba-meta-group {}
+.kba-meta-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted2);
+  margin-bottom: 9px;
+}
+.kba-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.kba-chip {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: var(--linen2);
+  color: var(--muted);
+  border: 1px solid var(--linen3);
+}
+.kba-chip--dark {
+  background: var(--ink2);
+  color: #b0bac8;
+  border-color: transparent;
+}
+.kba-stage-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.kba-stage-num {
+  font-family: var(--sans);
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.kba-stage-lbl {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── BODY  ────────────────────────────────────────── */
+.kba-body {
+  padding: 80px 0 140px;
+}
+.kba-body-grid {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 80px);
+  display: grid;
+  grid-template-columns: 1fr 256px;
+  gap: 88px;
+  align-items: start;
+}
+
+/* ── ARTICLE PROSE  ───────────────────────────────── */
+.kba-article-prose {
+  min-width: 0;
+  counter-reset: kba-section;
+}
+
+/* section heading */
+.kba-article-prose h2 {
+  counter-increment: kba-section;
+  font-family: var(--sans);
+  font-size: clamp(1.3rem, 1.8vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 64px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--linen3);
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.kba-article-prose h2::before {
+  content: counter(kba-section, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--terra);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+.kba-article-prose h2:first-of-type { margin-top: 0; }
+
+/* sub heading */
+.kba-article-prose h3 {
+  font-family: var(--sans);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 36px 0 10px;
+}
+
+/* paragraph */
+.kba-article-prose p {
+  font-size: 1.02rem;
+  line-height: 1.82;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+/* ordered list — numbered terracotta boxes */
+.kba-article-prose ol {
+  list-style: none;
+  counter-reset: kba-ol;
+  padding: 0;
+  margin: 0 0 26px;
+}
+.kba-article-prose ol li {
+  counter-increment: kba-ol;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+  font-size: 1rem;
+  color: var(--muted);
+  line-height: 1.75;
+}
+.kba-article-prose ol li::before {
+  content: counter(kba-ol);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--terra);
+  background: var(--terra-pale);
+  border: 1px solid rgba(196,97,74,0.22);
+  border-radius: 5px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* unordered list — em-dash in terra */
+.kba-article-prose ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 26px;
+}
+.kba-article-prose ul li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  margin-bottom: 11px;
+  font-size: 1rem;
+  color: var(--muted);
+  line-height: 1.75;
+}
+.kba-article-prose ul li::before {
+  content: '—';
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--terra);
+  margin-top: 4px;
+}
+
+.kba-article-prose strong { color: var(--ink); font-weight: 700; }
+
+/* inline code */
+.kba-article-prose code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--terra);
+  background: var(--terra-pale);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* code block */
+.kba-article-prose pre {
+  background: var(--ink);
+  border-radius: 10px;
+  padding: 26px 28px;
+  overflow-x: auto;
+  margin: 28px 0;
+  font-size: 0.82rem;
+  line-height: 1.8;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.kba-article-prose pre code {
+  background: transparent;
+  color: #b0bac8;
+  padding: 0;
+}
+
+/* ── SIDEBAR  ─────────────────────────────────────── */
+.kba-sidebar {
+  position: sticky;
+  top: calc(var(--nav-h) + 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  max-height: calc(100vh - var(--nav-h) - 80px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding-right: 2px;
+}
+.kba-sidebar::-webkit-scrollbar { display: none; }
+
+.kba-sb-block {}
+
+.kba-sb-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted2);
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--linen3);
+}
+
+/* TOC */
+.kba-toc {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.kba-toc-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.14s;
+  cursor: pointer;
+}
+.kba-toc-item:hover { background: var(--linen2); }
+.kba-toc-item.is-active { background: var(--linen2); }
+.kba-toc-item.is-active .kba-toc-t { color: var(--terra); }
+.kba-toc-item.is-active .kba-toc-n { color: var(--terra); }
+.kba-toc-n {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  color: var(--muted2);
+  flex-shrink: 0;
+  transition: color 0.14s;
+  letter-spacing: 0.05em;
+}
+.kba-toc-t {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+  transition: color 0.14s;
+}
+
+/* related entries */
+.kba-related {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.kba-rel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.14s;
+}
+.kba-rel-item:hover { background: var(--linen2); }
+.kba-rel-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink2);
+  line-height: 1.3;
+}
+.kba-rel-level {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* back link */
+.kba-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted2);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: color 0.14s;
+}
+.kba-back-link:hover { color: var(--terra); }
+.kba-back-link svg { flex-shrink: 0; }
+
+/* ── RESPONSIVE  ──────────────────────────────────── */
+@media (max-width: 1100px) {
+  .kba-hero-grid {
+    grid-template-columns: 1fr 280px;
+    gap: 48px;
+  }
+  .kba-body-grid {
+    grid-template-columns: 1fr 220px;
+    gap: 56px;
+  }
+}
+
+@media (max-width: 860px) {
+  .kba-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .kba-hero-meta {
+    max-width: 520px;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .kba-meta-group { flex: 1; min-width: 140px; }
+}
+
+@media (max-width: 720px) {
+  .kba-body-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .kba-sidebar {
+    position: static;
+    max-height: none;
+    order: -1;
+    padding: 0 0 40px;
+    border-bottom: 1px solid var(--linen3);
+    margin-bottom: 48px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .kba-sb-block { flex: 1; min-width: 200px; }
+  .kba-section-pills { display: none; }
+}
+</style>
+
+<script is:inline>
+// TOC scroll-spy — marks the active heading as the reader scrolls
+(function () {
+  const items = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc-target]'));
+  if (!items.length) return;
+
+  const targets = items.map(el => document.getElementById(el.dataset.tocTarget || ''));
+
+  let active = -1;
+
+  function update() {
+    const scrollY = window.scrollY + window.innerHeight * 0.18 + 80;
+    let current = -1;
+    targets.forEach((t, i) => {
+      if (t && t.getBoundingClientRect().top + window.scrollY <= scrollY) current = i;
+    });
+    if (current !== active) {
+      active = current;
+      items.forEach((el, i) => el.classList.toggle('is-active', i === active));
+    }
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+</script>

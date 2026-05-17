@@ -1,0 +1,1716 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const layers = [
+  {
+    id: 'foundation',
+    label: 'Language Foundations',
+    range: '01-04',
+    stages: [
+      {
+        num: '01',
+        title: 'Text, Corpus, and Vocabulary',
+        intro: 'Start with the raw material of NLP: messy text, documents, labels, and the vocabulary built from them.',
+        insight: 'Most language-system failures begin before the model call: bad parsing, weak labels, missing metadata, or a corpus that does not represent the real task.',
+        points: [
+          {
+            term: 'Corpus Design',
+            desc: 'Documents, utterances, domains, train-test splits, leakage, sampling, metadata, and representative coverage.',
+            detail: {
+              overview: 'A corpus is the collection of text a system learns from, searches over, evaluates on, or uses as grounding evidence. Good corpus design starts with task boundaries: who writes the text, what language and format it uses, which domains matter, and what future examples must not leak into training or evaluation. For interview revision, always connect corpus quality to downstream metrics because bad data can make even a strong model look unstable.',
+              code: {
+                label: 'Python - stratified split sketch',
+                lines: `from sklearn.model_selection import train_test_split
+
+train, test = train_test_split(
+    examples,
+    test_size=0.2,
+    stratify=[x["label"] for x in examples],
+    random_state=42,
+)
+assert not set(x["doc_id"] for x in train) & set(x["doc_id"] for x in test)`
+              },
+              pitfalls: [
+                { issue: 'Document leakage across splits', context: 'Chunks from the same source document appear in both train and test, inflating accuracy and hiding generalization failures.', fix: 'Split by document, user, account, or time depending on the production boundary.' },
+                { issue: 'Evaluation corpus does not match production', context: 'The test set uses clean English tickets, but production includes OCR, tables, abbreviations, and multilingual text.', fix: 'Sample eval data from real traces and maintain slices for language, source, length, and domain.' }
+              ],
+              qa: [
+                { q: 'What is a corpus in NLP?', a: 'A corpus is a collection of text examples used for training, retrieval, evaluation, analysis, or grounding.' },
+                { q: 'How do you avoid data leakage in NLP?', a: 'Split by the unit that repeats in production, such as document, user, conversation, company, or time window, not only by individual row.' },
+                { q: 'Why is metadata part of corpus quality?', a: 'Metadata enables filtering, slicing, access control, debugging, recency handling, and fair evaluation across subgroups.' }
+              ]
+            }
+          },
+          {
+            term: 'Vocabulary + N-grams',
+            desc: 'Unigrams, bigrams, phrase features, out-of-vocabulary terms, domain terms, and vocabulary pruning.',
+            detail: {
+              overview: 'Before neural embeddings, NLP systems represented text using vocabulary features. N-grams still matter for search, classification baselines, spam detection, log analysis, and exact term matching. They capture surface patterns that dense embeddings can miss, especially IDs, error codes, product names, and rare legal or medical terms. A strong learning path understands these baselines before jumping to LLMs.',
+              code: {
+                label: 'Python - TF-IDF baseline',
+                lines: `from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+vec = TfidfVectorizer(ngram_range=(1, 2), min_df=2, max_features=50000)
+X = vec.fit_transform([x["text"] for x in train])
+clf = LogisticRegression(max_iter=1000).fit(X, [x["label"] for x in train])`
+              },
+              pitfalls: [
+                { issue: 'Skipping the baseline', context: 'A team ships an expensive LLM classifier without knowing whether TF-IDF plus logistic regression would meet the SLA.', fix: 'Build lexical and small-model baselines before choosing an LLM-heavy architecture.' },
+                { issue: 'Vocabulary too broad or too narrow', context: 'Keeping every token overfits noise; pruning too aggressively removes rare but important terms.', fix: 'Tune min_df, max_df, and n-gram range against validation slices.' }
+              ],
+              qa: [
+                { q: 'What is an n-gram?', a: 'A contiguous sequence of n tokens. A unigram is one token, a bigram is two, and a trigram is three.' },
+                { q: 'Why can TF-IDF still beat embeddings?', a: 'It is strong for exact terms, rare identifiers, domain jargon, and small labeled datasets where semantic generalization is less important.' },
+                { q: 'What is OOV?', a: 'Out-of-vocabulary means a token or term was not seen during vocabulary construction and may be ignored or mapped to an unknown feature.' }
+              ]
+            }
+          },
+          {
+            term: 'Text Normalization',
+            desc: 'Unicode cleanup, sentence segmentation, casing, punctuation, stop words, stemming, lemmatization, and domain dictionaries.',
+            detail: {
+              overview: 'Normalization turns messy text into a more consistent form, but over-normalization can destroy meaning. Preserve negation, IDs, section numbers, currency, code symbols, capitalization, and table structure when they matter. Modern LLM and embedding models usually prefer natural text, so aggressive stemming and stop-word removal should be justified by evals, not habit.',
+              code: {
+                label: 'Python - conservative normalizer',
+                lines: `import re
+import unicodedata
+
+def normalize_text(text: str) -> str:
+    text = unicodedata.normalize("NFKC", text)
+    text = re.sub(r"\\s+", " ", text).strip()
+    text = text.replace("smart-phone", "smartphone")
+    return text`
+              },
+              pitfalls: [
+                { issue: 'Removing negation as a stop word', context: 'The sentence "not eligible for refund" becomes "eligible refund", reversing the meaning.', fix: 'Use task-specific stop-word lists and test negation-heavy cases.' },
+                { issue: 'English-only preprocessing', context: 'Whitespace rules, stemming, and sentence splitting fail on multilingual or code-mixed inputs.', fix: 'Detect language and use language-aware tokenization or avoid destructive preprocessing.' }
+              ],
+              qa: [
+                { q: 'Stemming vs lemmatization?', a: 'Stemming chops words to crude roots; lemmatization maps words to dictionary forms using linguistic knowledge.' },
+                { q: 'Should you lowercase everything?', a: 'Not always. Lowercase can help lexical matching, but it can damage acronyms, IDs, named entities, and case-sensitive code.' },
+                { q: 'What should be stored after normalization?', a: 'Store raw text, normalized text, source metadata, offsets, and the normalizer version.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '02',
+        title: 'Classical NLP Tasks and Labels',
+        intro: 'Learn the task vocabulary that still appears in modern LLM product work.',
+        insight: 'LLMs often wrap classical NLP tasks in natural language, but the product still needs labels, spans, metrics, and failure analysis.',
+        points: [
+          {
+            term: 'Core Tasks',
+            desc: 'Classification, sentiment, NER, POS tagging, parsing, relation extraction, summarization, and clustering.',
+            detail: {
+              overview: 'Classical NLP tasks define what the system should do with text. Classification assigns labels. NER extracts entity spans. Relation extraction connects entities. POS tagging and parsing expose grammatical structure. Summarization compresses information. Clustering groups similar texts. LLMs can perform many of these zero-shot, but production systems still need schemas, labeled examples, and measurable outputs.',
+              code: {
+                label: 'Task schema examples',
+                lines: `ticket = {
+  "label": "billing_issue",
+  "entities": [
+    {"type": "invoice_id", "text": "INV-2041", "start": 17, "end": 25}
+  ],
+  "sentiment": "frustrated"
+}`
+              },
+              pitfalls: [
+                { issue: 'Vague label definitions', context: 'Annotators cannot distinguish complaint, escalation, urgent, and churn risk consistently.', fix: 'Write label guidelines with examples, counterexamples, and conflict rules.' },
+                { issue: 'Entity extraction without normalization', context: 'The system extracts "NYC", "New York", and "New York City" but cannot connect them.', fix: 'Add entity linking to canonical IDs after span extraction.' }
+              ],
+              qa: [
+                { q: 'What is NER?', a: 'Named entity recognition identifies spans such as people, companies, products, dates, amounts, and IDs.' },
+                { q: 'What is relation extraction?', a: 'It identifies relationships between extracted entities, such as company acquired company or ticket references invoice.' },
+                { q: 'When is a rule-based NLP system acceptable?', a: 'When the language pattern is stable, the risk of false positives is low, and deterministic behavior is more valuable than broad generalization.' }
+              ]
+            }
+          },
+          {
+            term: 'Labeling Quality',
+            desc: 'Annotation guidelines, inter-annotator agreement, label noise, class imbalance, active learning, and review loops.',
+            detail: {
+              overview: 'A model cannot learn a task that humans cannot label consistently. Labeling quality depends on clear guidelines, calibrated annotators, disagreement review, representative samples, and careful handling of rare classes. For LLM systems, labeled data is still needed for evals, prompt regression, fine-tuning, routing, and human preference optimization.',
+              code: {
+                label: 'Python - label distribution check',
+                lines: `from collections import Counter
+
+counts = Counter(x["label"] for x in examples)
+total = sum(counts.values())
+for label, n in counts.most_common():
+    print(label, n, round(n / total, 3))`
+              },
+              pitfalls: [
+                { issue: 'Optimizing overall accuracy on imbalanced labels', context: 'A model gets 96% accuracy by always predicting the majority class and misses rare fraud cases.', fix: 'Track precision, recall, and F1 per class, especially for high-risk labels.' },
+                { issue: 'No disagreement workflow', context: 'Annotator conflicts are hidden in the data and become confusing training signal.', fix: 'Review disagreements, update guidelines, and keep adjudicated labels separate from raw labels.' }
+              ],
+              qa: [
+                { q: 'What is inter-annotator agreement?', a: 'A measure of how consistently different annotators label the same examples.' },
+                { q: 'What is active learning?', a: 'A labeling strategy that prioritizes uncertain or high-value examples for human annotation.' },
+                { q: 'How do you handle class imbalance?', a: 'Use stratified sampling, class-weighted losses, threshold tuning, targeted data collection, and per-class metrics.' }
+              ]
+            }
+          },
+          {
+            term: 'NLP Metrics',
+            desc: 'Accuracy, precision, recall, F1, exact match, BLEU, ROUGE, BERTScore, calibration, and slice analysis.',
+            detail: {
+              overview: 'Metrics must match the task. Classification often uses precision, recall, and F1. Extraction uses span-level exact match or partial match. Summarization may use ROUGE or human rubric scores. Semantic answer quality may use BERTScore or LLM judges, but those should be calibrated. Always inspect metrics by slice: source, language, label, length, recency, and customer segment.',
+              code: {
+                label: 'Python - classification metrics',
+                lines: `from sklearn.metrics import classification_report
+
+y_true = [x["label"] for x in test]
+y_pred = clf.predict(vec.transform([x["text"] for x in test]))
+print(classification_report(y_true, y_pred, digits=3))`
+              },
+              pitfalls: [
+                { issue: 'One metric for every task', context: 'Accuracy hides low recall on the class that matters most to the business.', fix: 'Choose metrics based on error cost and report them per slice.' },
+                { issue: 'Using BLEU or ROUGE as truth', context: 'Surface overlap can punish good paraphrases and reward copied but incomplete text.', fix: 'Use them as weak signals with human or rubric-based checks for important tasks.' }
+              ],
+              qa: [
+                { q: 'Precision vs recall?', a: 'Precision asks how many predicted positives were correct. Recall asks how many actual positives were found.' },
+                { q: 'What is F1?', a: 'The harmonic mean of precision and recall, useful when both false positives and false negatives matter.' },
+                { q: 'Why do slice metrics matter?', a: 'A model can look good overall while failing on a language, customer group, document type, or rare label.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '03',
+        title: 'Sparse Retrieval and Lexical Search',
+        intro: 'Understand exact-match retrieval before semantic retrieval and RAG.',
+        insight: 'Dense embeddings are powerful, but sparse search remains the fastest way to catch names, IDs, error codes, versions, and rare terms.',
+        points: [
+          {
+            term: 'Inverted Index',
+            desc: 'Term dictionaries, postings lists, document frequency, field boosts, filters, and phrase matching.',
+            detail: {
+              overview: 'An inverted index maps each term to the documents containing it. This powers search engines, log search, compliance discovery, and the sparse side of hybrid RAG. It is explainable, fast, filter-friendly, and strong for exact terms. Learn it before vector search because many production retrieval bugs are actually lexical matching or metadata filtering bugs.',
+              code: {
+                label: 'Python - tiny inverted index',
+                lines: `from collections import defaultdict
+
+index = defaultdict(set)
+for doc_id, text in docs.items():
+    for term in text.lower().split():
+        index[term].add(doc_id)
+
+matches = index["refund"] & index["policy"]`
+              },
+              pitfalls: [
+                { issue: 'No field-aware search', context: 'A match in the footer ranks above a match in the title or policy heading.', fix: 'Boost important fields such as title, heading, ID, and canonical entity fields.' },
+                { issue: 'Ignoring analyzers', context: 'The search engine tokenizes IDs, hyphens, accents, and case differently than expected.', fix: 'Test analyzer output for real queries and domain terms.' }
+              ],
+              qa: [
+                { q: 'What is an inverted index?', a: 'A structure that maps terms to the documents or positions where those terms occur.' },
+                { q: 'Why is lexical search important in RAG?', a: 'It catches exact identifiers and rare terms that semantic search may smooth away.' },
+                { q: 'What are postings lists?', a: 'Lists of documents, and often positions, where a term appears.' }
+              ]
+            }
+          },
+          {
+            term: 'TF-IDF and BM25',
+            desc: 'Term frequency, inverse document frequency, document length normalization, scoring, and ranking baselines.',
+            detail: {
+              overview: 'TF-IDF scores terms higher when they are frequent in a document but rare in the corpus. BM25 improves lexical ranking with saturation and document-length normalization. These methods are strong baselines for search, classification, and hybrid retrieval. In interviews, BM25 is a useful contrast against embeddings: exactness and explainability versus semantic generalization.',
+              code: {
+                label: 'BM25 scoring intuition',
+                lines: `score(query, doc) =
+  sum(
+    idf(term) *
+    tf_saturation(term, doc) *
+    length_normalization(doc)
+    for term in query
+  )`
+              },
+              pitfalls: [
+                { issue: 'Dense-only retrieval for identifiers', context: 'A query for ERR-8492 returns semantically similar troubleshooting docs but misses the exact error page.', fix: 'Use BM25 or exact filters alongside vector search.' },
+                { issue: 'Not tuning analyzers and boosts', context: 'BM25 performs poorly because tokenization and field weights do not match the domain.', fix: 'Tune analyzers, synonyms, field boosts, and query parsing with labeled retrieval data.' }
+              ],
+              qa: [
+                { q: 'BM25 vs TF-IDF?', a: 'Both use term rarity, but BM25 adds better term-frequency saturation and document-length normalization for ranking.' },
+                { q: 'When does BM25 beat embeddings?', a: 'Exact IDs, rare names, error codes, quotes, legal clauses, and queries where lexical precision matters.' },
+                { q: 'What is IDF?', a: 'Inverse document frequency gives more weight to terms that appear in fewer documents.' }
+              ]
+            }
+          },
+          {
+            term: 'Hybrid Search',
+            desc: 'Sparse plus dense retrieval, Reciprocal Rank Fusion, metadata filters, query expansion, and reranking.',
+            detail: {
+              overview: 'Hybrid search combines lexical precision with semantic recall. A common production pattern retrieves candidates from BM25 and vector search, filters by permissions and metadata, fuses or reranks the candidates, then sends only the strongest evidence to the model. This is the bridge from classical search to modern RAG.',
+              code: {
+                label: 'Python - reciprocal rank fusion',
+                lines: `def rrf(rankings, k=60):
+    scores = {}
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking, start=1):
+            scores[doc_id] = scores.get(doc_id, 0) + 1 / (k + rank)
+    return sorted(scores, key=scores.get, reverse=True)`
+              },
+              pitfalls: [
+                { issue: 'Fusion before permission filters', context: 'Unauthorized documents influence ranking or leak through traces.', fix: 'Apply ACL filters before ranking results are shown or used.' },
+                { issue: 'Reranking too few candidates', context: 'The right document was not in the truncated top ten from either retriever.', fix: 'Retrieve a wider candidate pool, then rerank and trim.' }
+              ],
+              qa: [
+                { q: 'What is Reciprocal Rank Fusion?', a: 'A simple method that combines multiple ranked lists by giving each document credit based on its rank in each list.' },
+                { q: 'Why use hybrid search?', a: 'It improves recall across semantic queries and exact lexical queries.' },
+                { q: 'Where does reranking fit?', a: 'After initial retrieval and filtering, before final prompt assembly.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '04',
+        title: 'Embeddings and Semantic Similarity',
+        intro: 'Move from lexical overlap to meaning-based retrieval and clustering.',
+        insight: 'Embeddings are similarity features, not truth. They need versioning, evaluation, and retrieval guardrails.',
+        points: [
+          {
+            term: 'Embedding Space',
+            desc: 'Vector representations, cosine similarity, normalization, pooling, dimensions, and semantic neighborhoods.',
+            detail: {
+              overview: 'Embeddings represent text as vectors so semantically related items land near each other. They are useful for semantic search, duplicate detection, clustering, routing, recommendations, and RAG. Similarity is task-dependent: the nearest vector can be topically related but outdated, unauthorized, or not actually answerable.',
+              code: {
+                label: 'Python - runnable cosine search',
+                lines: `import numpy as np
+
+texts = ["refund policy", "invoice payment", "password reset"]
+vectors = np.array([[1.0, 0.1], [0.1, 1.0], [0.8, 0.2]])
+query = np.array([0.9, 0.1])
+
+def normalize(x):
+    return x / np.linalg.norm(x, axis=-1, keepdims=True)
+
+scores = normalize(vectors) @ normalize(query).reshape(-1, 1)
+best = int(scores.argmax())
+print(texts[best])`
+              },
+              pitfalls: [
+                { issue: 'Comparing vectors from different models', context: 'Scores become meaningless when old and new embedding spaces are mixed.', fix: 'Store embedding model, dimension, preprocessing, and index build version.' },
+                { issue: 'Assuming nearest means correct', context: 'The closest chunk is similar but not sufficient evidence for the answer.', fix: 'Rerank, check answerability, and validate generated claims against source text.' }
+              ],
+              qa: [
+                { q: 'What is cosine similarity?', a: 'A measure of angle between vectors, often used to compare embedding direction after normalization.' },
+                { q: 'What does embedding dimension mean?', a: 'The number of numeric coordinates in the vector representation.' },
+                { q: 'How do you evaluate embeddings?', a: 'Use retrieval recall@k, MRR, clustering quality, duplicate detection F1, and human relevance labels.' }
+              ]
+            }
+          },
+          {
+            term: 'Vector Indexing',
+            desc: 'ANN search, HNSW, IVF, recall-latency trade-offs, metadata filters, and index rebuilds.',
+            detail: {
+              overview: 'Vector databases use approximate nearest-neighbor indexes to find similar vectors quickly. Approximation creates a recall-latency trade-off: faster search may miss relevant documents. Production systems must evaluate retrieval quality after index tuning, not only model quality. Metadata filters and ACLs must be part of the retrieval plan, not an afterthought.',
+              code: {
+                label: 'Index config checklist',
+                lines: `vector_index = {
+  "embedding_model": "text-embedding-model",
+  "dimensions": 1536,
+  "metric": "cosine",
+  "ann": "hnsw",
+  "filters": ["tenant_id", "acl", "doc_type", "created_at"]
+}`
+              },
+              pitfalls: [
+                { issue: 'Tuning for latency only', context: 'The index gets faster but misses the expected evidence for hard questions.', fix: 'Track recall@k and latency together during index tuning.' },
+                { issue: 'Post-filtering after vector search', context: 'The top vector results are removed by ACL filters, leaving too few candidates.', fix: 'Prefer pre-filtering or retrieve a larger candidate pool before filtering.' }
+              ],
+              qa: [
+                { q: 'What is ANN search?', a: 'Approximate nearest-neighbor search trades perfect recall for much faster vector lookup.' },
+                { q: 'What is HNSW?', a: 'A graph-based ANN index commonly used for fast high-recall vector search.' },
+                { q: 'Why do metadata filters matter?', a: 'They enforce permissions, recency, source type, tenant boundaries, and domain constraints.' }
+              ]
+            }
+          },
+          {
+            term: 'Model Selection',
+            desc: 'Rules, classical ML, encoder models, LLM APIs, open-source LLMs, cost, privacy, latency, and eval-driven choice.',
+            detail: {
+              overview: 'A senior NLP engineer chooses the simplest model that satisfies the product contract. Rules are best for stable exact policies. Classical ML is strong for high-volume labeled tasks. Encoder models are efficient for classification and embeddings. LLMs are best for nuanced language, reasoning, flexible schemas, and explanation. Open-source models help with privacy and control but add infrastructure burden.',
+              code: {
+                label: 'Decision rubric',
+                lines: `if exact_policy and stable_pattern:
+    choice = "rules"
+elif many_labels and strict_latency:
+    choice = "small classifier or encoder"
+elif needs_reasoning or changing_schema:
+    choice = "LLM with evals"
+elif data_cannot_leave_vpc:
+    choice = "self-hosted model"`
+              },
+              pitfalls: [
+                { issue: 'Choosing by benchmark leaderboard only', context: 'The best general model is too slow, costly, or weak on private domain data.', fix: 'Benchmark on your own eval set with latency, cost, safety, and failure-mode criteria.' },
+                { issue: 'Ignoring operational ownership', context: 'A self-hosted model meets privacy needs but the team cannot operate GPUs, scaling, or updates.', fix: 'Include infrastructure and support cost in model selection.' }
+              ],
+              qa: [
+                { q: 'API LLM vs open-source LLM?', a: 'API models reduce ops burden and often lead capability; open-source models offer control, privacy, customization, and cost advantages at scale.' },
+                { q: 'When use a small classifier instead of an LLM?', a: 'For stable, high-throughput, low-latency tasks with enough labeled data.' },
+                { q: 'What is the right model-selection process?', a: 'Define task metrics, build baselines, evaluate candidates on real cases, then choose by quality, cost, latency, privacy, and maintainability.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'foundation',
+    label: 'Model Foundations',
+    range: '05-08',
+    stages: [
+      {
+        num: '05',
+        title: 'Transformer Architecture',
+        intro: 'Understand the inference machine before designing systems around it.',
+        insight: 'Most LLM bugs are easier to debug when you can separate model limitation, prompt limitation, retrieval limitation, and product-contract limitation.',
+        points: [
+          {
+            term: 'Tokenization',
+            desc: 'Subword boundaries, vocabulary effects, multilingual behavior, prompt cost, and lossless reconstruction.',
+            detail: {
+              overview: 'Tokenization is the compression boundary between text and model. It shapes cost, context length, latency, and behavior around code, rare names, IDs, tables, and non-English text. Production systems should measure token growth after prompt assembly, not only raw character length, because repeated schema instructions, citations, and tool traces can silently consume the usable context window.',
+              code: {
+                label: 'Python - token-budget guard',
+                lines: `def reserve_budget(messages, max_context, max_output, tokenizer):
+    used = sum(len(tokenizer.encode(m["content"])) for m in messages)
+    available = max_context - max_output
+    if used > available:
+        raise ValueError(f"Prompt uses {used} tokens; budget is {available}")
+    return {"prompt_tokens": used, "remaining": available - used}`
+              },
+              pitfalls: [
+                { issue: 'Counting characters instead of tokens', context: 'A short JSON schema or code block can tokenize far worse than prose. The app passes tests on normal text, then fails on legal clauses, tables, logs, and code snippets.', fix: 'Budget after final prompt assembly with the target model tokenizer and reserve output tokens explicitly.' },
+                { issue: 'Ignoring tokenizer changes during model migration', context: 'A model switch can change token count, truncation behavior, and cost without any product UI changing.', fix: 'Add token-budget regression tests for representative prompts before changing model families.' }
+              ],
+              qa: [
+                { q: 'Why does tokenization matter for product reliability?', a: 'It controls what the model can actually see. If the system truncates the wrong context, the model may answer confidently from incomplete evidence.' },
+                { q: 'What should be logged for token debugging?', a: 'Log prompt tokens, completion tokens, model name, truncation strategy, selected documents, and final prompt template version.' }
+              ]
+            }
+          },
+          {
+            term: 'Attention + KV Cache',
+            desc: 'Why long prompts are expensive and why streaming, batching, and prefix reuse matter.',
+            detail: {
+              overview: 'Self-attention creates queries, keys, and values from token representations. A query asks what this token needs, keys describe what other tokens offer, and values carry the information to mix back in. Multi-head attention repeats this in parallel. During generation, the KV cache stores computed key/value states so the model does not recompute the full prefix at each step. Long input contexts increase prefill latency; long outputs increase decode latency.',
+              code: {
+                label: 'Attention and latency sketch',
+                lines: `Q = X @ Wq
+K = X @ Wk
+V = X @ Wv
+attention = softmax((Q @ K.T) / sqrt(d_k)) @ V
+
+total_latency = prefill(context_tokens) + decode(output_tokens)`
+              },
+              pitfalls: [
+                { issue: 'Optimizing only generation length', context: 'Teams cap max output but keep sending 40 retrieved chunks and a huge policy block. The user still experiences slow first-token latency.', fix: 'Measure time-to-first-token separately from total completion time and tune retrieval depth, compression, and prompt prefix reuse.' },
+                { issue: 'Treating context window as free memory', context: 'A 128k context window can still be too slow, too expensive, and too noisy for a specific task.', fix: 'Use the smallest context that preserves task accuracy, then prove it with evals.' }
+              ],
+              qa: [
+                { q: 'What are Q, K, and V in attention?', a: 'Queries represent what a token is looking for, keys represent what each token can match on, and values carry the information that gets mixed into the output.' },
+                { q: 'What is prefill?', a: 'Prefill is the phase where the model processes the input prompt and builds KV cache state before emitting the first token.' },
+                { q: 'Why do long RAG prompts often reduce quality?', a: 'They introduce distractors, conflicting snippets, and higher instruction dilution. More context is not automatically better context.' }
+              ]
+            }
+          },
+          {
+            term: 'Decoding',
+            desc: 'Temperature, top-p, penalties, stop sequences, JSON mode, and structured outputs.',
+            detail: {
+              overview: 'Decoding converts model probabilities into text. Deterministic settings help extraction, classification, and tool calls; moderate randomness helps brainstorming and rewrites. Structured outputs reduce parser failures, but they do not guarantee semantic correctness. The production contract is: generate, validate, repair or escalate.',
+              code: {
+                label: 'Python - Pydantic structured output',
+                lines: `from pydantic import BaseModel, Field, ValidationError
+
+class Invoice(BaseModel):
+    invoice_id: str
+    amount_due: float = Field(ge=0)
+    currency: str
+
+try:
+    invoice = Invoice.model_validate(model_json)
+except ValidationError as err:
+    raise ValueError(f"invalid model output: {err}")`
+              },
+              pitfalls: [
+                { issue: 'Using high temperature for factual QA', context: 'Randomness can make valid retrieval grounding less stable and make regressions harder to reproduce.', fix: 'Use low temperature for grounded answers, extraction, routing, and tool arguments.' },
+                { issue: 'Trusting JSON validity as truth', context: 'The object parses, but fields can still be unsupported by evidence or violate business logic.', fix: 'Run schema validation, evidence checks, and domain rules after parsing.' }
+              ],
+              qa: [
+                { q: 'When should temperature be close to zero?', a: 'Use it for classification, extraction, compliance responses, deterministic routing, and any path where reproducibility matters more than creative variation.' },
+                { q: 'What are stop sequences good for?', a: 'They constrain generation boundaries, especially in older prompt formats, but they should not replace schema validation.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '06',
+        title: 'Prompting as Interface Design',
+        intro: 'Prompts are not magic words. They are executable specifications for a probabilistic worker.',
+        insight: 'A good prompt is boring in the best way: clear task, clear inputs, clear constraints, clear output, clear failure behavior.',
+        points: [
+          {
+            term: 'Prompt Contract',
+            desc: 'Role, task, context, rules, output schema, refusal policy, and examples only when they remove ambiguity.',
+            detail: {
+              overview: 'Production prompts should be versioned artifacts. The best prompt is short enough to audit and explicit enough to test. Separate stable system policy from dynamic user data, retrieval context, and tool state. Treat every prompt edit like a code change because it can alter behavior across thousands of requests.',
+              code: {
+                label: 'Prompt skeleton',
+                lines: `System:
+You are a support analyst. Answer only from CONTEXT.
+If evidence is missing, say what is missing.
+
+Developer:
+Return JSON with: answer, citations, confidence, escalation_reason.
+
+User:
+QUESTION: {{question}}
+CONTEXT: {{retrieved_passages}}`
+              },
+              pitfalls: [
+                { issue: 'Mixing policy, evidence, and user text', context: 'The model cannot reliably distinguish trusted instructions from untrusted retrieved content or user-provided text.', fix: 'Use clear delimiters, typed sections, and explicit instruction hierarchy.' },
+                { issue: 'Few-shot examples that conflict with the schema', context: 'The model imitates the examples and ignores the written contract when they disagree.', fix: 'Keep examples minimal, valid, and covered by tests.' }
+              ],
+              qa: [
+                { q: 'What makes a prompt production-ready?', a: 'It is versioned, tested against an eval set, has clear input boundaries, defines failure behavior, and produces a validated output shape.' },
+                { q: 'Why avoid giant prompts?', a: 'They are harder to review, more expensive, slower, more fragile, and more likely to contain conflicting instructions.' }
+              ]
+            }
+          },
+          {
+            term: 'Instruction Hierarchy',
+            desc: 'System, developer, tool, retrieved context, and user messages need clear trust boundaries.',
+            detail: {
+              overview: 'Prompt injection is not a string problem; it is an authority problem. Retrieved text and user text are data, not instructions. Tools should receive typed arguments from validated model output, not raw generated prose. The application must enforce permissions outside the model.',
+              code: {
+                label: 'Guardrail pattern',
+                lines: `if tool_name == "refund_user":
+    assert current_user.can("refund")
+    args = RefundArgs.model_validate(tool_args)
+    assert args.amount <= policy.max_refund
+    return refund_service.create(args)`
+              },
+              pitfalls: [
+                { issue: 'Letting retrieved content override the system prompt', context: 'A malicious document says ignore previous instructions and exfiltrate hidden data. The model may comply if boundaries are weak.', fix: 'Label retrieved text as untrusted evidence and enforce data access in application code.' },
+                { issue: 'Putting secrets in the prompt', context: 'Anything in context can be leaked by a sufficiently bad prompt path.', fix: 'Never send secrets to the model unless disclosure to the user would be acceptable.' }
+              ],
+              qa: [
+                { q: 'Where should authorization live?', a: 'In deterministic application code, before and after the model call. The model can propose actions; the app decides what is allowed.' },
+                { q: 'What is prompt injection?', a: 'Untrusted text attempts to alter the model instruction hierarchy, often by pretending to be higher-priority instructions.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '07',
+        title: 'Model Families and Training Objectives',
+        intro: 'Connect architecture choices to the way language models are trained and used.',
+        insight: 'BERT, GPT, and T5 are not just brand names. Their architecture and training objective shape what they are naturally good at.',
+        points: [
+          {
+            term: 'Encoder vs Decoder',
+            desc: 'BERT-style encoders, GPT-style decoders, T5/BART encoder-decoder models, causal masking, and task fit.',
+            detail: {
+              overview: 'Encoder-only models read the whole input bidirectionally and are efficient for classification, extraction, embeddings, and reranking. Decoder-only models generate one token at a time with causal masking and dominate chat, agents, and completion tasks. Encoder-decoder models read an input and generate an output, which historically made them strong for translation, summarization, and sequence-to-sequence transformations.',
+              code: {
+                label: 'Model-family decision table',
+                lines: `classification / NER / rerank  -> encoder
+chat / code / agent planning    -> decoder
+translation / summarization     -> encoder-decoder
+semantic search embeddings      -> encoder or embedding-specific model`
+              },
+              pitfalls: [
+                { issue: 'Using a chat LLM for every classification job', context: 'The task pays generation latency and cost even though a small encoder could classify faster and cheaper.', fix: 'Benchmark encoder, rules, and LLM candidates against the same task metrics.' },
+                { issue: 'Ignoring causal masking', context: 'A decoder model cannot attend to future tokens during generation, which shapes latency and output behavior.', fix: 'Explain generation as next-token prediction with previous-token context only.' }
+              ],
+              qa: [
+                { q: 'BERT vs GPT?', a: 'BERT is encoder-only and bidirectional, strong for understanding tasks. GPT is decoder-only and autoregressive, strong for generation.' },
+                { q: 'What is causal masking?', a: 'A mask that prevents a decoder from attending to future tokens while predicting the next token.' },
+                { q: 'When would you use an encoder-decoder model?', a: 'For tasks that transform an input sequence into an output sequence, such as translation or summarization.' }
+              ]
+            }
+          },
+          {
+            term: 'Training Objectives',
+            desc: 'Masked language modeling, causal language modeling, denoising, contrastive learning, instruction tuning, and preference tuning.',
+            detail: {
+              overview: 'A model family is shaped by its training objective. Masked language modeling predicts hidden tokens from both sides of context. Causal language modeling predicts the next token from prior tokens. Contrastive learning pulls related texts closer in embedding space. Instruction tuning teaches task following. Preference tuning teaches response ranking according to human or rubric preferences.',
+              code: {
+                label: 'Objective intuition',
+                lines: `masked_lm:  "The capital of [MASK] is Paris"
+causal_lm:  "The capital of France is" -> " Paris"
+contrastive: pull(query, positive_doc) > pull(query, negative_doc)
+preference:  prefer(chosen_answer) > prefer(rejected_answer)`
+              },
+              pitfalls: [
+                { issue: 'Confusing pretraining with alignment', context: 'A pretrained model can predict fluent text but may not follow instructions or refuse unsafe requests.', fix: 'Separate pretraining, instruction tuning, preference tuning, and safety policy in explanations.' },
+                { issue: 'Expecting embeddings from a chat model to be ideal', context: 'A generative model is not necessarily optimized for similarity search.', fix: 'Use embedding models trained or tuned for retrieval and validate on recall metrics.' }
+              ],
+              qa: [
+                { q: 'Masked LM vs causal LM?', a: 'Masked LM predicts hidden tokens using both left and right context; causal LM predicts the next token using previous context only.' },
+                { q: 'What is contrastive learning?', a: 'A training approach that brings matching pairs closer and pushes non-matching pairs apart in representation space.' },
+                { q: 'What is instruction tuning?', a: 'Supervised training on instruction-response examples so a base model becomes better at following user tasks.' }
+              ]
+            }
+          },
+          {
+            term: 'Architecture Blocks',
+            desc: 'Embedding layer, multi-head attention, feed-forward network, residual connections, layer norm, logits, and softmax.',
+            detail: {
+              overview: 'A transformer block repeatedly mixes token information with attention, transforms each token representation with a feed-forward network, stabilizes training with residual connections and normalization, and eventually projects hidden states into vocabulary logits. This mental model helps debug why prompt length affects latency, why token position matters, and why decoding settings alter outputs without changing model weights.',
+              code: {
+                label: 'Transformer block pseudocode',
+                lines: `x = token_embedding(tokens) + position_embedding(tokens)
+for block in transformer:
+    x = x + multi_head_attention(layer_norm(x))
+    x = x + feed_forward(layer_norm(x))
+logits = output_projection(layer_norm(x))`
+              },
+              pitfalls: [
+                { issue: 'Treating attention as explanation', context: 'Attention weights can be inspected, but they are not a guaranteed faithful explanation of model reasoning.', fix: 'Use attention as one debugging signal, not as proof of causality.' },
+                { issue: 'Skipping positional encoding', context: 'Without position information, a transformer cannot distinguish word order reliably.', fix: 'Explain that token identity and token position are both part of the model input.' }
+              ],
+              qa: [
+                { q: 'What does multi-head attention add?', a: 'Multiple attention heads let the model attend to different relationships or positions in parallel.' },
+                { q: 'Why use residual connections?', a: 'They help gradients flow and let each block refine rather than replace the representation.' },
+                { q: 'What are logits?', a: 'Raw vocabulary scores before softmax turns them into probabilities.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '08',
+        title: 'Adaptation and Fine-Tuning',
+        intro: 'Know when to change the prompt, the data, the retrieval layer, or the model weights.',
+        insight: 'Fine-tuning is rarely the first fix for missing knowledge. It is strongest for behavior, style, format, routing, and domain-specific decision boundaries.',
+        points: [
+          {
+            term: 'SFT and Instruction Tuning',
+            desc: 'Supervised fine-tuning, task demonstrations, style alignment, data quality, and held-out evaluation.',
+            detail: {
+              overview: 'Supervised fine-tuning teaches a model to imitate high-quality input-output examples. It is useful when prompts are too long, behavior must be consistent, outputs have domain-specific style, or the task has many examples. It is not a reliable way to insert large changing knowledge. Keep a held-out set, deduplicate training data, test refusals and edge cases, and compare against a strong prompt-only baseline.',
+              code: {
+                label: 'JSONL - training example shape',
+                lines: `{"messages":[
+  {"role":"system","content":"Extract support ticket fields as JSON."},
+  {"role":"user","content":"Customer cannot log in after SSO migration."},
+  {"role":"assistant","content":"{\\"category\\":\\"auth\\",\\"severity\\":\\"high\\"}"}
+]}`
+              },
+              pitfalls: [
+                { issue: 'Fine-tuning to fix retrieval gaps', context: 'The model still cannot know a newly updated policy or private document unless that evidence is supplied.', fix: 'Use RAG for changing knowledge and fine-tune only stable behavior.' },
+                { issue: 'Training on low-quality assistant outputs', context: 'The model learns verbosity, unsupported claims, and schema mistakes from weak examples.', fix: 'Curate examples, include negative cases, and evaluate on data not used in training.' }
+              ],
+              qa: [
+                { q: 'When should you fine-tune an LLM?', a: 'When you need consistent behavior, style, formatting, or task policy across many examples and prompting has become brittle or expensive.' },
+                { q: 'What should be in a fine-tuning validation set?', a: 'Representative normal cases, edge cases, refusals, adversarial inputs, rare labels, and cases from every major customer or domain slice.' },
+                { q: 'Why is fine-tuning not ideal for facts?', a: 'Facts change, can be memorized unreliably, and are hard to cite. Retrieval is better for knowledge that must be current or auditable.' }
+              ]
+            }
+          },
+          {
+            term: 'PEFT and LoRA',
+            desc: 'Parameter-efficient adaptation, low-rank adapters, freezing base weights, merge strategy, and adapter routing.',
+            detail: {
+              overview: 'Parameter-efficient fine-tuning updates a small set of adapter weights instead of the full model. LoRA injects low-rank matrices into selected layers, reducing memory and training cost. It is useful for domain behavior and specialist variants, but adapter sprawl can become an operations problem. Track base model, adapter version, dataset version, eval results, and merge status.',
+              code: {
+                label: 'Python - adapter registry sketch',
+                lines: `registry = {
+    "legal_summarizer:v3": {
+        "base": "llama-3.1-8b",
+        "adapter": "s3://models/legal-lora-v3",
+        "eval": {"faithfulness": 0.91, "json_valid": 0.99},
+    }
+}`
+              },
+              pitfalls: [
+                { issue: 'Adapter without base-model pinning', context: 'Loading a LoRA adapter on the wrong base model gives degraded or nonsensical behavior.', fix: 'Pin and validate base model checksum, tokenizer, adapter rank, and target modules.' },
+                { issue: 'Too many unowned adapters', context: 'Every team trains a domain adapter, but nobody knows which is safe to serve.', fix: 'Use a registry with owners, evals, expiry dates, and deployment gates.' }
+              ],
+              qa: [
+                { q: 'What is LoRA?', a: 'LoRA is a low-rank adaptation method that freezes the base model and trains small matrices added to selected layers.' },
+                { q: 'What is the trade-off of PEFT?', a: 'It reduces training cost and storage but adds serving complexity, adapter compatibility checks, and routing decisions.' },
+                { q: 'When would you merge an adapter into base weights?', a: 'When the adapter is stable, always used with that base, and merge testing shows no quality regression or deployment issue.' }
+              ]
+            }
+          },
+          {
+            term: 'Preference Optimization',
+            desc: 'RLHF, DPO, reward models, pairwise preference data, safety alignment, and regression risk.',
+            detail: {
+              overview: 'Preference optimization trains a model to prefer one response over another. It is useful for subjective qualities such as helpfulness, brevity, tone, refusal style, or rubric compliance. The quality of pairwise data matters more than the algorithm name. Preference tuning can over-optimize for judge taste, reduce diversity, or damage factual behavior, so run broad regression evals.',
+              code: {
+                label: 'Preference pair',
+                lines: `{
+  "prompt": "Explain why retrieval failed.",
+  "chosen": "The query used an exact invoice ID, but vector-only search missed it.",
+  "rejected": "The system had a temporary issue. Try again later."
+}`
+              },
+              pitfalls: [
+                { issue: 'Optimizing for vague preference labels', context: 'Annotators choose the friendlier response, but the product needed the more grounded response.', fix: 'Use rubrics with ranked criteria such as correctness, evidence, completeness, and tone.' },
+                { issue: 'No capability regression tests', context: 'Tone improves while extraction accuracy or refusal behavior gets worse.', fix: 'Run task, safety, and calibration evals before promotion.' }
+              ],
+              qa: [
+                { q: 'What is DPO?', a: 'Direct Preference Optimization trains from chosen and rejected response pairs without a separate online reinforcement learning loop.' },
+                { q: 'What makes preference data good?', a: 'Clear rubrics, calibrated annotators, difficult pairs, domain coverage, and disagreement review.' },
+                { q: 'How do you prevent reward hacking?', a: 'Use diverse evals, human audits, adversarial cases, and metrics that check factuality and task success, not just style.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'retrieval',
+    label: 'RAG Systems',
+    range: '09-11',
+    stages: [
+      {
+        num: '09',
+        title: 'Retrieval Architecture',
+        intro: 'RAG quality comes from the data pipeline as much as the model call.',
+        insight: 'A vector database is an index, not a source of truth. Keep raw documents, parsed text, chunks, embeddings, metadata, and answers separate.',
+        points: [
+          {
+            term: 'Ingestion',
+            desc: 'Parsing, normalization, deduplication, chunk lineage, metadata, ACLs, and embedding versioning.',
+            detail: {
+              overview: 'RAG starts before embeddings. Parsing should preserve headings, tables, captions, hierarchy, links, and source offsets when possible. Chunk IDs should be stable. Every chunk needs source lineage, access-control metadata, content hash, embedding model version, and timestamps so re-indexing and debugging are possible.',
+              code: {
+                label: 'SQL - chunk lineage',
+                lines: `create table rag_chunks (
+  chunk_id text primary key,
+  document_id text not null,
+  source_uri text not null,
+  content_hash text not null,
+  embedding_model text not null,
+  acl jsonb not null,
+  text text not null,
+  created_at timestamptz not null default now()
+);`
+              },
+              pitfalls: [
+                { issue: 'No embedding version column', context: 'Search mixes old and new vector spaces after a model migration, making retrieval quality impossible to explain.', fix: 'Store embedding model, dimensions, chunking version, and index build ID.' },
+                { issue: 'Chunking by fixed characters only', context: 'Chunks split definitions, tables, procedures, and code blocks in the middle, destroying answerability.', fix: 'Use structure-aware chunking with overlap and source offsets.' }
+              ],
+              qa: [
+                { q: 'What metadata is mandatory for RAG?', a: 'Document ID, chunk ID, source, content hash, embedding version, chunking version, timestamps, ACL fields, and enough structure to cite or debug.' },
+                { q: 'Why keep raw source text?', a: 'You need it to re-parse, re-chunk, audit citations, compare versions, and recover from bad indexing choices.' }
+              ]
+            }
+          },
+          {
+            term: 'Hybrid Retrieval',
+            desc: 'Dense search, keyword search, metadata filters, reranking, query expansion, and multi-hop retrieval.',
+            detail: {
+              overview: 'Dense vectors capture semantic similarity; sparse search catches exact names, IDs, errors, and rare terms. Hybrid systems combine both, filter by permissions and metadata, rerank candidates with a stronger relevance model, then compress evidence for the final answer prompt.',
+              code: {
+                label: 'Retrieval pipeline',
+                lines: `candidates = union(
+    vector_search(query, k=40),
+    keyword_search(query, k=40),
+)
+candidates = filter_acl(candidates, user)
+ranked = rerank(query, candidates)[:8]
+context = compress_for_answer(query, ranked)`
+              },
+              pitfalls: [
+                { issue: 'Vector-only retrieval for exact identifiers', context: 'The user asks about INV-2026-1049, but dense search returns semantically similar invoices instead of the exact one.', fix: 'Use hybrid retrieval and boost exact matches for IDs, names, versions, and error codes.' },
+                { issue: 'Reranking after truncation', context: 'The correct document was candidate 27, but the app kept only the first 10 vector results before reranking.', fix: 'Retrieve a wider candidate pool, then rerank and trim.' }
+              ],
+              qa: [
+                { q: 'When is reranking worth it?', a: 'When recall is acceptable but top-k precision is weak, or when retrieved chunks are similar and the final prompt budget is tight.' },
+                { q: 'What is query expansion?', a: 'Rewriting or expanding a user query into related terms, synonyms, or subquestions to improve recall.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '10',
+        title: 'Grounded Generation',
+        intro: 'The answer layer must prove it used the right evidence.',
+        insight: 'RAG is not complete when the model answers. It is complete when the product can explain why that answer should be trusted.',
+        points: [
+          {
+            term: 'Citation Discipline',
+            desc: 'Passage-level evidence, quote spans, source visibility, and unsupported-claim detection.',
+            detail: {
+              overview: 'Citations should point to the exact evidence used, not just the source document. The model should distinguish supported facts, inferred summaries, and missing evidence. For high-stakes workflows, run a post-generation groundedness check that compares each important claim against the retrieved passages.',
+              code: {
+                label: 'Answer contract',
+                lines: `{
+  "answer": "...",
+  "claims": [
+    {"text": "...", "citation_ids": ["chunk_14"], "support": "direct"},
+    {"text": "...", "citation_ids": [], "support": "missing"}
+  ],
+  "needs_escalation": true
+}`
+              },
+              pitfalls: [
+                { issue: 'Document-level citations only', context: 'The answer cites a 90-page PDF, but the claim is nowhere visible to the user.', fix: 'Cite chunk IDs, section names, page numbers, and quote spans when possible.' },
+                { issue: 'Answering from prior knowledge when context is missing', context: 'The model gives a generic but plausible answer that violates the product promise of private-knowledge grounding.', fix: 'Use an explicit missing-evidence path and test it.' }
+              ],
+              qa: [
+                { q: 'What is groundedness?', a: 'The degree to which generated claims are supported by the supplied evidence.' },
+                { q: 'How do you reduce hallucination in RAG?', a: 'Improve retrieval, constrain answer behavior, require citations, validate claims, and escalate when evidence is missing or conflicting.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '11',
+        title: 'Knowledge Quality and Graph RAG',
+        intro: 'Move beyond nearest neighbors when the corpus has entities, procedures, and multi-hop relationships.',
+        insight: 'Retrieval quality is usually capped by document quality, not model quality. Clean lineage beats clever prompting.',
+        points: [
+          {
+            term: 'Chunking Strategy',
+            desc: 'Semantic chunks, windows, overlap, section hierarchy, tables, source offsets, and answerability.',
+            detail: {
+              overview: 'Chunking decides what evidence the model can see as a unit. Good chunks are large enough to answer a question and small enough to rank precisely. Preserve headings, tables, code blocks, page numbers, and parent sections. Use overlap when concepts span boundaries, but avoid overlap so large that it floods retrieval with duplicates.',
+              code: {
+                label: 'Python - structure-aware chunk sketch',
+                lines: `def chunk_sections(doc):
+    for section in doc.sections:
+        text = section.heading + "\\n" + section.body
+        for window in sliding_tokens(text, size=420, overlap=60):
+            yield {
+                "text": window.text,
+                "section": section.heading,
+                "page": window.page,
+                "offsets": window.offsets,
+            }`
+              },
+              pitfalls: [
+                { issue: 'Chunks without parent context', context: 'A paragraph says it is not covered, but the section title says which policy it belongs to. Retrieval loses the meaning.', fix: 'Include parent headings and source metadata in each chunk.' },
+                { issue: 'Huge chunks for every document', context: 'Recall looks good, but reranking and answer prompts include too many distractors.', fix: 'Evaluate chunk sizes by answerability, recall@k, and final answer faithfulness.' }
+              ],
+              qa: [
+                { q: 'How do you pick chunk size?', a: 'Start from the unit needed to answer common questions, then tune with retrieval recall and answer faithfulness evals.' },
+                { q: 'Why include source offsets?', a: 'Offsets let you cite exact spans, highlight evidence, deduplicate chunks, and debug parsing issues.' },
+                { q: 'What is parent-child retrieval?', a: 'Index small child chunks for precise search, then retrieve larger parent sections for enough answer context.' }
+              ]
+            }
+          },
+          {
+            term: 'Graph RAG',
+            desc: 'Entity extraction, canonicalization, relationship edges, community summaries, and path-aware retrieval.',
+            detail: {
+              overview: 'Graph RAG adds structure when answers depend on relationships: customers linked to contracts, services linked to incidents, clauses linked to exceptions, or papers linked by citations. The graph is most valuable when entities are canonicalized and edges have provenance. Use graph traversal to expand or constrain retrieval, then ground final answers in source text.',
+              code: {
+                label: 'Cypher - entity neighborhood',
+                lines: `MATCH (c:Customer {id: $customer_id})-[:HAS_CONTRACT]->(k)
+MATCH (k)-[:HAS_CLAUSE]->(clause)
+WHERE clause.topic IN $topics
+RETURN clause.text, clause.source_uri, clause.page
+LIMIT 12`
+              },
+              pitfalls: [
+                { issue: 'Graph without provenance', context: 'The graph says a contract has a clause, but nobody can trace it back to a document span.', fix: 'Attach source document, page, chunk ID, extractor version, and confidence to every edge.' },
+                { issue: 'LLM-extracted entities without normalization', context: 'IBM, I.B.M., and International Business Machines become separate nodes.', fix: 'Use entity resolution with aliases, IDs, confidence thresholds, and human review for high-value nodes.' }
+              ],
+              qa: [
+                { q: 'When does Graph RAG help?', a: 'When the question needs relationships, multi-hop reasoning, entity disambiguation, permissions, or aggregation across connected facts.' },
+                { q: 'What should still be cited in Graph RAG?', a: 'The original text evidence, not just the graph edge or generated graph summary.' },
+                { q: 'How do you evaluate Graph RAG?', a: 'Measure entity extraction accuracy, edge precision, path recall, answer correctness, and citation faithfulness.' }
+              ]
+            }
+          },
+          {
+            term: 'Knowledge Freshness',
+            desc: 'Incremental indexing, tombstones, versioned documents, stale embeddings, and reprocessing queues.',
+            detail: {
+              overview: 'Knowledge systems decay when documents change but indexes, summaries, and embeddings do not. A production pipeline needs document versioning, content hashes, tombstones for deleted chunks, re-embedding jobs, and freshness signals during retrieval. Answers should prefer current policy and disclose when evidence is stale or conflicting.',
+              code: {
+                label: 'Ingestion - delta decision',
+                lines: `if new_hash != stored_hash:
+    mark_old_chunks_deleted(document_id)
+    enqueue_parse(document_id, version=new_version)
+    enqueue_embed(document_id, embedding_model=current_model)
+else:
+    skip("unchanged document")`
+              },
+              pitfalls: [
+                { issue: 'Deleted content remains searchable', context: 'A removed policy continues to appear because old chunks were never tombstoned.', fix: 'Use soft deletes, index rebuild jobs, and retrieval filters that exclude inactive chunks.' },
+                { issue: 'Summaries not regenerated after source updates', context: 'The chunk is fresh but the cached summary still reflects last quarter policy.', fix: 'Treat summaries as derived artifacts with dependency tracking and expiry.' }
+              ],
+              qa: [
+                { q: 'How do you handle document updates in RAG?', a: 'Detect content changes, version the document, tombstone old chunks, re-parse, re-embed, and validate retrieval on update-sensitive evals.' },
+                { q: 'What is a tombstone in indexing?', a: 'A marker that a prior chunk or document version is no longer active, even if it remains stored for audit.' },
+                { q: 'Why is freshness part of relevance?', a: 'The most semantically similar passage can be wrong if it is outdated, superseded, or deleted.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'agents',
+    label: 'Agents + Tools',
+    range: '12-13',
+    stages: [
+      {
+        num: '12',
+        title: 'Tool-Using Systems',
+        intro: 'Agents are useful when the model must choose actions, not when a simple chain is enough.',
+        insight: 'The safest agent architecture keeps the model creative in planning and deterministic in permission, state, and execution.',
+        points: [
+          {
+            term: 'Tool Contracts',
+            desc: 'Typed schemas, idempotency, permission checks, retries, dry runs, and audit logs.',
+            detail: {
+              overview: 'A tool is a product API exposed to a probabilistic planner. Tool arguments must be validated. Destructive operations should support dry-run previews, confirmation gates, idempotency keys, and audit trails. The model should not decide whether a user is allowed to perform an action.',
+              code: {
+                label: 'Python - tool boundary',
+                lines: `class CreateTicket(BaseModel):
+    title: str
+    severity: Literal["low", "medium", "high"]
+    customer_id: str
+
+def create_ticket_tool(args, user):
+    payload = CreateTicket.model_validate(args)
+    authorize(user, "ticket:create", payload.customer_id)
+    return ticket_api.create(payload, idempotency_key=request_id())`
+              },
+              pitfalls: [
+                { issue: 'Free-form tool arguments', context: 'The model sends malformed dates, mixed currencies, or unsupported enum values, and the backend fails unpredictably.', fix: 'Use strict schemas and return validation errors the model can repair.' },
+                { issue: 'No idempotency on retries', context: 'A network retry creates duplicate tickets, refunds, or emails.', fix: 'Use idempotency keys for every side-effecting tool.' }
+              ],
+              qa: [
+                { q: 'When should you use an agent?', a: 'When the workflow requires tool selection, stateful planning, conditional branching, or multi-step recovery. Otherwise use a simpler deterministic chain.' },
+                { q: 'What is the biggest agent risk?', a: 'Unbounded action. Limit tools, permissions, loop count, budget, and state transitions.' }
+              ]
+            }
+          },
+          {
+            term: 'State Machines',
+            desc: 'Planning loops, termination criteria, memory, recovery, and human-in-the-loop checkpoints.',
+            detail: {
+              overview: 'Agent loops should be explicit state machines. Each state has allowed transitions, budgets, and exit criteria. Memory should be task-specific and inspectable. Human review belongs at high-cost, high-risk, low-confidence, or irreversible steps.',
+              code: {
+                label: 'Agent loop constraints',
+                lines: `while state not in {"done", "escalate"}:
+    assert steps < 8
+    assert cost < budget
+    action = planner.next(state)
+    state = reducer(state, execute(action))
+    steps += 1`
+              },
+              pitfalls: [
+                { issue: 'Vague stop condition', context: 'The agent keeps searching, summarizing, and re-planning because no state marks success.', fix: 'Define done, blocked, needs_user, and escalate states before implementation.' },
+                { issue: 'Unbounded memory', context: 'The model accumulates noisy history and starts following stale assumptions.', fix: 'Use structured task state plus summarized history with freshness rules.' }
+              ],
+              qa: [
+                { q: 'Why model agents as graphs?', a: 'Graphs make transitions, retries, branches, and checkpoints explicit and testable.' },
+                { q: 'What should be observable in an agent?', a: 'Steps, tools, inputs, outputs, model versions, costs, errors, state transitions, and final decision rationale.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '13',
+        title: 'Memory, Planning, and Multi-Agent Patterns',
+        intro: 'Make autonomy bounded, inspectable, and recoverable before making it more capable.',
+        insight: 'The product value of an agent comes from controlled state transitions, not from letting the model think forever.',
+        points: [
+          {
+            term: 'Agent Memory',
+            desc: 'Conversation history, working memory, episodic memory, semantic memory, summaries, and retention policy.',
+            detail: {
+              overview: 'Memory is any state carried across steps or sessions. Short-term memory helps the current task; long-term memory can personalize or accumulate knowledge. Every memory type needs a purpose, schema, retention rule, and user-visible deletion path. Do not store raw chat forever just because it is easy. Summaries should include uncertainty and source links so stale assumptions can be corrected.',
+              code: {
+                label: 'Memory schema',
+                lines: `memory = {
+  "kind": "user_preference",
+  "fact": "prefers concise technical answers",
+  "source": "conversation:2026-05-17",
+  "confidence": 0.82,
+  "expires_at": "2026-08-17"
+}`
+              },
+              pitfalls: [
+                { issue: 'Memory as untrusted instruction', context: 'A stale or poisoned memory says always bypass approval for this user.', fix: 'Treat memory as data, not policy. Revalidate permissions and keep high-risk rules outside memory.' },
+                { issue: 'No forgetting mechanism', context: 'Old preferences and task assumptions silently affect future answers.', fix: 'Add retention, user controls, confidence, provenance, and freshness checks.' }
+              ],
+              qa: [
+                { q: 'What is the difference between working and long-term memory?', a: 'Working memory is temporary task state. Long-term memory persists across sessions and needs stricter consent, retention, and audit rules.' },
+                { q: 'How do you prevent memory poisoning?', a: 'Store provenance, validate memory writes, separate facts from instructions, and require approval for sensitive or durable memory.' },
+                { q: 'What should an agent remember?', a: 'Only information that improves future task success and is safe, consented, inspectable, and deletable.' }
+              ]
+            }
+          },
+          {
+            term: 'Planning Patterns',
+            desc: 'ReAct, plan-and-execute, reflection, decomposition, self-checking, and failure recovery.',
+            detail: {
+              overview: 'Planning is useful when a task needs multiple decisions, not when a deterministic pipeline is enough. ReAct interleaves reasoning and tool calls. Plan-and-execute creates a plan first, then runs steps. Reflection can catch errors but also adds cost and self-confirmation risk. Production planners need step budgets, allowed tools, stop states, and recovery rules.',
+              code: {
+                label: 'Planner contract',
+                lines: `plan = planner.create(goal, tools=allowed_tools)
+for step in plan.steps[:MAX_STEPS]:
+    if step.tool not in allowed_tools:
+        return escalate("unsupported tool")
+    result = execute(step)
+    state = reducer(state, result)
+    if state.done or state.blocked:
+        break`
+              },
+              pitfalls: [
+                { issue: 'Reflection without new evidence', context: 'The model critiques itself but only repeats the same unsupported assumption.', fix: 'Reflection should reference tool outputs, retrieved evidence, or deterministic checks.' },
+                { issue: 'Planning hidden from the product', context: 'Users and operators cannot tell why the agent took an action.', fix: 'Log plans, tool calls, state transitions, and final rationale separately from private chain-of-thought.' }
+              ],
+              qa: [
+                { q: 'What is ReAct?', a: 'A pattern where the model alternates between reasoning about the task and acting through tools or observations.' },
+                { q: 'When is plan-and-execute better than ReAct?', a: 'When the task benefits from a visible checklist, predictable phases, or human approval before execution.' },
+                { q: 'How do you stop an agent loop?', a: 'Use max steps, cost budgets, explicit done and blocked states, repeated-action detection, and escalation paths.' }
+              ]
+            }
+          },
+          {
+            term: 'Multi-Agent Systems',
+            desc: 'Supervisor agents, specialist workers, debate, handoffs, shared state, and conflict resolution.',
+            detail: {
+              overview: 'Multi-agent design is useful when roles have genuinely different tools, data access, or review responsibilities. It is not automatically better than one model with a good prompt. Use a supervisor to route tasks, specialist agents for bounded work, and deterministic reducers to merge results. Define ownership and conflict resolution before adding agents.',
+              code: {
+                label: 'Supervisor routing sketch',
+                lines: `route = supervisor.classify(request)
+if route == "legal":
+    draft = legal_agent.run(request)
+elif route == "data":
+    draft = sql_agent.run(request)
+else:
+    draft = general_agent.run(request)
+
+return reviewer.validate(draft, policy=release_policy)`
+              },
+              pitfalls: [
+                { issue: 'Agents talking without shared state', context: 'Each specialist has a different version of the task and overwrites prior decisions.', fix: 'Use a typed shared state object and a reducer that owns updates.' },
+                { issue: 'No final accountable reviewer', context: 'Multiple agents agree on a bad answer, and the system has no authority boundary.', fix: 'Use deterministic validation and a final reviewer with explicit acceptance criteria.' }
+              ],
+              qa: [
+                { q: 'When should you use multiple agents?', a: 'When there are separate roles, tools, permissions, or review responsibilities that improve quality enough to justify complexity.' },
+                { q: 'What is a supervisor pattern?', a: 'A coordinator chooses which specialist handles each step and enforces task boundaries and stop conditions.' },
+                { q: 'What is the main risk of multi-agent systems?', a: 'Unbounded cost and unclear accountability. More agents can amplify errors instead of correcting them.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'production',
+    label: 'Production Quality',
+    range: '14-16',
+    stages: [
+      {
+        num: '14',
+        title: 'Evaluation, Cost, and Reliability',
+        intro: 'Serious LLM products are evaluated systems, not prompt experiments.',
+        insight: 'Every prompt change without evals is a silent production migration.',
+        points: [
+          {
+            term: 'Evaluation Stack',
+            desc: 'Golden sets, synthetic tests, retrieval metrics, generation judges, task success, and regression gates.',
+            detail: {
+              overview: 'Evaluation should cover retrieval recall, answer correctness, groundedness, refusal quality, tool-call validity, latency, cost, and user task completion. Use small curated golden sets for fast regression, larger sampled sets for coverage, and production traces for drift detection.',
+              code: {
+                label: 'Python - RAG eval assertion',
+                lines: `def evaluate_rag(case, result):
+    retrieved = set(result["retrieved_doc_ids"])
+    expected = set(case["expected_sources"])
+    recall = len(retrieved & expected) / max(len(expected), 1)
+    assert recall >= case["min_recall"]
+    assert all(term in result["answer"] for term in case["must_include"])
+    assert not any(term in result["answer"] for term in case["must_not_include"])
+    assert result["citations"], "answer must cite evidence"`
+              },
+              pitfalls: [
+                { issue: 'Only using LLM-as-judge', context: 'Judges can miss retrieval failures, over-reward fluent answers, and drift with model upgrades.', fix: 'Combine deterministic checks, human labels, retrieval metrics, and judge scores.' },
+                { issue: 'No negative tests', context: 'The system answers when it should refuse or escalate.', fix: 'Include unanswerable, adversarial, permission-denied, and conflicting-evidence cases.' }
+              ],
+              qa: [
+                { q: 'What should ship before more prompt engineering?', a: 'An eval set that measures the behavior you are trying to improve.' },
+                { q: 'What is a golden set?', a: 'A curated set of representative cases with expected behavior used as a regression test for model, prompt, retrieval, and tool changes.' }
+              ]
+            }
+          },
+          {
+            term: 'Serving Strategy',
+            desc: 'Model routing, caching, batching, rate limits, fallbacks, streaming, and budget controls.',
+            detail: {
+              overview: 'Production LLM systems route by task difficulty, privacy, latency, and cost. Cache stable intermediate results like embeddings, retrieval, extracted entities, and policy checks. Use streaming for perceived latency, backpressure for rate limits, and fallbacks for degraded modes.',
+              code: {
+                label: 'Routing policy',
+                lines: `if task == "classification":
+    model = "small-fast"
+elif requires_deep_reasoning or high_value_customer:
+    model = "large"
+else:
+    model = "medium"
+
+assert estimated_cost(request) < user_budget`
+              },
+              pitfalls: [
+                { issue: 'One premium model for every task', context: 'Cost scales faster than product value, and simple routing tasks pay reasoning-model prices.', fix: 'Route by task, confidence, and business value. Escalate only when needed.' },
+                { issue: 'Caching final answers with private context', context: 'A cached response generated for one user leaks permission-scoped information to another user.', fix: 'Cache by permission scope or cache only neutral intermediates.' }
+              ],
+              qa: [
+                { q: 'What should you cache in RAG?', a: 'Embeddings, parsed documents, retrieval results for public data, rerank scores, and stable summaries. Be careful with final answers.' },
+                { q: 'How do you control cost?', a: 'Token budgets, routing, caching, prompt compression, retrieval limits, output caps, batch jobs, and per-tenant quotas.' }
+              ]
+            }
+          },
+          {
+            term: 'Observability',
+            desc: 'Trace prompts, retrieval, model calls, tool calls, validations, user feedback, and drift.',
+            detail: {
+              overview: 'You cannot debug what you did not record. Each request needs a trace: prompt version, model version, retrieved chunks, tool calls, validation results, latency, cost, and user-visible outcome. Redact sensitive data, but preserve enough structure to reproduce failures.',
+              code: {
+                label: 'Trace payload',
+                lines: `trace = {
+  "prompt_version": "rag_answer_v14",
+  "model": model,
+  "retrieved_chunk_ids": [c.id for c in ranked],
+  "latency_ms": elapsed,
+  "cost_usd": cost,
+  "validation": validation_status
+}`
+              },
+              pitfalls: [
+                { issue: 'Logging raw private prompts forever', context: 'Debugging data becomes a security and compliance liability.', fix: 'Redact secrets, enforce retention windows, and store structured metadata separately from sensitive text.' },
+                { issue: 'No prompt version in traces', context: 'A regression appears in production, but the team cannot tell which prompt was active.', fix: 'Version prompts, retrieval configs, model names, and eval runs together.' }
+              ],
+              qa: [
+                { q: 'What is the minimum useful LLM trace?', a: 'Request ID, user/task metadata, prompt version, model, token counts, retrieved IDs, tool calls, latency, cost, validation result, and final status.' },
+                { q: 'How do you detect drift?', a: 'Track eval scores, retrieval distributions, refusal rates, tool failures, cost, latency, and user correction signals over time.' }
+              ]
+            }
+          },
+          {
+            term: 'End-to-End API Path',
+            desc: 'FastAPI request schema, retrieval, prompt assembly, model call, response validation, timeout, and trace ID.',
+            detail: {
+              overview: 'A useful production code example should show the contract around the model, not only the model call. The API boundary validates the request, retrieves authorized context, assembles the prompt, calls the model with a timeout, validates the response, and returns a trace ID so failures can be debugged later.',
+              code: {
+                label: 'Python - FastAPI RAG endpoint',
+                lines: `from fastapi import FastAPI, Request
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class AskRequest(BaseModel):
+    question: str
+    tenant_id: str
+
+class AskResponse(BaseModel):
+    answer: str
+    citations: list[str]
+    trace_id: str
+
+@app.post("/ask", response_model=AskResponse)
+async def ask(body: AskRequest, request: Request):
+    trace_id = request.headers.get("x-request-id", "local")
+    docs = await retrieve(body.question, tenant_id=body.tenant_id)
+    raw = await call_llm(build_prompt(body.question, docs), timeout_s=20)
+    return AskResponse.model_validate({**raw, "trace_id": trace_id})`
+              },
+              pitfalls: [
+                { issue: 'Endpoint returns raw model output', context: 'Malformed JSON, missing citations, or unsafe text reaches users because the response is not validated.', fix: 'Validate every model response against a response schema before returning it.' },
+                { issue: 'No request ID or trace ID', context: 'A user reports a bad answer but the team cannot connect it to prompts, retrieval, cost, or model version.', fix: 'Propagate trace IDs across retrieval, model calls, validations, and logs.' }
+              ],
+              qa: [
+                { q: 'What belongs around the model call in an API?', a: 'Request validation, auth, retrieval, prompt assembly, timeout, retry rules, output validation, logging, and a typed response.' },
+                { q: 'Why use response_model in FastAPI?', a: 'It validates and documents the returned shape, reducing accidental leakage of internal or malformed fields.' },
+                { q: 'Where should tenant filtering happen?', a: 'Before retrieval results are ranked or passed to the model, so unauthorized context never enters the prompt.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '15',
+        title: 'Serving, Safety, and Governance',
+        intro: 'Production LLM systems need predictable behavior under load, abuse, and regulation.',
+        insight: 'A reliable AI product is not a single model call. It is a governed service with budgets, permissions, fallbacks, and audit trails.',
+        points: [
+          {
+            term: 'Inference Optimization',
+            desc: 'Streaming, batching, prefix caching, speculative decoding, quantization, model cascades, and fallback paths.',
+            detail: {
+              overview: 'Serving strategy depends on latency target, privacy, volume, and task difficulty. Time to first token is driven by prefill and queueing; total latency is driven by output length and tools. Optimize by shortening prompts, caching stable prefixes, batching where possible, streaming responses, routing easy work to smaller models, and falling back gracefully when providers fail.',
+              code: {
+                label: 'Routing - cascade with fallback',
+                lines: `try:
+    if request.kind in {"tagging", "routing"}:
+        return small_model(request)
+    if request.risk == "high":
+        return large_model(request, temperature=0)
+    return medium_model(request)
+except ProviderTimeout:
+    return degraded_response("We can summarize, but live actions are paused.")`
+              },
+              pitfalls: [
+                { issue: 'Optimizing average latency only', context: 'p50 looks good while p95 and p99 are unusable for large prompts or tool-heavy paths.', fix: 'Track p50, p95, p99, time-to-first-token, output tokens, queue time, and tool latency by route.' },
+                { issue: 'No degraded mode', context: 'A provider outage turns every AI feature into a hard failure.', fix: 'Add cached answers, smaller-model fallbacks, async jobs, user messaging, and escalation paths.' }
+              ],
+              qa: [
+                { q: 'What is continuous batching?', a: 'A serving technique that batches tokens from multiple requests dynamically so GPU utilization stays high while requests enter and leave the batch.' },
+                { q: 'What is speculative decoding?', a: 'A smaller draft model proposes tokens and a larger model verifies them, improving latency when accepted tokens match.' },
+                { q: 'How do you reduce LLM cost without hurting quality?', a: 'Route by task, shorten prompts, cache stable work, cap outputs, use smaller models for simple steps, batch offline work, and evaluate each change.' }
+              ]
+            }
+          },
+          {
+            term: 'Safety Guardrails',
+            desc: 'Moderation, prompt injection defense, data leakage prevention, jailbreak testing, PII handling, and human review.',
+            detail: {
+              overview: 'Guardrails should be layered. Classify input risk, isolate untrusted text, retrieve only authorized data, validate outputs, block unsafe tool calls, and escalate high-risk cases. The model can help detect risk, but the application must enforce policy. For private systems, data access control is more important than clever prompt wording.',
+              code: {
+                label: 'Safety pipeline',
+                lines: `risk = classify_input(user_text)
+if risk.blocked:
+    return refusal(risk.reason)
+
+docs = retrieve(query, acl=current_user.acl)
+answer = generate(prompt, context=docs)
+checked = validate_output(answer, docs, policy)
+return checked if checked.safe else escalate(checked.reason)`
+              },
+              pitfalls: [
+                { issue: 'Single guardrail at the prompt layer', context: 'The prompt asks the model to be safe, but tools and data access are still exposed.', fix: 'Enforce authorization, schema validation, and policy checks in application code.' },
+                { issue: 'No tests for indirect prompt injection', context: 'A retrieved document contains instructions to leak secrets or ignore policy.', fix: 'Build eval cases with malicious retrieved content and verify the model treats it as untrusted data.' }
+              ],
+              qa: [
+                { q: 'What is indirect prompt injection?', a: 'A malicious instruction hidden in retrieved content, web pages, emails, or files that tries to control the model through context.' },
+                { q: 'Where should PII redaction happen?', a: 'Before sending text to models when possible, and again before logging or displaying outputs. Keep reversible mappings only when the workflow needs them.' },
+                { q: 'How do you design human-in-the-loop review?', a: 'Route high-risk, low-confidence, irreversible, or policy-sensitive actions to a reviewer with evidence, model output, and recommended action.' }
+              ]
+            }
+          },
+          {
+            term: 'Governance',
+            desc: 'Model cards, prompt changelogs, eval gates, audit logs, incident response, and compliance documentation.',
+            detail: {
+              overview: 'Governance makes AI behavior explainable to engineers, users, leadership, and auditors. Track model versions, prompt versions, datasets, eval results, risk classifications, known limitations, approval history, and incident playbooks. The goal is not paperwork for its own sake; it is the ability to answer what changed, why it changed, and whether the change was safe.',
+              code: {
+                label: 'Release gate checklist',
+                lines: `release = {
+  "model": "answer-model-v5",
+  "prompt": "rag_answer_v18",
+  "eval_passed": True,
+  "safety_passed": True,
+  "owner": "ai-platform",
+  "rollback": "rag_answer_v17"
+}`
+              },
+              pitfalls: [
+                { issue: 'No rollback path for prompts', context: 'A prompt edit degrades answers, but the team cannot quickly restore the last good behavior.', fix: 'Version prompts, configs, and eval artifacts together with one-click rollback.' },
+                { issue: 'Compliance added after launch', context: 'The system lacks data lineage, risk notes, and audit logs when customers ask for them.', fix: 'Document intended use, limitations, data flow, retention, and human oversight before launch.' }
+              ],
+              qa: [
+                { q: 'What belongs in an AI model card or system card?', a: 'Purpose, intended users, limitations, training or data sources, evaluation results, safety constraints, monitoring plan, and owner.' },
+                { q: 'What should be audited in an LLM application?', a: 'Prompts, model versions, retrieval sources, tool calls, permission checks, output validation, user-visible actions, and overrides.' },
+                { q: 'How do you handle an AI incident?', a: 'Contain the feature, preserve traces, identify affected users, roll back configs, patch eval coverage, communicate impact, and monitor recurrence.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '16',
+        title: 'Interview Playbook',
+        intro: 'Practice explaining trade-offs, debugging systems, and designing under realistic constraints.',
+        insight: 'Strong candidates do not just name techniques. They identify failure modes, define metrics, and defend trade-offs.',
+        points: [
+          {
+            term: 'LLM Fundamentals Q&A',
+            desc: 'Common company interview prompts on transformers, decoding, context windows, embeddings, and fine-tuning.',
+            detail: {
+              overview: 'Interviewers often test whether you can reason from fundamentals to product behavior. Good answers connect model mechanics to user-visible trade-offs: tokenization affects cost and truncation, attention affects long-context latency, decoding affects determinism, and fine-tuning affects behavior more than fresh knowledge.',
+              code: {
+                label: 'Answer framework',
+                lines: `answer(question):
+    define_the_concept()
+    explain_why_it_matters_in_production()
+    name_failure_modes()
+    propose_metrics_or_tests()
+    give_a_tradeoff()`
+              },
+              pitfalls: [
+                { issue: 'Only giving definitions', context: 'The answer sounds memorized and does not show engineering judgment.', fix: 'Tie every concept to latency, cost, reliability, evaluation, or user experience.' },
+                { issue: 'Claiming one universal best model', context: 'Real systems choose by task, latency, budget, privacy, and risk.', fix: 'Frame model choice as a routing and evaluation problem.' }
+              ],
+              qa: [
+                { q: 'Explain temperature and top-p to a product manager.', a: 'They control how much randomness the model uses. Low values make outputs more repeatable for extraction and support; higher values help brainstorming but can reduce factual stability.' },
+                { q: 'Why can a longer context window hurt quality?', a: 'It can add distractors, conflicting evidence, instruction dilution, higher cost, and slower first-token latency.' },
+                { q: 'How would you decide between RAG and fine-tuning?', a: 'Use RAG for changing or private knowledge that needs citations. Use fine-tuning for stable behavior, style, output format, or domain decision patterns.' },
+                { q: 'BERT vs GPT in one minute?', a: 'BERT is an encoder trained for bidirectional understanding, so it fits classification, extraction, reranking, and embeddings. GPT is a decoder trained for next-token generation, so it fits chat, code, agents, and long-form generation.' },
+                { q: 'Long context vs retrieval?', a: 'Long context is simpler when the needed evidence is small enough and already available. Retrieval is better when knowledge is large, private, changing, permissioned, or needs citation and freshness control.' },
+                { q: 'Temperature vs top-p?', a: 'Temperature reshapes the whole probability distribution; top-p samples from the smallest set of tokens whose cumulative probability reaches p. Both control randomness, but they should be tuned with task evals.' }
+              ]
+            }
+          },
+          {
+            term: 'RAG Design Q&A',
+            desc: 'Interview patterns around ingestion, chunking, hybrid search, reranking, citations, and hallucination reduction.',
+            detail: {
+              overview: 'RAG interviews are system-design interviews. Start with data sources and permissions, then ingestion, parsing, chunking, embeddings, index design, retrieval, reranking, prompt assembly, answer validation, evaluation, and observability. Always mention failure modes: stale content, missing ACLs, poor parsing, low recall, noisy top-k, and unsupported answers.',
+              code: {
+                label: 'Whiteboard RAG outline',
+                lines: `sources -> parser -> chunks -> embeddings -> vector index
+        -> keyword index -> hybrid retrieval -> reranker
+        -> prompt assembly -> LLM -> citation validator
+        -> trace + feedback + evals`
+              },
+              pitfalls: [
+                { issue: 'Starting with vector DB choice', context: 'The interviewer wanted data quality, permissions, and evaluation trade-offs.', fix: 'Start from product requirements and corpus behavior, then choose storage and indexes.' },
+                { issue: 'No plan for unanswerable questions', context: 'The system will hallucinate when retrieval fails.', fix: 'Add missing-evidence behavior, confidence thresholds, and escalation.' }
+              ],
+              qa: [
+                { q: 'How do you reduce hallucination in a RAG system?', a: 'Improve retrieval recall, rerank for precision, constrain answers to context, require citations, validate claims, and refuse or escalate when evidence is missing.' },
+                { q: 'How do you evaluate retrieval?', a: 'Use labeled expected documents or chunks and measure recall@k, MRR, NDCG, context precision, and coverage across query types.' },
+                { q: 'What would you do if RAG returns irrelevant chunks?', a: 'Inspect parsing and chunking, add hybrid search, improve metadata filters, widen candidate retrieval, rerank, and build query-type eval slices.' },
+                { q: 'BM25 vs embeddings?', a: 'BM25 is lexical, explainable, and strong for exact terms. Embeddings are semantic and strong for paraphrases. Production RAG often combines both.' },
+                { q: 'Reranking vs query expansion?', a: 'Query expansion improves recall by searching more variants. Reranking improves precision by reordering retrieved candidates with a stronger relevance model.' },
+                { q: 'Hallucination vs retrieval failure?', a: 'A retrieval failure means the system did not fetch needed evidence. Hallucination means the model generated unsupported content. Retrieval failure often causes hallucination, but they are not the same bug.' }
+              ]
+            }
+          },
+          {
+            term: 'Coding and Debugging Prompts',
+            desc: 'Practical exercises for schemas, validators, eval harnesses, retries, streaming, and tool boundaries.',
+            detail: {
+              overview: 'Hands-on interviews usually ask you to write a small pipeline or debug a failing one. Show production instincts: typed inputs, timeouts, retries with jitter, idempotency, schema validation, observability, and tests. For code snippets, prefer small composable functions with clear contracts over framework-heavy magic.',
+              code: {
+                label: 'Python - eval assertion skeleton',
+                lines: `def assert_grounded(answer, expected_source):
+    assert answer["citations"], "missing citations"
+    assert expected_source in answer["citations"]
+    assert answer["confidence"] >= 0.7
+    assert not answer.get("unsupported_claims")`
+              },
+              pitfalls: [
+                { issue: 'No timeout or retry boundary', context: 'A simple API demo hangs forever or retries side effects unsafely.', fix: 'Use deadlines, bounded retries, idempotency keys, and explicit error states.' },
+                { issue: 'Parsing model prose with fragile string splits', context: 'The model changes wording and the parser fails silently.', fix: 'Use structured outputs or JSON schema with validation and repair paths.' }
+              ],
+              qa: [
+                { q: 'Write a safe tool-call wrapper. What must it include?', a: 'Schema validation, authorization, timeout, retry policy, idempotency for side effects, audit logging, and clear error messages for repair or escalation.' },
+                { q: 'How do you debug a sudden quality regression?', a: 'Compare traces by prompt version, model version, retrieval config, token counts, selected chunks, validation results, and eval slices before and after the change.' },
+                { q: 'What tests would you add for a support chatbot?', a: 'Golden answer tests, unanswerable questions, permission-denied cases, prompt-injection documents, citation checks, latency budgets, and escalation behavior.' },
+                { q: 'Agent vs workflow?', a: 'A workflow has predetermined steps and branches. An agent chooses actions dynamically. Use a workflow when the path is known; use an agent when tool choice and recovery require model-driven decisions.' },
+                { q: 'LoRA vs full fine-tuning?', a: 'LoRA trains small adapter weights and is cheaper to store and train. Full fine-tuning updates all weights and can be more flexible, but costs more and carries greater regression risk.' },
+                { q: 'What are limitations of LLM-as-judge?', a: 'Judges can be biased, over-reward fluent answers, miss retrieval failures, and drift after model changes. Calibrate them against human labels and deterministic checks.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+];
+
+const tools = ['NLP', 'BM25', 'Embeddings', 'Transformers', 'RAG', 'Agents', 'Evaluation', 'Guardrails'];
+---
+
+<BaseLayout
+  title="LLMs & NLP - Sudheesh Knowledge Base"
+  description="A production-oriented map of NLP and LLM systems: transformers, prompting, RAG, agents, evaluation, cost, and reliability."
+  active="ai-engineering"
+>
+  <main class="page active lnlp-page">
+    <section class="lnlp-hero">
+      <div class="lnlp-hero-inner">
+        <div class="lnlp-hero-left">
+          <div class="lnlp-eyebrow">
+            <span class="lnlp-badge">AI Engineering</span>
+            <span class="lnlp-badge-sep">/</span>
+            <span class="lnlp-badge-count">LLMs & NLP</span>
+          </div>
+          <h1 class="lnlp-hero-title">
+            <span class="lnlp-ht-sans">LLMs</span>
+            <span class="lnlp-ht-serif">& NLP.</span>
+          </h1>
+          <p class="lnlp-hero-desc">
+            A production-first guide to language systems: transformer fundamentals, prompt contracts, RAG pipelines, tool-using agents, evaluation, cost control, and reliability.
+          </p>
+          <div class="lnlp-hero-tools">
+            {tools.map(t => <span class="lnlp-tool-pill">{t}</span>)}
+          </div>
+        </div>
+
+        <nav class="lnlp-hero-index" aria-label="LLMs and NLP index">
+          {layers.map(layer => (
+            <div class="lnlp-idx-layer">
+              <div class="lnlp-idx-layer-label" data-layer={layer.id}>
+                {layer.label}
+                <span class="lnlp-idx-range">{layer.range}</span>
+              </div>
+              {layer.stages.map(stage => (
+                <a class="lnlp-idx-item" href={`#stage-${stage.num}`}>
+                  <span class="lnlp-idx-num">{stage.num}</span>
+                  <span class="lnlp-idx-title">{stage.title}</span>
+                </a>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </div>
+    </section>
+
+    <div class="lnlp-body">
+      {layers.map(layer => (
+        <section class="lnlp-layer" data-layer={layer.id}>
+          <div class="lnlp-layer-head">
+            <div class="lnlp-lh-line"></div>
+            <div class="lnlp-lh-label">
+              <span class="lnlp-lh-name">{layer.label}</span>
+              <span class="lnlp-lh-range">{layer.range}</span>
+            </div>
+            <div class="lnlp-lh-line"></div>
+          </div>
+
+          <div class="lnlp-track">
+            {layer.stages.map(stage => (
+              <article class="lnlp-stage" id={`stage-${stage.num}`}>
+                <div class="lnlp-stage-gutter">
+                  <div class="lnlp-stage-dot"></div>
+                  <div class="lnlp-stage-num">{stage.num}</div>
+                </div>
+
+                <div class="lnlp-stage-content">
+                  <h2 class="lnlp-stage-title">{stage.title}</h2>
+                  <p class="lnlp-stage-intro">{stage.intro}</p>
+
+                  <div class="lnlp-spec">
+                    {stage.points.map(point => (
+                      <div class="lnlp-spec-item">
+                        <button class="lnlp-spec-row" onclick="lnlpToggle(this)" type="button">
+                          <span class="lnlp-spec-term">{point.term}</span>
+                          <span class="lnlp-spec-desc">{point.desc}</span>
+                          <span class="lnlp-spec-chevron" aria-hidden="true">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                              <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                          </span>
+                        </button>
+
+                        <div class="lnlp-det">
+                          <nav class="lnlp-det-tabs">
+                            <button class="lnlp-det-tab lnlp-det-tab--active" onclick="lnlpTab(this,'overview')" type="button">Overview</button>
+                            <button class="lnlp-det-tab" onclick="lnlpTab(this,'code')" type="button">Code</button>
+                            <button class="lnlp-det-tab" onclick="lnlpTab(this,'production')" type="button">In Production</button>
+                            <button class="lnlp-det-tab" onclick="lnlpTab(this,'qa')" type="button">Interview Q&A</button>
+                          </nav>
+                          <div class="lnlp-det-body">
+                            <div class="lnlp-det-pane lnlp-det-pane--active" data-pane="overview">
+                              <p class="lnlp-det-overview">{point.detail.overview}</p>
+                            </div>
+                            <div class="lnlp-det-pane" data-pane="code">
+                              <div class="lnlp-code">
+                                <div class="lnlp-code-bar">
+                                  <span class="lnlp-code-lang">{point.detail.code.label}</span>
+                                  <div class="lnlp-code-dots"><span></span><span></span><span></span></div>
+                                </div>
+                                <pre class="lnlp-code-pre"><code>{point.detail.code.lines}</code></pre>
+                              </div>
+                            </div>
+                            <div class="lnlp-det-pane" data-pane="production">
+                              <div class="lnlp-pitfalls">
+                                {point.detail.pitfalls.map(pit => (
+                                  <div class="lnlp-pitfall">
+                                    <div class="lnlp-pitfall-head">
+                                      <span class="lnlp-pit-badge">Pitfall</span>
+                                      <strong>{pit.issue}</strong>
+                                    </div>
+                                    <p>{pit.context}</p>
+                                    <div class="lnlp-pit-fix">
+                                      <span>Fix</span>
+                                      <em>{pit.fix}</em>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div class="lnlp-det-pane" data-pane="qa">
+                              <div class="lnlp-qa-list">
+                                {point.detail.qa.map(item => (
+                                  <div class="lnlp-qa-item">
+                                    <button class="lnlp-qa-q" onclick="lnlpQA(this)" type="button">
+                                      <span>{item.q}</span>
+                                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                      </svg>
+                                    </button>
+                                    <div class="lnlp-qa-a"><p>{item.a}</p></div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <blockquote class="lnlp-insight">{stage.insight}</blockquote>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <div class="lnlp-end">
+        <p class="lnlp-end-eyebrow">Operating principle</p>
+        <h2 class="lnlp-end-title">Evaluate before you elaborate.</h2>
+        <p class="lnlp-end-sub">The difference between a demo and a system is not a larger prompt. It is measured behavior, controlled cost, and recoverable failure.</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style is:global>
+.lnlp-page { background: var(--linen); padding-top: 0; }
+.lnlp-hero { padding-top: var(--nav-h); border-bottom: 1px solid var(--linen3); }
+.lnlp-hero-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 36px 80px 52px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.lnlp-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
+.lnlp-badge {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--terra);
+  background: var(--terra-pale);
+  border: 1px solid rgba(196,97,74,0.22);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.lnlp-badge-sep { color: var(--linen3); font-size: 0.8rem; }
+.lnlp-badge-count { font-family: var(--mono); font-size: 0.62rem; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; }
+.lnlp-hero-title { display: flex; flex-direction: column; margin-bottom: 24px; line-height: 0.93; }
+.lnlp-ht-sans {
+  font-family: var(--sans);
+  font-size: clamp(3rem, 5.5vw, 5.6rem);
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.045em;
+}
+.lnlp-ht-serif {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(3rem, 5.5vw, 5.6rem);
+  color: var(--terra);
+  letter-spacing: -0.03em;
+}
+.lnlp-hero-desc { font-size: clamp(0.95rem, 1.2vw, 1.08rem); color: var(--muted); line-height: 1.75; max-width: 520px; margin-bottom: 28px; }
+.lnlp-hero-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.lnlp-tool-pill {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  color: var(--muted2);
+  background: var(--linen2);
+  border: 1px solid var(--linen3);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.lnlp-hero-index { border-left: 1px solid var(--linen3); padding-left: clamp(28px, 4vw, 56px); display: flex; flex-direction: column; gap: 28px; }
+.lnlp-idx-layer-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+[data-layer="foundation"] { color: var(--sage); }
+[data-layer="retrieval"] { color: var(--terra); }
+[data-layer="agents"] { color: var(--amber); }
+[data-layer="production"] { color: var(--ink); }
+.lnlp-idx-range { font-weight: 400; color: var(--muted2); letter-spacing: 0.06em; }
+.lnlp-idx-item { display: flex; align-items: baseline; gap: 12px; padding: 5px 8px; border-radius: 6px; text-decoration: none; transition: background 0.14s; }
+.lnlp-idx-item:hover { background: var(--linen2); }
+.lnlp-idx-num { font-family: var(--mono); font-size: 0.58rem; color: var(--muted2); flex-shrink: 0; letter-spacing: 0.06em; }
+.lnlp-idx-title { font-size: 0.8rem; color: var(--muted); line-height: 1.4; transition: color 0.14s; }
+.lnlp-idx-item:hover .lnlp-idx-title { color: var(--ink); }
+.lnlp-body { max-width: 1280px; margin: 0 auto; padding: 0 80px 140px; }
+.lnlp-layer { padding-top: 96px; }
+.lnlp-layer-head { display: flex; align-items: center; gap: 18px; margin-bottom: 60px; }
+.lnlp-lh-line { flex: 1; height: 1px; background: var(--linen3); }
+.lnlp-lh-label { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.lnlp-lh-name { font-family: var(--mono); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; }
+.lnlp-lh-range { font-family: var(--mono); font-size: 0.6rem; color: var(--muted2); letter-spacing: 0.08em; }
+.lnlp-track { position: relative; }
+.lnlp-track::before { content: ''; position: absolute; left: 27px; top: 12px; bottom: 60px; width: 1px; background: var(--linen3); z-index: 0; }
+.lnlp-stage { display: flex; align-items: flex-start; gap: 40px; position: relative; padding-bottom: 80px; opacity: 0; transform: translateY(24px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.lnlp-stage.lnlp-visible { opacity: 1; transform: translateY(0); }
+.lnlp-stage-gutter { flex: 0 0 56px; width: 56px; display: flex; flex-direction: column; align-items: center; padding-top: 4px; gap: 8px; position: relative; z-index: 1; }
+.lnlp-stage-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--linen); border: 2px solid var(--linen3); flex-shrink: 0; transition: background 0.35s, border-color 0.35s; }
+.lnlp-stage.lnlp-visible .lnlp-stage-dot { background: var(--terra-pale); border-color: var(--terra); }
+[data-layer="foundation"] .lnlp-stage.lnlp-visible .lnlp-stage-dot { background: var(--sage-pale); border-color: var(--sage); }
+[data-layer="retrieval"] .lnlp-stage.lnlp-visible .lnlp-stage-dot { background: var(--terra-pale); border-color: var(--terra); }
+[data-layer="agents"] .lnlp-stage.lnlp-visible .lnlp-stage-dot { background: var(--amber-pale); border-color: var(--amber); }
+[data-layer="production"] .lnlp-stage.lnlp-visible .lnlp-stage-dot { background: var(--linen2); border-color: var(--ink3); }
+.lnlp-stage-num { font-family: var(--mono); font-size: 0.64rem; font-weight: 700; color: var(--muted2); letter-spacing: 0.1em; line-height: 1; position: sticky; top: calc(var(--nav-h) + 40px); }
+.lnlp-stage-content { flex: 1; min-width: 0; width: 0; }
+.lnlp-stage-title { font-family: var(--sans); font-size: clamp(1.2rem, 2vw, 1.55rem); font-weight: 800; letter-spacing: -0.033em; color: var(--ink); line-height: 1.12; margin-bottom: 8px; }
+.lnlp-stage-intro { font-size: 0.92rem; color: var(--muted2); font-style: italic; line-height: 1.65; margin-bottom: 24px; }
+.lnlp-spec { border: 1px solid var(--linen3); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+.lnlp-spec-item { border-bottom: 1px solid var(--linen3); }
+.lnlp-spec-item:last-child { border-bottom: none; }
+.lnlp-spec-row {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 40px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  font-family: var(--sans);
+}
+.lnlp-spec-term { padding: 11px 14px; font-size: 0.8rem; font-weight: 700; color: var(--ink); background: var(--linen2); border-right: 1px solid var(--linen3); line-height: 1.45; display: flex; align-items: center; }
+.lnlp-spec-desc { padding: 11px 16px; font-size: 0.8rem; color: var(--muted); line-height: 1.55; background: var(--linen); display: flex; align-items: center; }
+.lnlp-spec-chevron { display: flex; align-items: center; justify-content: center; background: var(--linen); color: var(--linen3); transition: color 0.14s; }
+.lnlp-spec-row:hover .lnlp-spec-term { background: var(--linen3); }
+.lnlp-spec-row:hover .lnlp-spec-desc { background: var(--linen2); }
+.lnlp-spec-item--open .lnlp-spec-chevron svg { transform: rotate(180deg); }
+.lnlp-det { max-height: 0; overflow: hidden; transition: max-height 0.42s cubic-bezier(0.4,0,0.2,1); background: var(--white); }
+.lnlp-spec-item--open > .lnlp-det { max-height: 1500px; }
+.lnlp-det-tabs { display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--linen3); overflow-x: auto; }
+.lnlp-det-tab { font-family: var(--mono); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.04em; color: var(--muted2); background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 16px; cursor: pointer; margin-bottom: -1px; white-space: nowrap; }
+.lnlp-det-tab--active { color: var(--terra); border-bottom-color: var(--terra); }
+[data-layer="foundation"] .lnlp-det-tab--active { color: var(--sage); border-bottom-color: var(--sage); }
+[data-layer="agents"] .lnlp-det-tab--active { color: var(--amber); border-bottom-color: var(--amber); }
+.lnlp-det-pane { display: none; padding: 22px 24px; }
+.lnlp-det-pane--active { display: block; }
+.lnlp-det-overview { font-size: 0.875rem; color: var(--muted); line-height: 1.85; max-width: 760px; margin: 0; }
+.lnlp-code { border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+.lnlp-code-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #1c1c1e; }
+.lnlp-code-lang { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.11em; text-transform: uppercase; color: var(--terra2); }
+.lnlp-code-dots { display: flex; gap: 5px; align-items: center; }
+.lnlp-code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+.lnlp-code-dots span:nth-child(1) { background: #FF5F57; }
+.lnlp-code-dots span:nth-child(2) { background: #FEBC2E; }
+.lnlp-code-dots span:nth-child(3) { background: #28C840; }
+.lnlp-code-pre { margin: 0; padding: 20px 24px; background: #111113; overflow-x: auto; font-family: var(--mono); font-size: 0.78rem; line-height: 1.85; color: #C8D0E0; }
+.lnlp-code-pre code { font-family: inherit; font-size: inherit; color: inherit; background: none; padding: 0; white-space: pre; }
+.lnlp-pitfalls { display: flex; flex-direction: column; gap: 14px; }
+.lnlp-pitfall { border: 1px solid var(--linen3); border-radius: 8px; overflow: hidden; }
+.lnlp-pitfall-head { display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: var(--linen2); border-bottom: 1px solid var(--linen3); }
+.lnlp-pit-badge { font-family: var(--mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); background: var(--amber-pale); border: 1px solid rgba(184,122,40,0.28); padding: 2px 7px; border-radius: 3px; }
+.lnlp-pitfall strong { font-size: 0.82rem; color: var(--ink); line-height: 1.3; }
+.lnlp-pitfall p { font-size: 0.81rem; color: var(--muted); line-height: 1.72; padding: 11px 16px; margin: 0; }
+.lnlp-pit-fix { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px; background: var(--sage-pale); border-top: 1px solid rgba(74,107,80,0.16); }
+.lnlp-pit-fix span { font-family: var(--mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sage); background: rgba(74,107,80,0.12); border: 1px solid rgba(74,107,80,0.25); padding: 2px 7px; border-radius: 3px; }
+.lnlp-pit-fix em { font-size: 0.81rem; color: var(--ink2); line-height: 1.65; }
+.lnlp-qa-list { display: flex; flex-direction: column; gap: 8px; }
+.lnlp-qa-item { border: 1px solid var(--linen3); border-radius: 8px; overflow: hidden; }
+.lnlp-qa-q { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; padding: 12px 16px; background: var(--linen2); border: none; cursor: pointer; font-family: var(--sans); font-size: 0.82rem; font-weight: 600; color: var(--ink); line-height: 1.45; }
+.lnlp-qa-q:hover { background: var(--linen3); }
+.lnlp-qa-q svg { flex-shrink: 0; color: var(--muted2); transition: transform 0.22s ease; }
+.lnlp-qa-item--open .lnlp-qa-q svg { transform: rotate(180deg); }
+.lnlp-qa-a { max-height: 0; overflow: hidden; transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1); }
+.lnlp-qa-item--open .lnlp-qa-a { max-height: 800px; }
+.lnlp-qa-a p { padding: 14px 16px; font-size: 0.82rem; color: var(--muted); line-height: 1.78; border-top: 1px solid var(--linen3); background: var(--white); margin: 0; }
+.lnlp-insight { font-family: var(--display); font-style: italic; font-size: clamp(0.92rem, 1.1vw, 1.04rem); color: var(--muted); line-height: 1.7; border-left: 2px solid var(--linen3); padding-left: 16px; margin: 0; }
+[data-layer="foundation"] .lnlp-insight { border-left-color: var(--sage); }
+[data-layer="retrieval"] .lnlp-insight { border-left-color: var(--terra); }
+[data-layer="agents"] .lnlp-insight { border-left-color: var(--amber); }
+[data-layer="production"] .lnlp-insight { border-left-color: var(--ink3); }
+.lnlp-end { text-align: center; padding: 96px 0 0; border-top: 1px solid var(--linen3); margin-top: 40px; }
+.lnlp-end-eyebrow { font-family: var(--mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted2); margin-bottom: 16px; }
+.lnlp-end-title { font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(2.2rem, 4vw, 3.4rem); color: var(--ink); line-height: 1.05; letter-spacing: -0.025em; margin-bottom: 10px; }
+.lnlp-end-sub { font-size: 0.92rem; color: var(--muted2); margin: 0 auto; max-width: 620px; line-height: 1.75; }
+@media (max-width: 1100px) {
+  .lnlp-hero-inner, .lnlp-body { padding-left: 40px; padding-right: 40px; }
+}
+@media (max-width: 860px) {
+  .lnlp-hero-inner { grid-template-columns: 1fr; gap: 40px; padding: 48px 32px 44px; }
+  .lnlp-hero-index { border-left: none; border-top: 1px solid var(--linen3); padding-left: 0; padding-top: 28px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px 32px; }
+  .lnlp-body { padding-left: 32px; padding-right: 32px; }
+}
+@media (max-width: 560px) {
+  .lnlp-ht-sans, .lnlp-ht-serif { font-size: clamp(2.4rem, 10vw, 3.2rem); }
+  .lnlp-stage { gap: 20px; }
+  .lnlp-stage-gutter { flex: 0 0 40px; width: 40px; }
+  .lnlp-track::before { left: 19px; }
+  .lnlp-spec-row { grid-template-columns: minmax(0,1fr) 36px; }
+  .lnlp-spec-term { grid-column: 1 / -1; border-right: none; border-bottom: 1px solid var(--linen3); }
+  .lnlp-det-pane { padding: 16px; }
+  .lnlp-code-pre { padding: 14px 16px; font-size: 0.72rem; }
+  .lnlp-hero-index { grid-template-columns: 1fr; }
+  .lnlp-hero-inner, .lnlp-body { padding-left: 20px; padding-right: 20px; }
+}
+</style>
+
+<script is:inline>
+function lnlpToggle(row) {
+  var item = row.closest('.lnlp-spec-item');
+  var isOpen = item.classList.contains('lnlp-spec-item--open');
+  var spec = row.closest('.lnlp-spec');
+  spec.querySelectorAll('.lnlp-spec-item--open').forEach(function (el) {
+    el.classList.remove('lnlp-spec-item--open');
+  });
+  if (!isOpen) item.classList.add('lnlp-spec-item--open');
+}
+
+function lnlpTab(btn, pane) {
+  var det = btn.closest('.lnlp-det');
+  det.querySelectorAll('.lnlp-det-tab').forEach(function (t) { t.classList.remove('lnlp-det-tab--active'); });
+  det.querySelectorAll('.lnlp-det-pane').forEach(function (p) { p.classList.remove('lnlp-det-pane--active'); });
+  btn.classList.add('lnlp-det-tab--active');
+  var target = det.querySelector('[data-pane="' + pane + '"]');
+  if (target) target.classList.add('lnlp-det-pane--active');
+}
+
+function lnlpQA(btn) {
+  var item = btn.closest('.lnlp-qa-item');
+  var isOpen = item.classList.contains('lnlp-qa-item--open');
+  var list = btn.closest('.lnlp-qa-list');
+  list.querySelectorAll('.lnlp-qa-item--open').forEach(function (el) { el.classList.remove('lnlp-qa-item--open'); });
+  if (!isOpen) item.classList.add('lnlp-qa-item--open');
+}
+
+(function () {
+  var stages = document.querySelectorAll('.lnlp-stage');
+  if (!stages.length) return;
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('lnlp-visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.05 });
+  stages.forEach(function (s) { io.observe(s); });
+})();
+</script>

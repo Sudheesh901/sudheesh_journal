@@ -1,0 +1,48 @@
+---
+import PageHero from '@/components/PageHero.astro';
+import ContentCard from '@/components/ContentCard.astro';
+
+interface Entry {
+  slug: string;
+  data: {
+    title: string;
+    description: string;
+    domain?: string;
+    level?: string;
+    status?: string;
+    role?: string;
+    tags: string[];
+    order: number;
+  };
+}
+
+interface Props {
+  eyebrow: string;
+  title: string;
+  description: string;
+  basePath: string;
+  entries: Entry[];
+}
+
+const { eyebrow, title, description, basePath, entries } = Astro.props;
+const sorted = [...entries].sort((a, b) => a.data.order - b.data.order);
+---
+
+<div class="page active">
+  <PageHero eyebrow={eyebrow} title={title} description={description} />
+  <section class="section">
+    <div class="container">
+      <div class="topic-grid">
+        {sorted.map((entry) => (
+          <ContentCard
+            href={`${basePath}/${entry.slug}`}
+            title={entry.data.title}
+            description={entry.data.description}
+            tags={entry.data.tags}
+            meta={entry.data.level || entry.data.status || entry.data.role || entry.data.domain}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,66 @@
+---
+title: "ML System Design Interviews"
+description: "A reusable answer framework for recommendation, ranking, fraud, forecasting, and personalization system design interviews."
+domain: "Interview Prep"
+level: "Advanced"
+order: 1
+tags: ["ML system design", "recommendations", "ranking", "evaluation"]
+tools: ["whiteboard", "metrics", "feature stores"]
+updated: "2026-05-15"
+---
+
+## Interview Goal
+
+The interviewer is not only testing whether you know algorithms. They are testing whether you can reason from product requirements to data, modeling, serving, evaluation, and operations.
+
+## Answer Structure
+
+Use this flow:
+
+1. Clarify the product goal.
+2. Define users, items, actions, and constraints.
+3. Specify online and offline metrics.
+4. Design data collection and labeling.
+5. Propose a baseline.
+6. Improve with model architecture.
+7. Design serving and latency path.
+8. Add monitoring and feedback loops.
+9. Discuss failure modes.
+
+## Example: Recommendation System
+
+For a 500K-user EdTech platform, start with the problem: recommend the next best learning item under prerequisites, level, freshness, diversity, and business constraints.
+
+Baseline:
+
+- Popular by segment
+- Recently successful content
+- Rule-based prerequisite filtering
+
+Model path:
+
+- Candidate generation using collaborative filtering or embeddings.
+- Ranking model using user, item, context, and historical engagement features.
+- Reranking for diversity, freshness, and safety.
+
+## Metrics
+
+Offline:
+
+- Recall@k
+- NDCG
+- MRR
+- Coverage
+- Calibration by segment
+
+Online:
+
+- Click-through rate
+- Completion rate
+- Return rate
+- Learning outcome proxy
+- Long-term retention
+
+## Strong Signals
+
+Strong candidates discuss cold start, position bias, data leakage, delayed labels, exploration, experimentation, and monitoring after launch.

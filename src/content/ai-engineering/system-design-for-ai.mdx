@@ -1,0 +1,57 @@
+---
+title: "System Design for AI"
+description: "A framework for designing AI systems across requirements, data flow, model strategy, serving, evaluation, observability, and risk."
+domain: "AI Engineering"
+level: "Advanced"
+order: 4
+tags: ["system design", "architecture", "RAG", "scalability", "tradeoffs"]
+tools: ["FastAPI", "PostgreSQL", "Redis", "Vector DB", "Kubernetes"]
+updated: "2026-05-15"
+---
+
+## The Design Frame
+
+AI system design is normal distributed systems design plus uncertainty. You design for correctness, scale, latency, cost, security, and model behavior that can change over time.
+
+## Six-Step Framework
+
+### 1. Requirements
+
+Define users, tasks, quality bar, latency, cost, privacy, and failure tolerance.
+
+### 2. Data Flow
+
+Map ingestion, validation, storage, indexing, serving, logs, and feedback loops.
+
+### 3. Model Strategy
+
+Choose between rules, classical ML, deep learning, APIs, open-source models, fine-tuning, RAG, or agents.
+
+### 4. Serving Path
+
+Design request flow, caching, batching, queues, timeouts, retries, and degradation behavior.
+
+### 5. Evaluation
+
+Create offline tests, online metrics, human review, and continuous regression suites.
+
+### 6. Operations
+
+Define monitoring, alerts, incident response, model rollback, data retention, and security controls.
+
+## Tradeoff Questions
+
+- Should retrieval happen synchronously or asynchronously?
+- Is the answer cacheable?
+- Can the model fail closed?
+- What happens if the vector store is unavailable?
+- Can users see sources?
+- How do we prevent private data leakage?
+
+## Failure Modes
+
+- Optimizing model quality while ignoring latency budgets.
+- Designing a chatbot when search would solve the problem.
+- Building agents before defining deterministic workflows.
+- No human escalation path for high-risk outputs.
+- No audit trail for generated decisions.

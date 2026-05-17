@@ -1,0 +1,81 @@
+---
+title: "AI/ML Research Map"
+description: "A researcher-style organization of machine learning: problem framing, data, models, objectives, evaluation, and deployment consequences."
+domain: "Foundations"
+level: "Foundational"
+order: 1
+tags: ["ML fundamentals", "research map", "evaluation", "modeling"]
+tools: ["scikit-learn", "NumPy", "Pandas", "MLflow"]
+updated: "2026-05-15"
+---
+
+## The Core Question
+
+Machine learning is not only model selection. It is the discipline of converting a vague decision problem into a measurable learning problem, then testing whether the learned behavior survives contact with future data.
+
+The first note in any AI/ML knowledge base should answer five questions:
+
+1. What decision or prediction is being automated?
+2. What signal exists in the data before modeling?
+3. What assumptions does the objective function make?
+4. What metric represents real-world utility?
+5. What can fail after deployment even if offline metrics look good?
+
+## Researcher Mental Model
+
+Think of every ML system as a chain:
+
+```text
+Problem -> Data -> Representation -> Objective -> Optimization -> Evaluation -> Deployment
+```
+
+Weakness anywhere in the chain becomes the limit of the final system. A better model rarely fixes a poorly defined target, biased labels, leakage, unstable features, or a metric that does not match the business decision.
+
+## Topic Breakdown
+
+### Problem Framing
+
+Write the task as a decision problem first, then as a prediction problem. For example, "recommend a course" is actually a ranking decision under constraints: user intent, inventory, freshness, diversity, latency, and long-term satisfaction.
+
+### Data Generating Process
+
+Ask how the data was created. Logged behavior is not neutral. It is shaped by UI, ranking position, historical models, user incentives, missing labels, and feedback loops.
+
+### Model Families
+
+Use a model family because its inductive bias matches the task:
+
+- Linear models for interpretable baselines and sparse signals.
+- Tree ensembles for tabular non-linear interactions.
+- Deep networks for representation learning over text, images, audio, graphs, and sequential behavior.
+- Probabilistic models when uncertainty matters as much as prediction.
+
+### Evaluation
+
+Offline evaluation estimates whether a model learned useful structure. Online evaluation checks whether the system changes real behavior. Both are needed.
+
+## Practical Study Path
+
+Start every topic with a baseline, then add complexity only when you can explain the delta. A strong AI/ML engineer should be able to defend why a logistic regression baseline fails before proposing XGBoost, a transformer, or an agentic system.
+
+## Failure Modes
+
+- Data leakage that makes offline performance unrealistically high.
+- Label bias caused by historical product behavior.
+- Metrics that optimize clicks while harming retention or trust.
+- Training-serving skew from different feature definitions.
+- Concept drift after seasonality, product changes, or user behavior shifts.
+
+## Research Habit
+
+For each model experiment, keep a short lab note:
+
+- Hypothesis
+- Dataset and time window
+- Features or representation
+- Objective and metrics
+- Result
+- Error analysis
+- Next experiment
+
+That habit turns scattered experiments into reusable knowledge.

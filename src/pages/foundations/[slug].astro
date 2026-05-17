@@ -1,0 +1,13 @@
+---
+import { getCollection } from 'astro:content';
+import KBArticleLayout from '@/layouts/KBArticleLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('foundations');
+  return entries.map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<KBArticleLayout entry={entry} active="foundations" />

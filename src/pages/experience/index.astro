@@ -1,0 +1,17 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import CollectionIndex from '@/components/CollectionIndex.astro';
+
+const entries = await getCollection('experience');
+---
+
+<BaseLayout title="Experience - Sudheesh Knowledge Base" active="experience">
+  <CollectionIndex
+    eyebrow="Portfolio Evidence"
+    title="Experience"
+    description="Experience notes written as evidence: context, scope, decisions, impact, and the systems thinking behind the work."
+    basePath="/experience"
+    entries={entries}
+  />
+</BaseLayout>

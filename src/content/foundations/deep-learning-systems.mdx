@@ -1,0 +1,75 @@
+---
+title: "Deep Learning Systems"
+description: "Deep learning organized around representation learning, optimization, architectures, scaling behavior, and deployment constraints."
+domain: "Foundations"
+level: "Intermediate"
+order: 3
+tags: ["deep learning", "neural networks", "optimization", "transformers"]
+tools: ["PyTorch", "TensorFlow", "Weights & Biases"]
+updated: "2026-05-15"
+---
+
+## The Deep Learning Lens
+
+Deep learning is representation learning. Instead of manually defining every feature, we define architectures and objectives that can learn useful internal representations from data.
+
+The central questions are:
+
+- What structure exists in the input?
+- What architecture can exploit that structure?
+- What objective teaches the representation we need?
+- What scale of data and compute is required?
+- What deployment limits shape the final model?
+
+## Architecture Map
+
+### Feedforward Networks
+
+Useful for dense features and as building blocks inside larger systems.
+
+### CNNs
+
+Designed for local spatial structure. Still useful for image, audio, and efficient feature extraction.
+
+### RNNs and Sequence Models
+
+Historically important for sequential data. They teach useful ideas about state, recurrence, and temporal dependence.
+
+### Transformers
+
+Transformers use attention to let tokens condition on other tokens directly. They scale well, parallelize well, and are the foundation of modern LLMs.
+
+## Optimization Notes
+
+Training is controlled by loss landscapes, gradients, initialization, normalization, learning rates, batch size, and regularization. A model failure may be an optimization failure, not an architecture failure.
+
+## Researcher Checklist
+
+Before changing architecture, check:
+
+1. Is the dataset clean and representative?
+2. Is the baseline implemented correctly?
+3. Is the training loop stable?
+4. Are train and validation curves interpretable?
+5. Are errors clustered by data slice?
+6. Is the model too large for the available data?
+
+## Production Constraints
+
+Deep learning models are not only evaluated by quality. Production adds:
+
+- Latency
+- Memory
+- Throughput
+- Batchability
+- Cost per request
+- Observability
+- Rollback strategy
+
+## Failure Modes
+
+- Overfitting hidden by a weak validation split.
+- Silent distribution shift after deployment.
+- Poor calibration even with high accuracy.
+- Training instability from learning-rate or normalization issues.
+- Serving bottlenecks caused by model size rather than API code.

@@ -1,0 +1,17 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import CollectionIndex from '@/components/CollectionIndex.astro';
+
+const entries = await getCollection('foundations');
+---
+
+<BaseLayout title="Foundations - Sudheesh Knowledge Base" active="foundations">
+  <CollectionIndex
+    eyebrow="Knowledge Notes"
+    title="Foundations"
+    description="Durable AI/ML fundamentals organized the way a researcher keeps notes: definitions, assumptions, failure modes, experiments, and implementation consequences."
+    basePath="/foundations"
+    entries={entries}
+  />
+</BaseLayout>

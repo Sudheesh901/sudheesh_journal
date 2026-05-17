@@ -1,0 +1,63 @@
+---
+title: "LLMs & NLP"
+description: "A production-oriented map of NLP and LLM systems: transformers, prompting, RAG, agents, evaluation, cost, and reliability."
+domain: "AI Engineering"
+level: "Advanced"
+order: 1
+tags: ["LLMs", "NLP", "RAG", "agents", "evaluation"]
+tools: ["OpenAI", "LangChain", "LangGraph", "RAGAS", "vLLM"]
+updated: "2026-05-15"
+---
+
+## The System View
+
+Modern NLP is no longer only model training. Most useful LLM systems combine models, retrieval, prompts, tools, memory, evaluation, caching, guardrails, and human escalation.
+
+```text
+User intent -> Context retrieval -> Prompt assembly -> Model call -> Validation -> Action/answer -> Observability
+```
+
+## Topic Map
+
+### Transformer Fundamentals
+
+Understand tokenization, embeddings, attention, residual streams, positional encoding, KV cache, context windows, and decoding strategies.
+
+### Prompting
+
+Prompts are interface contracts. Good prompts specify role, task, context, constraints, output schema, refusal conditions, and examples only when examples reduce ambiguity.
+
+### Retrieval-Augmented Generation
+
+RAG is useful when the answer depends on private, changing, or large knowledge. It has four quality gates:
+
+1. Ingestion quality
+2. Chunking and metadata
+3. Retrieval and reranking
+4. Answer grounding and citation
+
+### Agents
+
+Agents are appropriate when the system must decide between tools, maintain state, or decompose a task. They add power but also add state, latency, cost, and failure modes.
+
+## Evaluation Stack
+
+Use layered evaluation:
+
+- Retrieval: recall@k, MRR, NDCG.
+- Generation: groundedness, correctness, helpfulness.
+- Safety: refusal quality, jailbreak resistance.
+- System: latency, cost, retries, tool failure.
+- Product: task completion, user correction, escalation.
+
+## Failure Modes
+
+- Hallucination from missing or conflicting context.
+- Prompt fragility after small wording changes.
+- Retrieval returning plausible but irrelevant passages.
+- Agent loops caused by vague stop conditions.
+- Cost growth from long prompts and repeated tool calls.
+
+## Implementation Habit
+
+Every LLM feature should ship with an eval set before it ships with more prompt engineering. Without evals, you are editing vibes.

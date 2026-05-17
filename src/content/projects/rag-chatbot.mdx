@@ -1,0 +1,42 @@
+---
+title: "RAG Chatbot Over My Notes"
+description: "A chatbot that answers only from the website knowledge base, cites sources, and exposes retrieval traces for learning."
+status: "Planned"
+order: 2
+tags: ["chatbot", "RAG", "citations", "evaluation"]
+tools: ["OpenAI", "LangGraph", "pgvector", "Supabase"]
+updated: "2026-05-15"
+---
+
+## Product Goal
+
+The chatbot should help learners navigate the knowledge base and should also demonstrate production AI engineering skill.
+
+## Design Principles
+
+- Answer from indexed site content.
+- Cite the source notes.
+- Refuse unsupported answers.
+- Show related topics.
+- Log retrieval quality signals.
+
+## Architecture
+
+```text
+Question -> Rewrite -> Hybrid retrieval -> Rerank -> Prompt -> Answer -> Citation check
+```
+
+## Evaluation
+
+Use a golden dataset of questions with expected source documents. Track:
+
+- Retrieval recall
+- Citation correctness
+- Answer groundedness
+- Refusal quality
+- Cost per conversation
+- Latency
+
+## Future Paid Layer
+
+Accounts can later support saved chats, private notes, guided learning paths, and paid advisory/service workflows.

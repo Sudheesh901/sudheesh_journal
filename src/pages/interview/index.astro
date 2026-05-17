@@ -1,0 +1,17 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import CollectionIndex from '@/components/CollectionIndex.astro';
+
+const entries = await getCollection('interview');
+---
+
+<BaseLayout title="Interview Prep - Sudheesh Knowledge Base" active="interview">
+  <CollectionIndex
+    eyebrow="Career Notes"
+    title="Interview Prep"
+    description="Structured prep for AI/ML engineering interviews, with prompts, answer frames, design checklists, and review rubrics."
+    basePath="/interview"
+    entries={entries}
+  />
+</BaseLayout>

@@ -1,0 +1,58 @@
+---
+title: "Data & Databases for AI"
+description: "How to organize transactional data, analytical data, vector indexes, caches, queues, and metadata for AI systems."
+domain: "AI Engineering"
+level: "Intermediate"
+order: 2
+tags: ["data systems", "databases", "pgvector", "Redis", "feature stores"]
+tools: ["PostgreSQL", "Redis", "pgvector", "DuckDB", "S3"]
+updated: "2026-05-15"
+---
+
+## Why Data Architecture Matters
+
+AI systems fail when their data layer is vague. A model can only be as reliable as the data contracts, metadata, indexing strategy, and observability around it.
+
+## Storage Layers
+
+### Transactional Store
+
+Use PostgreSQL or another OLTP database for users, permissions, plans, documents, jobs, and durable application state.
+
+### Analytical Store
+
+Use warehouses, lakehouses, or columnar engines for aggregate analysis, experiments, and model monitoring.
+
+### Vector Store
+
+Use pgvector, Qdrant, Weaviate, or similar systems for embedding search. The vector store should not be treated as the source of truth. It is an index over content.
+
+### Cache and Queue
+
+Redis is useful for caching, rate limits, sessions, background jobs, and short-lived state.
+
+## Retrieval Data Model
+
+For RAG, store:
+
+- Document ID
+- Chunk ID
+- Source URL or file path
+- Content hash
+- Chunk text
+- Metadata
+- Embedding model version
+- Created and updated timestamps
+- Access-control fields
+
+## Failure Modes
+
+- Re-indexing without tracking embedding model version.
+- Losing the relationship between chunks and source documents.
+- Mixing public and private documents without access filters.
+- Caching answers that depend on user-specific permissions.
+- Treating vector similarity as truth instead of candidate retrieval.
+
+## Production Principle
+
+Keep raw source, parsed text, chunks, embeddings, and generated answers as separate artifacts. That separation makes debugging possible.

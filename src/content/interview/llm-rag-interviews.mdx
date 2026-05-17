@@ -1,0 +1,61 @@
+---
+title: "LLM & RAG Interviews"
+description: "Interview-ready frameworks for RAG, hallucination, agent design, LLM evaluation, cost optimization, and production reliability."
+domain: "Interview Prep"
+level: "Advanced"
+order: 2
+tags: ["LLM interviews", "RAG", "agents", "evaluation", "cost"]
+tools: ["RAGAS", "LangSmith", "OpenAI", "vector databases"]
+updated: "2026-05-15"
+---
+
+## The Core Pattern
+
+LLM interviews reward candidates who treat the model as one component in a system. Do not answer with prompt engineering alone. Discuss retrieval, state, tools, evals, observability, and rollback.
+
+## RAG Design Answer
+
+Structure:
+
+1. Documents and permissions
+2. Ingestion and parsing
+3. Chunking strategy
+4. Embedding model
+5. Vector and lexical retrieval
+6. Reranking
+7. Prompt assembly
+8. Grounded generation
+9. Evaluation
+10. Monitoring
+
+## Hallucination Debugging
+
+Ask where the hallucination entered:
+
+- The source document is wrong.
+- Parsing lost structure.
+- Chunking removed context.
+- Retrieval missed the right chunk.
+- Reranking preferred a plausible wrong chunk.
+- Prompt allowed unsupported claims.
+- Model ignored the instruction.
+
+## Agent Design
+
+Use agents when there are multiple tools, branching decisions, or long-running tasks. Avoid agents when the workflow is deterministic and can be represented as a normal pipeline.
+
+## Cost Optimization
+
+Discuss:
+
+- Prompt compression
+- Context trimming
+- Caching
+- Smaller model routing
+- Batch jobs for offline tasks
+- Retrieval improvements before larger models
+- Streaming for perceived latency
+
+## Strong Answer Habit
+
+For every LLM design, name one quality metric, one safety metric, one system metric, and one cost metric.

@@ -1,0 +1,78 @@
+---
+title: "Statistics & Experimentation"
+description: "Statistical thinking for AI engineers: uncertainty, estimation, hypothesis tests, power, A/B testing, and metric design."
+domain: "Foundations"
+level: "Foundational"
+order: 2
+tags: ["statistics", "experimentation", "A/B testing", "causal thinking"]
+tools: ["Python", "SciPy", "statsmodels", "Evidently"]
+updated: "2026-05-15"
+---
+
+## Why Statistics Belongs in AI Engineering
+
+Statistics is the discipline that keeps engineering confidence honest. It tells you when a model improvement is real, when an observed difference is noise, and when a metric is too unstable to support a product decision.
+
+## Core Concepts
+
+### Estimation
+
+An estimate is a summary of incomplete information. Always pair it with uncertainty:
+
+- Mean and variance
+- Confidence intervals
+- Bootstrap intervals
+- Bayesian credible intervals
+- Prediction intervals for future observations
+
+### Hypothesis Testing
+
+Hypothesis tests are useful when the decision is binary: ship or do not ship, promote or rollback, investigate or ignore. The p-value is not the probability that the hypothesis is true. It is a measure of how surprising the data is under a null assumption.
+
+### Power
+
+Power answers a practical question: if the effect exists, how likely are we to detect it? Low power creates inconclusive experiments and encourages over-reading noise.
+
+## A/B Testing Framework
+
+Design experiments in this order:
+
+1. Define the decision.
+2. Choose the primary metric.
+3. Choose guardrail metrics.
+4. Estimate baseline variance.
+5. Decide minimum detectable effect.
+6. Compute sample size and duration.
+7. Pre-register analysis choices.
+8. Monitor data quality, not the result, during the test.
+
+## Metric Design
+
+Good metrics are sensitive, stable, and aligned with value. For AI products, use a metric stack:
+
+- Model metric: accuracy, NDCG, F1, hallucination rate.
+- System metric: latency, cost, availability.
+- Product metric: conversion, retention, task success.
+- Trust metric: escalation, user correction, safety flags.
+
+## Failure Modes
+
+- Peeking repeatedly and stopping when the result becomes significant.
+- Testing too many metrics without correction.
+- Measuring proxy metrics that do not match user value.
+- Running experiments during abnormal traffic windows.
+- Ignoring interference between users in marketplace, social, or recommendation systems.
+
+## Research Habit
+
+For every experiment, keep an experiment card:
+
+- Decision owner
+- Hypothesis
+- Primary metric
+- Guardrails
+- Sample size
+- Exclusion rules
+- Result
+- Interpretation
+- Follow-up

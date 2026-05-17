@@ -1,0 +1,71 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout active="home">
+  <main class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-left">
+        <h1>AI Engineering<br />at production<br /><em>scale.</em></h1>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-availability">
+          <div class="pulse"></div>
+          Open to new opportunities
+        </div>
+
+        <p class="hero-bio">I'm J. Sudheesh Kumar Reddy, an AI Engineer building a public, open-source knowledge base for AI/ML engineers while showcasing practical production experience across LLMs, RAG, MLOps, recommendation systems, and AI system design.</p>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/experience">View Experience</a>
+          <a class="btn btn-secondary" href="/projects">Explore Projects</a>
+        </div>
+
+        <div class="hero-chips">
+          <span class="hero-chip">4 Years in AI/ML</span>
+          <span class="hero-chip">Knowledge Base</span>
+          <span class="hero-chip">LLM · RAG · MLOps</span>
+          <span class="hero-chip">Hyderabad</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-stats-bar">
+      <div class="hs-stat"><div class="hs-val">5</div><div class="hs-lbl">Content Collections</div></div>
+      <div class="hs-stat"><div class="hs-val">2</div><div class="hs-lbl">Learning Tracks</div></div>
+      <div class="hs-stat"><div class="hs-val">500K+</div><div class="hs-lbl">Users Served</div></div>
+      <div class="hs-stat"><div class="hs-val">Open</div><div class="hs-lbl">Knowledge Base</div></div>
+      <div class="hs-stat"><div class="hs-val">MDX</div><div class="hs-lbl">Research Notes</div></div>
+    </div>
+
+    <section class="section">
+      <div class="container">
+        <div class="eyebrow">Knowledge Architecture</div>
+        <h2 style="margin-bottom:18px;">A researcher-style map for learning and building AI systems.</h2>
+        <div class="topic-grid">
+          <a class="topic-card kb-card-link" href="/foundations">
+            <div class="topic-name">Foundations</div>
+            <p class="topic-desc">AI/ML, statistics, and deep learning organized as durable mental models before tools and frameworks.</p>
+            <div class="topic-tags"><span class="tag">AI/ML</span><span class="tag">Statistics</span><span class="tag">Deep Learning</span></div>
+          </a>
+          <a class="topic-card kb-card-link" href="/ai-engineering">
+            <div class="topic-name">AI Engineering</div>
+            <p class="topic-desc">LLMs, retrieval, data systems, MLOps, and system design explained from prototype to production.</p>
+            <div class="topic-tags"><span class="tag">LLMs</span><span class="tag">MLOps</span><span class="tag">Systems</span></div>
+          </a>
+          <a class="topic-card kb-card-link" href="/interview">
+            <div class="topic-name">Interview Prep</div>
+            <p class="topic-desc">Question banks, design frameworks, evaluation rubrics, and STAR stories grounded in real AI work.</p>
+            <div class="topic-tags"><span class="tag">ML Design</span><span class="tag">RAG</span><span class="tag">Behavioral</span></div>
+          </a>
+          <a class="topic-card kb-card-link" href="/projects">
+            <div class="topic-name">Projects</div>
+            <p class="topic-desc">A roadmap for live website-native demos: search, information retrieval, chatbot, accounts, and services.</p>
+            <div class="topic-tags"><span class="tag">Search</span><span class="tag">RAG</span><span class="tag">Product</span></div>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

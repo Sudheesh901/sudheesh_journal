@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A researcher-style organization of machine learning: problem framing, data, models, objectives, evaluation, and deployment consequences."><title>AI/ML Research Map — Sudheesh Knowledge Base</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/_astro/_slug_.BgTyuGc1.css">
+<link rel="stylesheet" href="/_astro/_slug_.BIo_F3VS.css"></head> <body> <nav id="nav"> <a class="nav-logo" href="/"> <span class="nav-wordmark">SUDHEESH K. REDDY<span class="nav-wordmark-slash">\</span></span> </a> <ul class="nav-links" id="navLinks"> <li class="nav-item"> <a class="nav-link active" href="/foundations">
+Foundations
+<svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg> </a> <div class="dropdown"> <a class="dropdown-item" href="/foundations/ai-ml-research-map"><strong>AI/ML</strong><span>Learning theory, models, evaluation, workflows</span></a> <a class="dropdown-item" href="/foundations/statistics-experimentation"><strong>Statistics</strong><span>Inference, uncertainty, experiments</span></a> <a class="dropdown-item" href="/foundations/deep-learning-systems"><strong>Deep Learning</strong><span>Representation learning, optimization, architectures</span></a> </div> </li> <li class="nav-item"> <a class="nav-link" href="/ai-engineering">
+AI Engineering
+<svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg> </a> <div class="dropdown"> <a class="dropdown-item dropdown-item--highlight" href="/ai-engineering/ai-engineer-roadmap"><strong>AI Engineer Roadmap</strong><span>12-stage path from Python async to production GenAI</span></a> <div class="dropdown-divider"></div> <a class="dropdown-item" href="/ai-engineering/llms-nlp"><strong>LLMs & NLP</strong><span>Transformers, RAG, agents, evaluation</span></a> <a class="dropdown-item" href="/ai-engineering/data-databases"><strong>Data & Databases</strong><span>PostgreSQL, Redis, pgvector, retrieval stores</span></a> <a class="dropdown-item" href="/ai-engineering/mlops-llmops"><strong>MLOps</strong><span>CI/CD, drift, observability, LLMOps</span></a> <a class="dropdown-item" href="/ai-engineering/system-design-for-ai"><strong>System Design</strong><span>Production AI architecture and tradeoffs</span></a> </div> </li> <li class="nav-item"> <a class="nav-link" href="/interview">
+Interview Prep
+<svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg> </a> <div class="dropdown"> <a class="dropdown-item" href="/interview/ml-system-design"><strong>ML System Design</strong></a> <a class="dropdown-item" href="/interview/llm-rag-interviews"><strong>LLM & RAG</strong></a> <a class="dropdown-item" href="/interview/behavioral-star"><strong>Behavioral / STAR</strong></a> </div> </li> <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li> <li class="nav-item"><a class="nav-link" href="/experience">Experience</a></li> <li class="nav-item"><a class="nav-link" href="/collaborate">Collaborate</a></li> <li class="nav-item"><a class="nav-link  nav-cta" href="/contact">Contact</a></li> </ul> <button class="nav-burger" id="burger" onclick="toggleMenu()" aria-label="Toggle navigation"> <span></span><span></span><span></span> </button> </nav>  <main class="page active kba-page"> <!-- ── HERO ── --> <header class="kba-hero"> <div class="kba-hero-inner"> <nav class="kba-breadcrumb" aria-label="breadcrumb"> <a href="/">Home</a> <span class="sep" aria-hidden="true">›</span> <a href="/foundations">Foundations</a> <span class="sep" aria-hidden="true">›</span> <span class="current">AI/ML Research Map</span> </nav> <div class="kba-hero-grid"> <div class="kba-hero-left"> <div class="kba-eyebrow-row"> <span class="kba-badge">Foundations</span> <span class="kba-updated">Updated May 15, 2026</span> </div> <h1 class="kba-title">AI/ML Research Map</h1> <p class="kba-desc">A researcher-style organization of machine learning: problem framing, data, models, objectives, evaluation, and deployment consequences.</p> </div> <aside class="kba-hero-meta"> <div class="kba-meta-group"> <div class="kba-meta-label">Topics</div> <div class="kba-chip-row"> <span class="kba-chip">ML fundamentals</span><span class="kba-chip">research map</span><span class="kba-chip">evaluation</span><span class="kba-chip">modeling</span> </div> </div> <div class="kba-meta-group"> <div class="kba-meta-label">Tools</div> <div class="kba-chip-row"> <span class="kba-chip kba-chip--dark">scikit-learn</span><span class="kba-chip kba-chip--dark">NumPy</span><span class="kba-chip kba-chip--dark">Pandas</span><span class="kba-chip kba-chip--dark">MLflow</span> </div> </div> <div class="kba-meta-group"> <div class="kba-meta-label">Coverage</div> <div class="kba-stage-stat"> <span class="kba-stage-num">6</span> <span class="kba-stage-lbl">sections</span> </div> </div> </aside> </div> </div> </header> <!-- ── BODY: wide two-column ── --> <div class="kba-body"> <div class="kba-body-grid"> <article class="kba-article kba-article-prose"> <h2 id="the-core-question">The Core Question</h2>
+<p>Machine learning is not only model selection. It is the discipline of converting a vague decision problem into a measurable learning problem, then testing whether the learned behavior survives contact with future data.</p>
+<p>The first note in any AI/ML knowledge base should answer five questions:</p>
+<ol>
+<li>What decision or prediction is being automated?</li>
+<li>What signal exists in the data before modeling?</li>
+<li>What assumptions does the objective function make?</li>
+<li>What metric represents real-world utility?</li>
+<li>What can fail after deployment even if offline metrics look good?</li>
+</ol>
+<h2 id="researcher-mental-model">Researcher Mental Model</h2>
+<p>Think of every ML system as a chain:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="text"><code><span class="line"><span>Problem -&gt; Data -&gt; Representation -&gt; Objective -&gt; Optimization -&gt; Evaluation -&gt; Deployment</span></span></code></pre>
+<p>Weakness anywhere in the chain becomes the limit of the final system. A better model rarely fixes a poorly defined target, biased labels, leakage, unstable features, or a metric that does not match the business decision.</p>
+<h2 id="topic-breakdown">Topic Breakdown</h2>
+<h3 id="problem-framing">Problem Framing</h3>
+<p>Write the task as a decision problem first, then as a prediction problem. For example, “recommend a course” is actually a ranking decision under constraints: user intent, inventory, freshness, diversity, latency, and long-term satisfaction.</p>
+<h3 id="data-generating-process">Data Generating Process</h3>
+<p>Ask how the data was created. Logged behavior is not neutral. It is shaped by UI, ranking position, historical models, user incentives, missing labels, and feedback loops.</p>
+<h3 id="model-families">Model Families</h3>
+<p>Use a model family because its inductive bias matches the task:</p>
+<ul>
+<li>Linear models for interpretable baselines and sparse signals.</li>
+<li>Tree ensembles for tabular non-linear interactions.</li>
+<li>Deep networks for representation learning over text, images, audio, graphs, and sequential behavior.</li>
+<li>Probabilistic models when uncertainty matters as much as prediction.</li>
+</ul>
+<h3 id="evaluation">Evaluation</h3>
+<p>Offline evaluation estimates whether a model learned useful structure. Online evaluation checks whether the system changes real behavior. Both are needed.</p>
+<h2 id="practical-study-path">Practical Study Path</h2>
+<p>Start every topic with a baseline, then add complexity only when you can explain the delta. A strong AI/ML engineer should be able to defend why a logistic regression baseline fails before proposing XGBoost, a transformer, or an agentic system.</p>
+<h2 id="failure-modes">Failure Modes</h2>
+<ul>
+<li>Data leakage that makes offline performance unrealistically high.</li>
+<li>Label bias caused by historical product behavior.</li>
+<li>Metrics that optimize clicks while harming retention or trust.</li>
+<li>Training-serving skew from different feature definitions.</li>
+<li>Concept drift after seasonality, product changes, or user behavior shifts.</li>
+</ul>
+<h2 id="research-habit">Research Habit</h2>
+<p>For each model experiment, keep a short lab note:</p>
+<ul>
+<li>Hypothesis</li>
+<li>Dataset and time window</li>
+<li>Features or representation</li>
+<li>Objective and metrics</li>
+<li>Result</li>
+<li>Error analysis</li>
+<li>Next experiment</li>
+</ul>
+<p>That habit turns scattered experiments into reusable knowledge.</p> </article> <aside class="kba-sidebar"> <div class="kba-sb-block"> <div class="kba-sb-label">On this page</div> <nav class="kba-toc" aria-label="Table of contents"> <a class="kba-toc-item" href="#the-core-question" data-toc-target="the-core-question"> <span class="kba-toc-n">01</span> <span class="kba-toc-t">The Core Question</span> </a><a class="kba-toc-item" href="#researcher-mental-model" data-toc-target="researcher-mental-model"> <span class="kba-toc-n">02</span> <span class="kba-toc-t">Researcher Mental Model</span> </a><a class="kba-toc-item" href="#topic-breakdown" data-toc-target="topic-breakdown"> <span class="kba-toc-n">03</span> <span class="kba-toc-t">Topic Breakdown</span> </a><a class="kba-toc-item" href="#practical-study-path" data-toc-target="practical-study-path"> <span class="kba-toc-n">04</span> <span class="kba-toc-t">Practical Study Path</span> </a><a class="kba-toc-item" href="#failure-modes" data-toc-target="failure-modes"> <span class="kba-toc-n">05</span> <span class="kba-toc-t">Failure Modes</span> </a><a class="kba-toc-item" href="#research-habit" data-toc-target="research-habit"> <span class="kba-toc-n">06</span> <span class="kba-toc-t">Research Habit</span> </a> </nav> </div> <div class="kba-sb-block"> <div class="kba-sb-label">In this collection</div> <div class="kba-related"> <a class="kba-rel-item" href="/foundations/statistics-experimentation"> <span class="kba-rel-title">Statistics &amp; Experimentation</span> <span class="kba-rel-level">Foundational</span> </a><a class="kba-rel-item" href="/foundations/deep-learning-systems"> <span class="kba-rel-title">Deep Learning Systems</span> <span class="kba-rel-level">Intermediate</span> </a> </div> </div> <div class="kba-sb-block"> <a href="/foundations" class="kba-back-link"> <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+Back to Foundations </a> </div> </aside> </div> </div> </main>  <footer style="background:var(--ink);padding:48px clamp(20px,5vw,72px) 32px;"> <div style="max-width:1160px;margin:0 auto;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start;"> <div> <div style="font-family:var(--serif);font-size:1.35rem;color:var(--cream);margin-bottom:8px;">Sudheesh K. Reddy</div> <p style="font-size:0.82rem;color:rgba(232,220,204,0.55);max-width:360px;">AI engineering portfolio and open-source knowledge base for production-minded AI/ML engineers.</p> </div> <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end;"> <a href="/" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Home</a> <a href="/foundations" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Foundations</a> <a href="/ai-engineering" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">AI Engineering</a> <a href="/projects" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Projects</a> <a href="/experience" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Experience</a> <a href="/contact" style="font-size:0.78rem;color:var(--terra2);text-decoration:none;">Contact</a> </div> </div> </footer> <script src="/site.js"></script> </body> </html>  <script>
+// TOC scroll-spy — marks the active heading as the reader scrolls
+(function () {
+  const items = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc-target]'));
+  if (!items.length) return;
+
+  const targets = items.map(el => document.getElementById(el.dataset.tocTarget || ''));
+
+  let active = -1;
+
+  function update() {
+    const scrollY = window.scrollY + window.innerHeight * 0.18 + 80;
+    let current = -1;
+    targets.forEach((t, i) => {
+      if (t && t.getBoundingClientRect().top + window.scrollY <= scrollY) current = i;
+    });
+    if (current !== active) {
+      active = current;
+      items.forEach((el, i) => el.classList.toggle('is-active', i === active));
+    }
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+</script>

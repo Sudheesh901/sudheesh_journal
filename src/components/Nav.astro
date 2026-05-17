@@ -1,0 +1,64 @@
+---
+interface Props {
+  active?: string;
+}
+
+const { active = '' } = Astro.props;
+const navClass = (id: string, extra = '') => `nav-link ${active === id ? 'active' : ''} ${extra}`.trim();
+---
+
+<nav id="nav">
+  <a class="nav-logo" href="/">
+    <span class="nav-wordmark">SUDHEESH K. REDDY<span class="nav-wordmark-slash">\</span></span>
+  </a>
+
+  <ul class="nav-links" id="navLinks">
+    <li class="nav-item">
+      <a class={navClass('foundations')} href="/foundations">
+        Foundations
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+      </a>
+      <div class="dropdown">
+        <a class="dropdown-item" href="/foundations/ai-ml-research-map"><strong>AI/ML</strong><span>Learning theory, models, evaluation, workflows</span></a>
+        <a class="dropdown-item" href="/foundations/statistics-experimentation"><strong>Statistics</strong><span>Inference, uncertainty, experiments</span></a>
+        <a class="dropdown-item" href="/foundations/deep-learning-systems"><strong>Deep Learning</strong><span>Representation learning, optimization, architectures</span></a>
+      </div>
+    </li>
+
+    <li class="nav-item">
+      <a class={navClass('ai-engineering')} href="/ai-engineering">
+        AI Engineering
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+      </a>
+      <div class="dropdown">
+        <a class="dropdown-item dropdown-item--highlight" href="/ai-engineering/ai-engineer-roadmap"><strong>AI Engineer Roadmap</strong><span>12-stage path from Python async to production GenAI</span></a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="/ai-engineering/llms-nlp"><strong>LLMs & NLP</strong><span>Transformers, RAG, agents, evaluation</span></a>
+        <a class="dropdown-item" href="/ai-engineering/data-databases"><strong>Data & Databases</strong><span>PostgreSQL, Redis, pgvector, retrieval stores</span></a>
+        <a class="dropdown-item" href="/ai-engineering/mlops-llmops"><strong>MLOps</strong><span>CI/CD, drift, observability, LLMOps</span></a>
+        <a class="dropdown-item" href="/ai-engineering/system-design-for-ai"><strong>System Design</strong><span>Production AI architecture and tradeoffs</span></a>
+      </div>
+    </li>
+
+    <li class="nav-item">
+      <a class={navClass('interview')} href="/interview">
+        Interview Prep
+        <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+      </a>
+      <div class="dropdown">
+        <a class="dropdown-item" href="/interview/ml-system-design"><strong>ML System Design</strong></a>
+        <a class="dropdown-item" href="/interview/llm-rag-interviews"><strong>LLM & RAG</strong></a>
+        <a class="dropdown-item" href="/interview/behavioral-star"><strong>Behavioral / STAR</strong></a>
+      </div>
+    </li>
+
+    <li class="nav-item"><a class={navClass('projects')} href="/projects">Projects</a></li>
+    <li class="nav-item"><a class={navClass('experience')} href="/experience">Experience</a></li>
+    <li class="nav-item"><a class={navClass('collaborate')} href="/collaborate">Collaborate</a></li>
+    <li class="nav-item"><a class={navClass('contact', 'nav-cta')} href="/contact">Contact</a></li>
+  </ul>
+
+  <button class="nav-burger" id="burger" onclick="toggleMenu()" aria-label="Toggle navigation">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
