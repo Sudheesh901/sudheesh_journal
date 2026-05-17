@@ -13,24 +13,26 @@ const navClass = (id: string, extra = '') => `nav-link ${active === id ? 'active
   </a>
 
   <ul class="nav-links" id="navLinks">
-    <li class="nav-item">
-      <a class={navClass('foundations')} href="/foundations">
+    <li class="nav-item nav-item--has-dropdown">
+      <a class={navClass('foundations')} href="/foundations" aria-haspopup="true" aria-expanded="false" aria-controls="nav-foundations-menu">
         Foundations
         <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
       </a>
-      <div class="dropdown">
+      <div class="dropdown" id="nav-foundations-menu">
+        <a class="dropdown-item" href="/foundations"><strong>Foundations Overview</strong><span>All foundation topics</span></a>
         <a class="dropdown-item" href="/foundations/ai-ml-research-map"><strong>AI/ML</strong><span>Learning theory, models, evaluation, workflows</span></a>
         <a class="dropdown-item" href="/foundations/statistics-experimentation"><strong>Statistics</strong><span>Inference, uncertainty, experiments</span></a>
         <a class="dropdown-item" href="/foundations/deep-learning-systems"><strong>Deep Learning</strong><span>Representation learning, optimization, architectures</span></a>
       </div>
     </li>
 
-    <li class="nav-item">
-      <a class={navClass('ai-engineering')} href="/ai-engineering">
+    <li class="nav-item nav-item--has-dropdown">
+      <a class={navClass('ai-engineering')} href="/ai-engineering" aria-haspopup="true" aria-expanded="false" aria-controls="nav-ai-engineering-menu">
         AI Engineering
         <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
       </a>
-      <div class="dropdown">
+      <div class="dropdown" id="nav-ai-engineering-menu">
+        <a class="dropdown-item" href="/ai-engineering"><strong>AI Engineering Overview</strong><span>All AI engineering topics</span></a>
         <a class="dropdown-item dropdown-item--highlight" href="/ai-engineering/ai-engineer-roadmap"><strong>AI Engineer Roadmap</strong><span>12-stage path from Python async to production GenAI</span></a>
         <div class="dropdown-divider"></div>
         <a class="dropdown-item" href="/ai-engineering/llms-nlp"><strong>LLMs & NLP</strong><span>Transformers, RAG, agents, evaluation</span></a>
@@ -40,12 +42,13 @@ const navClass = (id: string, extra = '') => `nav-link ${active === id ? 'active
       </div>
     </li>
 
-    <li class="nav-item">
-      <a class={navClass('interview')} href="/interview">
+    <li class="nav-item nav-item--has-dropdown">
+      <a class={navClass('interview')} href="/interview" aria-haspopup="true" aria-expanded="false" aria-controls="nav-interview-menu">
         Interview Prep
         <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
       </a>
-      <div class="dropdown">
+      <div class="dropdown" id="nav-interview-menu">
+        <a class="dropdown-item" href="/interview"><strong>Interview Overview</strong></a>
         <a class="dropdown-item" href="/interview/ml-system-design"><strong>ML System Design</strong></a>
         <a class="dropdown-item" href="/interview/llm-rag-interviews"><strong>LLM & RAG</strong></a>
         <a class="dropdown-item" href="/interview/behavioral-star"><strong>Behavioral / STAR</strong></a>
@@ -58,7 +61,7 @@ const navClass = (id: string, extra = '') => `nav-link ${active === id ? 'active
     <li class="nav-item"><a class={navClass('contact', 'nav-cta')} href="/contact">Contact</a></li>
   </ul>
 
-  <button class="nav-burger" id="burger" onclick="toggleMenu()" aria-label="Toggle navigation">
+  <button class="nav-burger" id="burger" onclick="toggleMenu()" aria-label="Toggle navigation" aria-controls="navLinks" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
 </nav>

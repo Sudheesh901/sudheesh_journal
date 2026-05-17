@@ -261,9 +261,12 @@ body::after {
   display: none;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   gap: 5px;
   cursor: pointer;
-  padding: 8px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   background: none;
   border: none;
   flex-shrink: 0;
@@ -1142,16 +1145,22 @@ td.hi { color:var(--ink2); font-weight:500; }
     font-size: 0.9rem;
     border-radius: 8px;
     width: 100%;
-    justify-content: flex-start;
+    justify-content: space-between;
     color: var(--ink);
   }
   .nav-links.open .nav-link:hover { background: var(--linen2); }
+  .nav-links.open .nav-item--submenu-open > .nav-link { background: var(--linen2); }
+  .nav-links.open .nav-item--submenu-open > .nav-link .chevron {
+    transform: rotate(180deg);
+    opacity: 0.8;
+  }
   .nav-links.open .nav-cta {
     margin-left: 0; margin-top: 8px;
     justify-content: center;
     text-align: center;
   }
   .nav-links.open .dropdown {
+    display: none;
     position: static;
     transform: none !important;
     opacity: 1; pointer-events: all;
@@ -1161,6 +1170,7 @@ td.hi { color:var(--ink2); font-weight:500; }
     margin: 2px 0 4px 8px;
     padding: 4px;
   }
+  .nav-links.open .nav-item--submenu-open > .dropdown { display: block; }
   .nav-links.open .dropdown::before { display: none; }
   .nav-burger { display: flex; }
 }

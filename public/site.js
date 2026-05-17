@@ -16,8 +16,7 @@ function showPage(id) {
   // Update nav active state
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   // close mobile menu
-  document.getElementById('navLinks').classList.remove('open');
-  document.getElementById('burger').classList.remove('open');
+  closeMobileMenu();
 }
 
 function scrollToSection(sectionId) {
@@ -74,12 +73,60 @@ window.addEventListener('scroll', () => {
 function toggleMenu() {
   const links = document.getElementById('navLinks');
   const burger = document.getElementById('burger');
-  const isOpen = links.classList.contains('open');
-  links.classList.toggle('open');
-  burger.classList.toggle('open');
-  // Prevent body scroll when menu open on mobile
-  document.body.style.overflow = isOpen ? '' : '';
+  if (!links || !burger) return;
+  const willOpen = !links.classList.contains('open');
+  links.classList.toggle('open', willOpen);
+  burger.classList.toggle('open', willOpen);
+  burger.setAttribute('aria-expanded', String(willOpen));
+  document.body.style.overflow = willOpen ? 'hidden' : '';
+  if (!willOpen) closeMobileSubmenus();
 }
+
+function closeMobileSubmenus() {
+  document.querySelectorAll('.nav-item--submenu-open').forEach(item => {
+    item.classList.remove('nav-item--submenu-open');
+    const trigger = item.querySelector('.nav-link[aria-expanded]');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function closeMobileMenu() {
+  const links = document.getElementById('navLinks');
+  const burger = document.getElementById('burger');
+  if (links) links.classList.remove('open');
+  if (burger) {
+    burger.classList.remove('open');
+    burger.setAttribute('aria-expanded', 'false');
+  }
+  document.body.style.overflow = '';
+  closeMobileSubmenus();
+}
+
+document.querySelectorAll('.nav-item--has-dropdown > .nav-link').forEach(trigger => {
+  trigger.addEventListener('click', event => {
+    if (!window.matchMedia('(max-width: 1100px)').matches) return;
+    const links = document.getElementById('navLinks');
+    if (!links || !links.classList.contains('open')) return;
+    event.preventDefault();
+
+    const item = trigger.closest('.nav-item');
+    const shouldOpen = !item.classList.contains('nav-item--submenu-open');
+    closeMobileSubmenus();
+    item.classList.toggle('nav-item--submenu-open', shouldOpen);
+    trigger.setAttribute('aria-expanded', String(shouldOpen));
+  });
+});
+
+document.querySelectorAll('#navLinks a').forEach(link => {
+  if (link.closest('.nav-item--has-dropdown') && link.classList.contains('nav-link')) return;
+  link.addEventListener('click', () => {
+    if (window.matchMedia('(max-width: 1100px)').matches) closeMobileMenu();
+  });
+});
+
+window.addEventListener('resize', () => {
+  if (!window.matchMedia('(max-width: 1100px)').matches) closeMobileMenu();
+});
 
 /* ════════════════════════════════════════
    FORM SUBMISSIONS
