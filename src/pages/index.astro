@@ -1,71 +1,777 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const facts = [
+  { val: '4 yrs',   lbl: 'AI/ML in production' },
+  { val: '500K+',   lbl: 'Users served in RecSys' },
+  { val: '12-stage', lbl: 'AI engineer roadmap' },
+  { val: 'Open',    lbl: 'All knowledge public' },
+];
+
+const knowledge = [
+  {
+    eye:   'AI Engineering',
+    count: '12 stages',
+    title: 'AI Engineer Roadmap',
+    desc:  'FastAPI → RAG → Agents → Inference → Safety → Ship. Every stage has production code, pitfalls, and interview Q&A.',
+    href:  '/ai-engineering/ai-engineer-roadmap',
+  },
+  {
+    eye:   'LLMs & NLP',
+    count: '8 stages',
+    title: 'Language Systems',
+    desc:  'Transformers, prompting, retrieval, agents, cost control, and reliability — with trade-offs at every layer.',
+    href:  '/ai-engineering/llms-nlp',
+  },
+  {
+    eye:   'Foundations',
+    count: '3 tracks',
+    title: 'ML Foundations',
+    desc:  'AI/ML theory, statistics, and deep learning as durable mental models — before tools, not after.',
+    href:  '/foundations',
+  },
+  {
+    eye:   'Interview Prep',
+    count: '3 guides',
+    title: 'Interview Preparation',
+    desc:  'System design frameworks, LLM evaluation rubrics, and STAR stories grounded in real production work.',
+    href:  '/interview',
+  },
+];
+
+const work = [
+  {
+    role:  'AI Engineer',
+    title: 'LLM Systems & Production AI',
+    desc:  'Built and deployed LLM-powered search, RAG pipelines, and real-time inference systems. FastAPI, LangGraph, vLLM, Qdrant.',
+    tags:  ['LLMs', 'RAG', 'FastAPI', 'vLLM'],
+    href:  '/experience/ai-engineer-production-systems',
+  },
+  {
+    role:  'Data Scientist',
+    title: 'Recommendation Systems & NLP',
+    desc:  'Collaborative filtering, NLP classification, and A/B experimentation pipelines serving 500K+ user events in production.',
+    tags:  ['RecSys', 'NLP', 'MLOps', 'A/B'],
+    href:  '/experience/data-scientist-recommendation-nlp',
+  },
+];
 ---
 
 <BaseLayout active="home">
-  <main class="page active" id="page-home">
-    <div class="hero">
-      <div class="hero-left">
-        <h1>AI Engineering<br />at production<br /><em>scale.</em></h1>
-      </div>
+  <main class="hp-root">
 
-      <div class="hero-right">
-        <div class="hero-availability">
-          <div class="pulse"></div>
+    <!-- ══ HERO ════════════════════════════════════════════════ -->
+    <section class="hp-hero">
+      <div class="hp-hero-inner">
+
+        <div class="hp-avail">
+          <span class="hp-pulse" aria-hidden="true"></span>
           Open to new opportunities
         </div>
 
-        <p class="hero-bio">I'm J. Sudheesh Kumar Reddy, an AI Engineer building a public, open-source knowledge base for AI/ML engineers while showcasing practical production experience across LLMs, RAG, MLOps, recommendation systems, and AI system design.</p>
+        <h1 class="hp-h1">
+          The AI engineering<br>
+          knowledge base<br>
+          <em>you wished existed.</em>
+        </h1>
 
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="/experience">View Experience</a>
-          <a class="btn btn-secondary" href="/projects">Explore Projects</a>
+        <p class="hp-sub">
+          Four years of production LLMs, RAG pipelines, and ML systems —
+          documented with code, trade-offs, and failure modes.
+          Built for engineers, not beginners.
+        </p>
+
+        <div class="hp-ctas">
+          <a href="/ai-engineering" class="hp-btn-primary">
+            Browse Knowledge Base
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2.5 7h9m0 0L8 3.5M11.5 7L8 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="/experience" class="hp-btn-ghost">View Experience</a>
         </div>
 
-        <div class="hero-chips">
-          <span class="hero-chip">4 Years in AI/ML</span>
-          <span class="hero-chip">Knowledge Base</span>
-          <span class="hero-chip">LLM · RAG · MLOps</span>
-          <span class="hero-chip">Hyderabad</span>
+        <div class="hp-name-strip">
+          <span>SUDHEESH K. REDDY</span>
+          <span class="hp-strip-dot" aria-hidden="true">·</span>
+          <span>AI ENGINEER</span>
+          <span class="hp-strip-dot" aria-hidden="true">·</span>
+          <span>HYDERABAD</span>
         </div>
+
       </div>
+
+      <div class="hp-scroll-track" aria-hidden="true">
+        <div class="hp-scroll-line"></div>
+      </div>
+    </section>
+
+    <!-- ══ FACTS ════════════════════════════════════════════════ -->
+    <div class="hp-facts" role="list">
+      {facts.map(f => (
+        <div class="hp-fact" role="listitem">
+          <span class="hp-fact-val">{f.val}</span>
+          <span class="hp-fact-lbl">{f.lbl}</span>
+        </div>
+      ))}
     </div>
 
-    <div class="hero-stats-bar">
-      <div class="hs-stat"><div class="hs-val">5</div><div class="hs-lbl">Content Collections</div></div>
-      <div class="hs-stat"><div class="hs-val">2</div><div class="hs-lbl">Learning Tracks</div></div>
-      <div class="hs-stat"><div class="hs-val">500K+</div><div class="hs-lbl">Users Served</div></div>
-      <div class="hs-stat"><div class="hs-val">Open</div><div class="hs-lbl">Knowledge Base</div></div>
-      <div class="hs-stat"><div class="hs-val">MDX</div><div class="hs-lbl">Research Notes</div></div>
-    </div>
+    <!-- ══ KNOWLEDGE BASE ═══════════════════════════════════════ -->
+    <section class="hp-kb">
+      <div class="hp-kb-inner">
 
-    <section class="section">
-      <div class="container">
-        <div class="eyebrow">Knowledge Architecture</div>
-        <h2 style="margin-bottom:18px;">A researcher-style map for learning and building AI systems.</h2>
-        <div class="topic-grid">
-          <a class="topic-card kb-card-link" href="/foundations">
-            <div class="topic-name">Foundations</div>
-            <p class="topic-desc">AI/ML, statistics, and deep learning organized as durable mental models before tools and frameworks.</p>
-            <div class="topic-tags"><span class="tag">AI/ML</span><span class="tag">Statistics</span><span class="tag">Deep Learning</span></div>
+        <div class="hp-kb-left">
+          <p class="hp-eye">Knowledge Base</p>
+          <h2 class="hp-h2">
+            Production depth.<br>
+            <em>Not another tutorial.</em>
+          </h2>
+          <p class="hp-kb-prose">
+            Every section is built around real production challenges —
+            not what the documentation says, but what breaks at 3am and why.
+            Code that runs, pitfalls that cost weeks, and interview questions
+            answered from memory, not revision.
+          </p>
+          <a href="/ai-engineering" class="hp-link">
+            Explore all sections
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <path d="M2 6.5h9m0 0L7.5 3M11 6.5L7.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </a>
-          <a class="topic-card kb-card-link" href="/ai-engineering">
-            <div class="topic-name">AI Engineering</div>
-            <p class="topic-desc">LLMs, retrieval, data systems, MLOps, and system design explained from prototype to production.</p>
-            <div class="topic-tags"><span class="tag">LLMs</span><span class="tag">MLOps</span><span class="tag">Systems</span></div>
+        </div>
+
+        <div class="hp-kb-grid">
+          {knowledge.map(k => (
+            <a href={k.href} class="hp-kb-card">
+              <div class="hp-kb-card-top">
+                <span class="hp-kb-eye">{k.eye}</span>
+                <span class="hp-kb-count">{k.count}</span>
+              </div>
+              <div class="hp-kb-card-title">{k.title}</div>
+              <p class="hp-kb-card-desc">{k.desc}</p>
+              <div class="hp-kb-card-arrow" aria-hidden="true">→</div>
+            </a>
+          ))}
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══ SELECTED WORK ════════════════════════════════════════ -->
+    <section class="hp-work">
+      <div class="hp-work-inner">
+
+        <div class="hp-work-head">
+          <div>
+            <p class="hp-eye">Selected Work</p>
+            <h2 class="hp-h2 hp-h2--sm">
+              Where it was <em>built.</em>
+            </h2>
+          </div>
+          <a href="/experience" class="hp-link hp-link--right">
+            All experience
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <path d="M2 6.5h9m0 0L7.5 3M11 6.5L7.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </a>
-          <a class="topic-card kb-card-link" href="/interview">
-            <div class="topic-name">Interview Prep</div>
-            <p class="topic-desc">Question banks, design frameworks, evaluation rubrics, and STAR stories grounded in real AI work.</p>
-            <div class="topic-tags"><span class="tag">ML Design</span><span class="tag">RAG</span><span class="tag">Behavioral</span></div>
-          </a>
-          <a class="topic-card kb-card-link" href="/projects">
-            <div class="topic-name">Projects</div>
-            <p class="topic-desc">A roadmap for live website-native demos: search, information retrieval, chatbot, accounts, and services.</p>
-            <div class="topic-tags"><span class="tag">Search</span><span class="tag">RAG</span><span class="tag">Product</span></div>
-          </a>
+        </div>
+
+        <div class="hp-work-list">
+          {work.map(w => (
+            <a href={w.href} class="hp-work-item">
+              <div class="hp-work-body">
+                <div class="hp-work-role">{w.role}</div>
+                <h3 class="hp-work-title">{w.title}</h3>
+                <p class="hp-work-desc">{w.desc}</p>
+              </div>
+              <div class="hp-work-meta">
+                <div class="hp-work-tags">
+                  {w.tags.map(t => <span class="hp-tag">{t}</span>)}
+                </div>
+                <span class="hp-work-arrow" aria-hidden="true">→</span>
+              </div>
+            </a>
+          ))}
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══ BOTTOM CTA ═══════════════════════════════════════════ -->
+    <section class="hp-end">
+      <div class="hp-end-inner">
+        <p class="hp-end-mono">SUDHEESH K. REDDY — AI ENGINEER — HYDERABAD</p>
+        <h2 class="hp-end-h2">
+          Currently open to<br>
+          <em>new opportunities.</em>
+        </h2>
+        <p class="hp-end-sub">
+          AI Engineer and ML Engineer roles. Production LLM systems,
+          RAG architectures, and ML infrastructure.
+          Remote or based in Hyderabad.
+        </p>
+        <div class="hp-end-actions">
+          <a href="/collaborate" class="hp-btn-primary">Start a conversation</a>
+          <a href="/contact" class="hp-btn-ghost">Get in touch</a>
         </div>
       </div>
     </section>
+
   </main>
 </BaseLayout>
+
+<style is:global>
+/* ════════════════════════════════════════
+   HOME PAGE  —  hp-* namespace
+════════════════════════════════════════ */
+
+/* ── Root ── */
+.hp-root {
+  display: block;
+  min-height: 100vh;
+  padding-top: var(--nav-h);
+}
+
+/* ════════════════════════════════════════
+   HERO
+════════════════════════════════════════ */
+.hp-hero {
+  position: relative;
+  min-height: calc(100vh - var(--nav-h));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(64px, 10vh, 120px) var(--page-pad) clamp(80px, 12vh, 160px);
+}
+
+.hp-hero-inner {
+  max-width: 760px;
+}
+
+/* Availability pill */
+.hp-avail {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 500;
+  color: var(--sage);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 52px;
+  animation: hp-fadein 0.5s ease both;
+}
+
+.hp-pulse {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sage);
+  flex-shrink: 0;
+  animation: hp-pulse 2.4s ease infinite;
+}
+@keyframes hp-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,107,80,0.5); }
+  60%       { opacity: 0.8; box-shadow: 0 0 0 5px rgba(74,107,80,0); }
+}
+
+/* Main headline */
+.hp-h1 {
+  font-family: var(--sans);
+  font-weight: 900;
+  font-size: clamp(3rem, 6.5vw, 6rem);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  margin-bottom: 36px;
+  animation: hp-fadein 0.6s ease both 0.1s;
+}
+.hp-h1 em {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+/* Sub-statement */
+.hp-sub {
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  color: var(--muted);
+  font-family: var(--sans);
+  line-height: 1.75;
+  max-width: 520px;
+  margin-bottom: 48px;
+  animation: hp-fadein 0.6s ease both 0.22s;
+}
+
+/* CTAs */
+.hp-ctas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 56px;
+  animation: hp-fadein 0.6s ease both 0.34s;
+}
+
+.hp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 26px;
+  background: var(--ink);
+  color: var(--linen);
+  font-family: var(--sans);
+  font-size: 0.87rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  letter-spacing: 0.01em;
+  transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+.hp-btn-primary:hover {
+  background: var(--ink2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(13,13,13,0.18);
+}
+
+.hp-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 26px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.87rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  border: 1.5px solid var(--linen3);
+  letter-spacing: 0.01em;
+  transition: border-color 0.18s, background 0.18s;
+}
+.hp-btn-ghost:hover {
+  border-color: var(--muted2);
+  background: var(--linen2);
+}
+
+/* Name strip */
+.hp-name-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  animation: hp-fadein 0.6s ease both 0.46s;
+}
+.hp-strip-dot { color: var(--linen3); }
+
+/* Scroll hint line */
+.hp-scroll-track {
+  position: absolute;
+  bottom: 40px;
+  left: var(--page-pad);
+}
+.hp-scroll-line {
+  width: 1px;
+  height: 52px;
+  background: linear-gradient(to bottom, var(--linen3), transparent);
+  animation: hp-scroll 2.2s ease-in-out infinite;
+  transform-origin: top;
+}
+@keyframes hp-scroll {
+  0%    { transform: scaleY(0); transform-origin: top;    opacity: 1; }
+  45%   { transform: scaleY(1); transform-origin: top;    opacity: 1; }
+  46%   { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+  90%   { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+  100%  { transform: scaleY(0); transform-origin: top;    opacity: 0; }
+}
+
+@keyframes hp-fadein {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════════════════
+   FACTS BAR
+════════════════════════════════════════ */
+.hp-facts {
+  display: flex;
+  background: var(--linen2);
+  border-top: 1px solid var(--linen3);
+  border-bottom: 1px solid var(--linen3);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.hp-facts::-webkit-scrollbar { display: none; }
+
+.hp-fact {
+  flex: 1;
+  min-width: 180px;
+  padding: 28px var(--page-pad);
+  border-right: 1px solid var(--linen3);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.hp-fact:last-child { border-right: none; }
+
+.hp-fact-val {
+  font-family: var(--sans);
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.hp-fact-lbl {
+  font-family: var(--mono);
+  font-size: 0.61rem;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  line-height: 1.4;
+}
+
+/* ════════════════════════════════════════
+   SHARED SECTION TYPOGRAPHY
+════════════════════════════════════════ */
+.hp-eye {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--terra);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+.hp-eye::before {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 1px;
+  background: var(--terra);
+  flex-shrink: 0;
+}
+
+.hp-h2 {
+  font-family: var(--sans);
+  font-weight: 900;
+  font-size: clamp(2rem, 3.4vw, 2.8rem);
+  line-height: 1.0;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  margin: 0 0 24px;
+}
+.hp-h2 em {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+.hp-h2--sm {
+  font-size: clamp(1.7rem, 2.5vw, 2.2rem);
+}
+
+.hp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--linen3);
+  padding-bottom: 1px;
+  transition: border-color 0.18s, gap 0.18s;
+}
+.hp-link:hover { border-color: var(--ink); gap: 9px; }
+.hp-link--right { align-self: flex-start; margin-top: 4px; }
+
+/* ════════════════════════════════════════
+   KNOWLEDGE BASE
+════════════════════════════════════════ */
+.hp-kb {
+  padding: clamp(80px, 10vw, 140px) var(--page-pad);
+  border-bottom: 1px solid var(--linen3);
+}
+.hp-kb-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: clamp(48px, 7vw, 108px);
+  align-items: start;
+}
+
+.hp-kb-left { position: sticky; top: calc(var(--nav-h) + 32px); }
+
+.hp-kb-prose {
+  font-size: 0.95rem;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 0 0 32px;
+}
+
+/* 2×2 knowledge grid */
+.hp-kb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--linen3);
+  border: 1px solid var(--linen3);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.hp-kb-card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  padding: 26px 24px;
+  background: var(--linen);
+  transition: background 0.2s;
+  position: relative;
+}
+.hp-kb-card:hover { background: var(--linen2); }
+.hp-kb-card:hover .hp-kb-card-arrow { opacity: 1; transform: translateX(2px); }
+
+.hp-kb-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.hp-kb-eye {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--terra);
+}
+.hp-kb-count {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted2);
+}
+.hp-kb-card-title {
+  font-family: var(--sans);
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+.hp-kb-card-desc {
+  font-size: 0.77rem;
+  color: var(--muted2);
+  line-height: 1.68;
+  margin: 0;
+  flex: 1;
+}
+.hp-kb-card-arrow {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted2);
+  margin-top: 16px;
+  opacity: 0;
+  transition: opacity 0.18s, transform 0.18s;
+  align-self: flex-end;
+}
+
+/* ════════════════════════════════════════
+   SELECTED WORK
+════════════════════════════════════════ */
+.hp-work {
+  padding: clamp(80px, 10vw, 140px) var(--page-pad);
+  border-bottom: 1px solid var(--linen3);
+}
+.hp-work-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.hp-work-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 44px;
+  gap: 24px;
+}
+
+.hp-work-list {
+  border: 1px solid var(--linen3);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.hp-work-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: center;
+  padding: 36px 40px;
+  background: var(--linen);
+  border-bottom: 1px solid var(--linen3);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.2s;
+}
+.hp-work-item:last-child { border-bottom: none; }
+.hp-work-item:hover { background: var(--linen2); }
+.hp-work-item:hover .hp-work-arrow { transform: translateX(5px); color: var(--ink); }
+
+.hp-work-role {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted2);
+  margin-bottom: 8px;
+}
+.hp-work-title {
+  font-family: var(--sans);
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 10px;
+}
+.hp-work-desc {
+  font-size: 0.83rem;
+  color: var(--muted);
+  line-height: 1.68;
+  margin: 0;
+  max-width: 560px;
+}
+
+.hp-work-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 18px;
+  flex-shrink: 0;
+}
+.hp-work-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.hp-tag {
+  font-family: var(--mono);
+  font-size: 0.59rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted2);
+  background: var(--linen2);
+  border: 1px solid var(--linen3);
+  border-radius: 4px;
+  padding: 3px 8px;
+  display: inline-block;
+}
+.hp-work-arrow {
+  font-family: var(--mono);
+  font-size: 1rem;
+  color: var(--linen3);
+  transition: transform 0.2s, color 0.2s;
+}
+
+/* ════════════════════════════════════════
+   BOTTOM CTA
+════════════════════════════════════════ */
+.hp-end {
+  padding: clamp(100px, 14vw, 180px) var(--page-pad) clamp(80px, 10vw, 120px);
+  text-align: center;
+}
+.hp-end-inner {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.hp-end-mono {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--muted2);
+  margin: 0 0 32px;
+}
+.hp-end-h2 {
+  font-family: var(--sans);
+  font-weight: 900;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 0.97;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+.hp-end-h2 em {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+.hp-end-sub {
+  font-size: 0.96rem;
+  color: var(--muted);
+  line-height: 1.75;
+  margin: 0 0 44px;
+}
+.hp-end-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .hp-kb-inner {
+    grid-template-columns: 1fr;
+    gap: 52px;
+  }
+  .hp-kb-left { position: static; }
+}
+
+@media (max-width: 768px) {
+  .hp-work-item {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 28px 24px;
+  }
+  .hp-work-meta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .hp-work-head { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 560px) {
+  .hp-h1 { font-size: clamp(2.4rem, 11vw, 3.4rem); }
+  .hp-kb-grid { grid-template-columns: 1fr; }
+  .hp-facts { flex-wrap: wrap; }
+  .hp-fact { min-width: 50%; }
+  .hp-fact:nth-child(2) { border-right: none; }
+  .hp-fact:nth-child(3),
+  .hp-fact:nth-child(4) { border-top: 1px solid var(--linen3); }
+  .hp-scroll-track { display: none; }
+  .hp-name-strip { gap: 6px; }
+}
+</style>
