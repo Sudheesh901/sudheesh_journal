@@ -1605,7 +1605,8 @@ const tools = ['NLP', 'BM25', 'Embeddings', 'Transformers', 'RAG', 'Agents', 'Ev
 .lnlp-spec-item--open .lnlp-spec-chevron svg { transform: rotate(180deg); }
 .lnlp-det { max-height: 0; overflow: hidden; transition: max-height 0.42s cubic-bezier(0.4,0,0.2,1); background: var(--white); }
 .lnlp-spec-item--open > .lnlp-det { max-height: 1500px; }
-.lnlp-det-tabs { display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--linen3); overflow-x: auto; }
+.lnlp-det-tabs { display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--linen3); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.lnlp-det-tabs::-webkit-scrollbar { display: none; }
 .lnlp-det-tab { font-family: var(--mono); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.04em; color: var(--muted2); background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 16px; cursor: pointer; margin-bottom: -1px; white-space: nowrap; }
 .lnlp-det-tab--active { color: var(--terra); border-bottom-color: var(--terra); }
 [data-layer="foundation"] .lnlp-det-tab--active { color: var(--sage); border-bottom-color: var(--sage); }
