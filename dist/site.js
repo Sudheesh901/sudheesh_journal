@@ -102,31 +102,44 @@ function closeMobileMenu() {
   closeMobileSubmenus();
 }
 
-document.querySelectorAll('.nav-item--has-dropdown > .nav-link').forEach(trigger => {
-  trigger.addEventListener('click', event => {
-    if (!window.matchMedia('(max-width: 1100px)').matches) return;
-    const links = document.getElementById('navLinks');
-    if (!links || !links.classList.contains('open')) return;
-    event.preventDefault();
+function initMobileNav() {
+  const burger = document.getElementById('burger');
+  if (burger) burger.addEventListener('click', toggleMenu);
 
-    const item = trigger.closest('.nav-item');
-    const shouldOpen = !item.classList.contains('nav-item--submenu-open');
-    closeMobileSubmenus();
-    item.classList.toggle('nav-item--submenu-open', shouldOpen);
-    trigger.setAttribute('aria-expanded', String(shouldOpen));
-  });
-});
+  document.querySelectorAll('.nav-item--has-dropdown > .nav-link').forEach(trigger => {
+    trigger.addEventListener('click', event => {
+      if (!window.matchMedia('(max-width: 1100px)').matches) return;
+      const links = document.getElementById('navLinks');
+      if (!links || !links.classList.contains('open')) return;
+      event.preventDefault();
 
-document.querySelectorAll('#navLinks a').forEach(link => {
-  if (link.closest('.nav-item--has-dropdown') && link.classList.contains('nav-link')) return;
-  link.addEventListener('click', () => {
-    if (window.matchMedia('(max-width: 1100px)').matches) closeMobileMenu();
+      const item = trigger.closest('.nav-item');
+      const shouldOpen = !item.classList.contains('nav-item--submenu-open');
+      closeMobileSubmenus();
+      item.classList.toggle('nav-item--submenu-open', shouldOpen);
+      trigger.setAttribute('aria-expanded', String(shouldOpen));
+    });
   });
-});
+
+  document.querySelectorAll('#navLinks a').forEach(link => {
+    if (link.closest('.nav-item--has-dropdown') && link.classList.contains('nav-link')) return;
+    link.addEventListener('click', () => {
+      if (window.matchMedia('(max-width: 1100px)').matches) closeMobileMenu();
+    });
+  });
+}
 
 window.addEventListener('resize', () => {
   if (!window.matchMedia('(max-width: 1100px)').matches) closeMobileMenu();
 });
+
+window.toggleMenu = toggleMenu;
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMobileNav);
+} else {
+  initMobileNav();
+}
 
 /* ════════════════════════════════════════
    FORM SUBMISSIONS
