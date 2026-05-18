@@ -1,17 +1,580 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import CollectionIndex from '@/components/CollectionIndex.astro';
 
-const entries = await getCollection('experience');
+const heroStats = [
+  { val: '4 yrs',  label: 'AI/ML in production' },
+  { val: '40K+',   label: 'LLM agent users'      },
+  { val: '500K+',  label: 'RecSys users/day'     },
+  { val: '2',      label: 'Production systems'   },
+];
+
+// Update DS metrics with real numbers when building full case study
+const entries = [
+  {
+    role: 'AI Engineer',
+    period: '2023 – Present',
+    org: 'EdTech Platform · New Delhi',
+    title: 'Conversational AI Agent',
+    tagline: 'End-to-end multi-agent RAG system serving 40,000+ UPSC Civil Services students in production — designed, built, and owned solo.',
+    metrics: [
+      { val: '40K+', label: 'Active users'      },
+      { val: '95%',  label: 'Answer accuracy'   },
+      { val: '1–2s', label: 'P95 latency'       },
+      { val: '22%',  label: 'GPT-4 cost saved'  },
+    ],
+    stack: ['GPT-4', 'LangGraph', 'Pinecone', 'FastAPI', 'Celery', 'Redis', 'AWS ECS', 'LangSmith', 'RAGAS', 'Docker'],
+    href: '/experience/ai-engineer-production-systems',
+    cta: 'View full case study',
+    gated: true,
+    dark: true,
+    status: 'Current',
+    accentColor: '#C4614A',
+  },
+  {
+    role: 'Data Scientist',
+    period: '2022 – 2023',
+    org: 'Product Platform',
+    title: 'Recommendation & NLP Systems',
+    tagline: 'Collaborative filtering, content-based NLP models, and A/B experimentation pipelines serving 500K+ daily user events. The foundation beneath the AI engineering work.',
+    metrics: [
+      { val: '500K+', label: 'Daily rec events' },
+      { val: '3',     label: 'Models shipped'   },
+      { val: '5',     label: 'A/B experiments'  },
+      { val: '1 yr',  label: 'Domain tenure'    },
+    ],
+    stack: ['PyTorch', 'scikit-learn', 'Pandas', 'SQL', 'Spark', 'MLflow', 'A/B Testing', 'FastAPI'],
+    href: '/experience/data-scientist-recommendation-nlp',
+    cta: 'View case study',
+    gated: false,
+    dark: false,
+    status: 'Foundation',
+    accentColor: '#B87A28',
+  },
+];
 ---
 
-<BaseLayout title="Experience - Sudheesh Knowledge Base" active="experience">
-  <CollectionIndex
-    eyebrow="Portfolio Evidence"
-    title="Experience"
-    description="Experience notes written as evidence: context, scope, decisions, impact, and the systems thinking behind the work."
-    basePath="/experience"
-    entries={entries}
-  />
+<BaseLayout title="Experience — Sudheesh" active="experience">
+
+<style>
+/* ── HERO ─────────────────────────────────────────────── */
+.exp-hero {
+  background: var(--ink);
+  position: relative;
+  overflow: hidden;
+  padding: 80px var(--page-pad) 0;
+}
+.exp-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.exp-orb--a {
+  width: 700px; height: 700px;
+  top: -280px; right: -180px;
+  background: radial-gradient(circle, rgba(196,97,74,0.15) 0%, transparent 62%);
+}
+.exp-orb--b {
+  width: 500px; height: 500px;
+  bottom: -200px; left: -100px;
+  background: radial-gradient(circle, rgba(74,107,80,0.11) 0%, transparent 62%);
+}
+.exp-hero-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.exp-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #D97355;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.exp-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 24px; height: 1px;
+  background: #D97355;
+}
+.exp-hero h1 {
+  font-family: var(--sans);
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+  margin-bottom: 18px;
+}
+.exp-hero h1 em {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  color: #D97355;
+  letter-spacing: -0.02em;
+}
+.exp-hero-sub {
+  font-size: 0.95rem;
+  color: rgba(234,230,223,0.52);
+  line-height: 1.78;
+  max-width: 580px;
+  margin-bottom: 60px;
+}
+.exp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  margin: 0 calc(-1 * var(--page-pad));
+}
+.exp-stat {
+  padding: 26px 20px;
+  background: var(--ink);
+  text-align: center;
+}
+.exp-stat-val {
+  font-family: var(--sans);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  margin-bottom: 6px;
+  color: #C4614A;
+}
+.exp-stat-lbl {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: rgba(234,230,223,0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── CAREER ARC ──────────────────────────────────────── */
+.exp-arc {
+  background: var(--linen2);
+  border-bottom: 1px solid var(--linen3);
+  padding: 44px var(--page-pad);
+}
+.exp-arc-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.exp-arc-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin-bottom: 24px;
+}
+.exp-arc-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.exp-arc-node {
+  flex: 1;
+  padding: 22px 26px;
+  border: 1px solid var(--linen3);
+  border-radius: 12px;
+  background: var(--linen);
+}
+.exp-arc-node--current {
+  border-color: rgba(196,97,74,0.28);
+  background: rgba(196,97,74,0.03);
+}
+.exp-arc-connector {
+  flex-shrink: 0;
+  padding: 0 20px;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--linen3);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  letter-spacing: -0.05em;
+}
+.exp-arc-period {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--muted2);
+  margin-bottom: 5px;
+}
+.exp-arc-role {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.exp-arc-desc {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.exp-arc-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.exp-arc-badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.exp-arc-badge--foundation { background: rgba(184,122,40,0.12); color: var(--amber); border: 1px solid rgba(184,122,40,0.25); }
+.exp-arc-badge--current    { background: rgba(196,97,74,0.12);  color: var(--terra);  border: 1px solid rgba(196,97,74,0.25); }
+
+/* ── ENTRY CARDS ─────────────────────────────────────── */
+.exp-entries {
+  padding: 64px var(--page-pad) 96px;
+  max-width: 1160px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.exp-entry {
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+.exp-entry--dark  { background: var(--ink);   border: 1px solid rgba(255,255,255,0.07); }
+.exp-entry--light { background: var(--linen); border: 1px solid var(--linen3); }
+
+/* ── entry head ── */
+.exp-entry-head {
+  padding: 36px 40px 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  position: relative;
+  overflow: hidden;
+}
+.exp-entry--dark  .exp-entry-head { border-bottom-color: rgba(255,255,255,0.06); }
+.exp-entry--light .exp-entry-head { border-bottom-color: var(--linen3); }
+
+.exp-entry--dark .exp-entry-head::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 380px; height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(196,97,74,0.13) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.exp-entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.exp-entry-role-badge {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 4px;
+}
+.exp-entry--dark  .exp-entry-role-badge { color: #D97355; background: rgba(196,97,74,0.12); border: 1px solid rgba(196,97,74,0.3); }
+.exp-entry--light .exp-entry-role-badge { color: var(--amber); background: rgba(184,122,40,0.1); border: 1px solid rgba(184,122,40,0.3); }
+.exp-entry-period {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+}
+.exp-entry--dark  .exp-entry-period { color: rgba(234,230,223,0.3); }
+.exp-entry--light .exp-entry-period { color: var(--muted2); }
+.exp-entry-sep {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+}
+.exp-entry--dark  .exp-entry-sep { color: rgba(234,230,223,0.15); }
+.exp-entry--light .exp-entry-sep { color: var(--linen3); }
+.exp-entry-org {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+}
+.exp-entry--dark  .exp-entry-org { color: rgba(234,230,223,0.25); }
+.exp-entry--light .exp-entry-org { color: var(--muted2); }
+
+.exp-entry-title {
+  font-family: var(--sans);
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+.exp-entry--dark  .exp-entry-title { color: #fff; }
+.exp-entry--light .exp-entry-title { color: var(--ink); }
+
+.exp-entry-tagline {
+  font-size: 0.88rem;
+  line-height: 1.75;
+  max-width: 680px;
+  margin: 0;
+}
+.exp-entry--dark  .exp-entry-tagline { color: rgba(234,230,223,0.52); }
+.exp-entry--light .exp-entry-tagline { color: var(--muted); }
+
+.exp-entry-gated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: rgba(234,230,223,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+}
+
+/* ── entry body ── */
+.exp-entry-body {
+  padding: 28px 40px 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.exp-entry-metrics {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.exp-metric-val {
+  font-family: var(--sans);
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.exp-entry--dark  .exp-metric-val { color: #C4614A; }
+.exp-entry--light .exp-metric-val { color: var(--amber); }
+.exp-metric-lbl {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.exp-entry--dark  .exp-metric-lbl { color: rgba(234,230,223,0.3); }
+.exp-entry--light .exp-metric-lbl { color: var(--muted2); }
+
+.exp-entry-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.exp-stack-chip {
+  font-family: var(--mono);
+  font-size: 0.67rem;
+  padding: 3px 9px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.exp-entry--dark  .exp-stack-chip { background: rgba(255,255,255,0.07); color: rgba(234,230,223,0.6); border: 1px solid rgba(255,255,255,0.09); }
+.exp-entry--light .exp-stack-chip { background: var(--linen2); color: var(--muted); border: 1px solid var(--linen3); }
+
+.exp-entry-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.exp-entry-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+.exp-entry--dark  .exp-entry-cta { background: #C4614A; color: #fff; }
+.exp-entry--light .exp-entry-cta { background: var(--amber); color: #fff; }
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 900px) {
+  .exp-stats { grid-template-columns: repeat(2, 1fr); }
+  .exp-arc-track { flex-direction: column; gap: 12px; }
+  .exp-arc-connector { transform: rotate(90deg); padding: 4px 0; align-self: flex-start; margin-left: 24px; }
+  .exp-entry-head { flex-direction: column; }
+  .exp-entry-gated-badge { align-self: flex-start; }
+  .exp-entry-body { flex-direction: column; align-items: flex-start; }
+  .exp-entry-head { padding: 28px 24px 22px; }
+  .exp-entry-body { padding: 24px 24px 28px; }
+}
+@media (max-width: 560px) {
+  .exp-hero { padding: 56px 20px 0; }
+  .exp-arc { padding: 36px 20px; }
+  .exp-entries { padding: 48px 20px 72px; }
+  .exp-entry-metrics { gap: 20px; }
+  .exp-metric-val { font-size: 1.4rem; }
+}
+</style>
+
+<main class="page active">
+
+  <!-- ══ HERO ══════════════════════════════════════════ -->
+  <section class="exp-hero">
+    <div class="exp-orb exp-orb--a"></div>
+    <div class="exp-orb exp-orb--b"></div>
+    <div class="exp-hero-inner">
+      <div class="exp-eyebrow">Portfolio Evidence</div>
+      <h1>4 years building AI systems<br><em>that ship.</em></h1>
+      <p class="exp-hero-sub">From recommendation systems at scale to production LLM agents — a full-stack view of what it takes to build AI products that work in the real world.</p>
+    </div>
+    <div class="exp-stats">
+      {heroStats.map(s => (
+        <div class="exp-stat">
+          <div class="exp-stat-val">{s.val}</div>
+          <div class="exp-stat-lbl">{s.label}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- ══ CAREER ARC ════════════════════════════════════ -->
+  <section class="exp-arc">
+    <div class="exp-arc-inner">
+      <div class="exp-arc-label">Career Progression</div>
+      <div class="exp-arc-track">
+
+        <div class="exp-arc-node">
+          <div class="exp-arc-period">2022 – 2023</div>
+          <div class="exp-arc-role">Data Scientist</div>
+          <p class="exp-arc-desc">Recommendation systems, NLP modeling, and A/B experimentation at scale. Learned what production ML actually requires.</p>
+          <div class="exp-arc-chips">
+            {['RecSys', 'NLP', 'PyTorch', 'A/B Testing'].map(t => (
+              <span class="tag">{t}</span>
+            ))}
+          </div>
+          <span class="exp-arc-badge exp-arc-badge--foundation">Foundation</span>
+        </div>
+
+        <div class="exp-arc-connector">──→</div>
+
+        <div class="exp-arc-node exp-arc-node--current">
+          <div class="exp-arc-period">2023 – Present</div>
+          <div class="exp-arc-role">AI Engineer</div>
+          <p class="exp-arc-desc">Production LLM systems — multi-agent RAG, async inference at 40K users, full LLMOps lifecycle from prompts to blue-green deploys.</p>
+          <div class="exp-arc-chips">
+            {['LangGraph', 'RAG', 'FastAPI', 'LLMOps', 'AWS'].map(t => (
+              <span class="tag terra">{t}</span>
+            ))}
+          </div>
+          <span class="exp-arc-badge exp-arc-badge--current">Current</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ENTRY CARDS ═══════════════════════════════════ -->
+  <div class="exp-entries">
+    {entries.map(e => (
+      <article class={`exp-entry exp-entry--${e.dark ? 'dark' : 'light'} exp-reveal`}>
+
+        <!-- HEAD -->
+        <div class="exp-entry-head">
+          <div>
+            <div class="exp-entry-meta">
+              <span class="exp-entry-role-badge">{e.role}</span>
+              <span class="exp-entry-period">{e.period}</span>
+              <span class="exp-entry-sep">·</span>
+              <span class="exp-entry-org">{e.org}</span>
+            </div>
+            <div class="exp-entry-title">{e.title}</div>
+            <p class="exp-entry-tagline">{e.tagline}</p>
+          </div>
+          {e.gated && (
+            <div class="exp-entry-gated-badge">
+              <svg width="9" height="10" viewBox="0 0 10 12" fill="currentColor">
+                <rect x="1" y="5" width="8" height="7" rx="1.5"/>
+                <path d="M3.5 5V4a1.5 1.5 0 0 1 3 0v1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              Recruiter gate
+            </div>
+          )}
+        </div>
+
+        <!-- BODY -->
+        <div class="exp-entry-body">
+          <div style="flex:1">
+            <div class="exp-entry-metrics">
+              {e.metrics.map(m => (
+                <div>
+                  <div class="exp-metric-val">{m.val}</div>
+                  <div class="exp-metric-lbl">{m.label}</div>
+                </div>
+              ))}
+            </div>
+            <div class="exp-entry-stack">
+              {e.stack.map(s => (
+                <span class="exp-stack-chip">{s}</span>
+              ))}
+            </div>
+          </div>
+          <a href={e.href} class="exp-entry-cta">
+            {e.cta}
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7h8M8 4l3 3-3 3"/>
+            </svg>
+          </a>
+        </div>
+
+      </article>
+    ))}
+  </div>
+
+</main>
+
+<script is:inline>
+(function() {
+  if (!window.IntersectionObserver) return;
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.style.opacity    = '1';
+        e.target.style.transform  = 'translateY(0)';
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.06 });
+  document.querySelectorAll('.exp-reveal').forEach(function(el) {
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    io.observe(el);
+  });
+})();
+</script>
+
 </BaseLayout>

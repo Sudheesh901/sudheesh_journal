@@ -4,7 +4,9 @@ import ArticleLayout from '@/layouts/ArticleLayout.astro';
 
 export async function getStaticPaths() {
   const entries = await getCollection('experience');
-  return entries.map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+  return entries
+    .filter((entry) => entry.slug !== 'ai-engineer-production-systems')
+    .map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
 }
 
 const { entry } = Astro.props;

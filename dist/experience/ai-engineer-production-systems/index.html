@@ -1,30 +1,623 @@
-<!DOCTYPE html><html lang="en"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="Experience framing for LLM systems, RAG pipelines, MLOps practices, and production ownership."><title>AI Engineer - Production Systems - Sudheesh Knowledge Base</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/_astro/_slug_.dwLFKWZm.css"></head> <body> <nav id="nav"> <a class="nav-logo" href="/"> <span class="nav-wordmark">SUDHEESH K. REDDY<span class="nav-wordmark-slash">\</span></span> </a> <ul class="nav-links" id="navLinks"> <li class="nav-item nav-item--has-dropdown"> <a class="nav-link" href="/foundations" aria-haspopup="true" aria-expanded="false" aria-controls="nav-foundations-menu">
+<!DOCTYPE html><html lang="en"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="End-to-end production case study: multi-agent RAG system serving 40,000+ students. Architecture, trade-offs, production hardening, and knowledge map from A to Z."><title>Conversational AI Agent — Production Case Study — Sudheesh</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/_astro/ai-engineer-production-systems.CqJ5JC4a.css">
+<link rel="stylesheet" href="/_astro/_slug_.dwLFKWZm.css"></head> <body> <nav id="nav"> <a class="nav-logo" href="/"> <span class="nav-wordmark">SUDHEESH K. REDDY</span> </a> <ul class="nav-links" id="navLinks"> <li class="nav-item nav-item--has-dropdown"> <a class="nav-link" href="/foundations" aria-haspopup="true" aria-expanded="false" aria-controls="nav-foundations-menu">
 Foundations
 <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg> </a> <div class="dropdown" id="nav-foundations-menu"> <a class="dropdown-item" href="/foundations"><strong>Foundations Overview</strong><span>All foundation topics</span></a> <a class="dropdown-item" href="/foundations/ai-ml-research-map"><strong>AI/ML</strong><span>Learning theory, models, evaluation, workflows</span></a> <a class="dropdown-item" href="/foundations/statistics-experimentation"><strong>Statistics</strong><span>Inference, uncertainty, experiments</span></a> <a class="dropdown-item" href="/foundations/deep-learning-systems"><strong>Deep Learning</strong><span>Representation learning, optimization, architectures</span></a> </div> </li> <li class="nav-item nav-item--has-dropdown"> <a class="nav-link" href="/ai-engineering" aria-haspopup="true" aria-expanded="false" aria-controls="nav-ai-engineering-menu">
 AI Engineering
 <svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg> </a> <div class="dropdown" id="nav-ai-engineering-menu"> <a class="dropdown-item" href="/ai-engineering"><strong>AI Engineering Overview</strong><span>All AI engineering topics</span></a> <a class="dropdown-item dropdown-item--highlight" href="/ai-engineering/ai-engineer-roadmap"><strong>AI Engineer Roadmap</strong><span>12-stage path from Python async to production GenAI</span></a> <div class="dropdown-divider"></div> <a class="dropdown-item" href="/ai-engineering/llms-nlp"><strong>LLMs & NLP</strong><span>Transformers, RAG, agents, evaluation</span></a> <a class="dropdown-item" href="/ai-engineering/data-databases"><strong>Data & Databases</strong><span>PostgreSQL, Redis, pgvector, retrieval stores</span></a> <a class="dropdown-item" href="/ai-engineering/mlops-llmops"><strong>MLOps</strong><span>CI/CD, drift, observability, LLMOps</span></a> <a class="dropdown-item" href="/ai-engineering/system-design-for-ai"><strong>System Design</strong><span>Production AI architecture and tradeoffs</span></a> </div> </li> <li class="nav-item nav-item--has-dropdown"> <a class="nav-link" href="/interview" aria-haspopup="true" aria-expanded="false" aria-controls="nav-interview-menu">
 Interview Prep
-<svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg> </a> <div class="dropdown" id="nav-interview-menu"> <a class="dropdown-item" href="/interview"><strong>Interview Overview</strong></a> <a class="dropdown-item" href="/interview/ml-system-design"><strong>ML System Design</strong></a> <a class="dropdown-item" href="/interview/llm-rag-interviews"><strong>LLM & RAG</strong></a> <a class="dropdown-item" href="/interview/behavioral-star"><strong>Behavioral / STAR</strong></a> </div> </li> <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li> <li class="nav-item"><a class="nav-link active" href="/experience">Experience</a></li> <li class="nav-item"><a class="nav-link" href="/collaborate">Collaborate</a></li> <li class="nav-item"><a class="nav-link  nav-cta" href="/contact">Contact</a></li> </ul> <button class="nav-burger" id="burger" aria-label="Toggle navigation" aria-controls="navLinks" aria-expanded="false"> <span></span><span></span><span></span> </button> </nav>  <main class="page active"> <div class="page-hero"> <div class="page-hero-inner"> <div class="eyebrow">AI Engineer</div> <h2>AI Engineer - Production Systems</h2> <p>Experience framing for LLM systems, RAG pipelines, MLOps practices, and production ownership.</p> <div class="topic-tags" style="margin-top:18px;"> <span class="tag">LLM systems</span><span class="tag">RAG</span><span class="tag">MLOps</span><span class="tag">production</span> </div> </div> </div> <section class="section"> <article class="container-sm kb-prose"> <h2 id="scope">Scope</h2>
-<p>The AI engineering experience should be presented as production ownership, not only model experimentation. The strongest signal is the ability to connect model behavior with system reliability, cost, observability, and user impact.</p>
-<h2 id="evidence-to-showcase">Evidence to Showcase</h2>
-<ul>
-<li>LLM application architecture.</li>
-<li>Retrieval pipeline design.</li>
-<li>Evaluation and regression testing.</li>
-<li>Cost optimization.</li>
-<li>Monitoring and debugging.</li>
-<li>Deployment and rollback thinking.</li>
-</ul>
-<h2 id="how-to-present-it">How to Present It</h2>
-<p>Use case-study pages with:</p>
-<ol>
-<li>Problem</li>
-<li>Constraints</li>
-<li>Architecture</li>
-<li>Decisions</li>
-<li>Tradeoffs</li>
-<li>Impact</li>
-<li>What changed after observing production</li>
-</ol>
-<h2 id="portfolio-angle">Portfolio Angle</h2>
-<p>This section should help hiring teams see that the knowledge base is not abstract. It is connected to real systems and the judgment required to run them.</p> </article> </section> </main>  <footer style="background:var(--ink);padding:48px clamp(20px,5vw,72px) 32px;"> <div style="max-width:1160px;margin:0 auto;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start;"> <div> <div style="font-family:var(--serif);font-size:1.35rem;color:var(--cream);margin-bottom:8px;">Sudheesh K. Reddy</div> <p style="font-size:0.82rem;color:rgba(232,220,204,0.55);max-width:360px;">AI engineering portfolio and open-source knowledge base for production-minded AI/ML engineers.</p> </div> <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end;"> <a href="/" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Home</a> <a href="/foundations" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Foundations</a> <a href="/ai-engineering" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">AI Engineering</a> <a href="/projects" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Projects</a> <a href="/experience" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Experience</a> <a href="/contact" style="font-size:0.78rem;color:var(--terra2);text-decoration:none;">Contact</a> </div> </div> </footer> <script src="/site.js?v=nav-mobile-20260517"></script> </body> </html>
+<svg class="chevron" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg> </a> <div class="dropdown" id="nav-interview-menu"> <a class="dropdown-item" href="/interview"><strong>Interview Overview</strong></a> <a class="dropdown-item" href="/interview/ml-system-design"><strong>ML System Design</strong></a> <a class="dropdown-item" href="/interview/llm-rag-interviews"><strong>LLM & RAG</strong></a> <a class="dropdown-item" href="/interview/behavioral-star"><strong>Behavioral / STAR</strong></a> </div> </li> <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li> <li class="nav-item"><a class="nav-link active" href="/experience">Experience</a></li> <li class="nav-item"><a class="nav-link" href="/collaborate">Collaborate</a></li> <li class="nav-item"><a class="nav-link  nav-cta" href="/contact">Contact</a></li> </ul> <button class="nav-burger" id="burger" aria-label="Toggle navigation" aria-controls="navLinks" aria-expanded="false"> <span></span><span></span><span></span> </button> </nav>   <main class="page active" data-astro-cid-smlytbp2> <!-- ══ GATE OVERLAY ════════════════════════════════════════ --> <div id="pcs-gate" class="pcs-gate" data-astro-cid-smlytbp2> <div class="pcs-gate-backdrop" data-astro-cid-smlytbp2></div> <div class="pcs-gate-modal" data-astro-cid-smlytbp2> <div class="pcs-gate-eyebrow" data-astro-cid-smlytbp2>Conversational AI Agent · Production Case Study</div> <h2 class="pcs-gate-title" data-astro-cid-smlytbp2>How would you like to explore this?</h2> <p class="pcs-gate-sub" data-astro-cid-smlytbp2>This case study has two views tailored to different audiences.</p> <div class="pcs-gate-choices" data-astro-cid-smlytbp2> <button class="pcs-gate-card pcs-gate-card--recruiter" id="pcs-gate-btn-recruiter" data-astro-cid-smlytbp2> <div class="pcs-gate-card-icon" data-astro-cid-smlytbp2>💼</div> <div class="pcs-gate-card-title" data-astro-cid-smlytbp2>Recruiter / Hiring Manager</div> <div class="pcs-gate-card-desc" data-astro-cid-smlytbp2>Key metrics, tech stack, and accomplishments. Designed to be fully read in 2 minutes.</div> <div class="pcs-gate-card-arrow" data-astro-cid-smlytbp2>→</div> </button> <button class="pcs-gate-card pcs-gate-card--knowledge" id="pcs-gate-btn-knowledge" data-astro-cid-smlytbp2> <div class="pcs-gate-card-icon" data-astro-cid-smlytbp2>🔬</div> <div class="pcs-gate-card-title" data-astro-cid-smlytbp2>Developer / Knowledge Seeker</div> <div class="pcs-gate-card-desc" data-astro-cid-smlytbp2>Full architecture, production code, design decisions, and system trade-offs from A to Z.</div> <div class="pcs-gate-card-arrow" data-astro-cid-smlytbp2>→</div> </button> </div> <div class="pcs-gate-form" id="pcs-gate-form" data-astro-cid-smlytbp2> <p class="pcs-gate-form-note" data-astro-cid-smlytbp2>Your details are required to continue</p> <div class="pcs-gate-fields" data-astro-cid-smlytbp2> <div class="pcs-gate-field" data-astro-cid-smlytbp2> <input type="text" id="pcs-form-name" class="pcs-gate-input" placeholder="Full Name *" autocomplete="name" data-astro-cid-smlytbp2> <span class="pcs-gate-err" id="pcs-err-name" data-astro-cid-smlytbp2></span> </div> <div class="pcs-gate-field" data-astro-cid-smlytbp2> <input type="text" id="pcs-form-company" class="pcs-gate-input" placeholder="Company / Organisation *" autocomplete="organization" data-astro-cid-smlytbp2> <span class="pcs-gate-err" id="pcs-err-company" data-astro-cid-smlytbp2></span> </div> <div class="pcs-gate-field" style="grid-column:1/-1" data-astro-cid-smlytbp2> <input type="email" id="pcs-form-email" class="pcs-gate-input" placeholder="Work Email *" autocomplete="email" data-astro-cid-smlytbp2> <span class="pcs-gate-err" id="pcs-err-email" data-astro-cid-smlytbp2></span> </div> <div class="pcs-gate-field" style="grid-column:1/-1" data-astro-cid-smlytbp2> <input type="url" id="pcs-form-linkedin" class="pcs-gate-input" placeholder="LinkedIn Profile URL (optional)" autocomplete="url" data-astro-cid-smlytbp2> </div> </div> <div class="pcs-gate-form-actions" data-astro-cid-smlytbp2> <button class="pcs-gate-submit" id="pcs-gate-submit" data-astro-cid-smlytbp2>View Recruiter Summary →</button> <span class="pcs-gate-send-status" id="pcs-gate-send-status" data-astro-cid-smlytbp2></span> </div> </div> </div> </div> <!-- ══ HERO ══════════════════════════════════════════════ --> <section class="pcs-hero" data-astro-cid-smlytbp2> <div class="pcs-orb pcs-orb--a" data-astro-cid-smlytbp2></div> <div class="pcs-orb pcs-orb--b" data-astro-cid-smlytbp2></div> <div class="pcs-hero-inner" data-astro-cid-smlytbp2> <div class="pcs-eyebrow" data-astro-cid-smlytbp2>AI Engineer &nbsp;·&nbsp; EdTech Platform &nbsp;·&nbsp; New Delhi</div> <h1 data-astro-cid-smlytbp2>Conversational AI Agent<br data-astro-cid-smlytbp2><em data-astro-cid-smlytbp2>for UPSC Aspirants</em></h1> <p class="pcs-hero-sub" data-astro-cid-smlytbp2>End-to-end production case study. Multi-agent RAG system, 8 system layers, full architecture with trade-offs, and production hardening from A to Z.</p> </div> <div class="pcs-stats" data-astro-cid-smlytbp2> <div class="pcs-stat" data-astro-cid-smlytbp2> <div class="pcs-stat-val" style="color:#C4614A" data-astro-cid-smlytbp2>40K+</div> <div class="pcs-stat-lbl" data-astro-cid-smlytbp2>Active Students</div> </div><div class="pcs-stat" data-astro-cid-smlytbp2> <div class="pcs-stat-val" style="color:#4A6B50" data-astro-cid-smlytbp2>95%</div> <div class="pcs-stat-lbl" data-astro-cid-smlytbp2>Answer Accuracy</div> </div><div class="pcs-stat" data-astro-cid-smlytbp2> <div class="pcs-stat-val" style="color:#B87A28" data-astro-cid-smlytbp2>1–2s</div> <div class="pcs-stat-lbl" data-astro-cid-smlytbp2>Avg Latency</div> </div><div class="pcs-stat" data-astro-cid-smlytbp2> <div class="pcs-stat-val" style="color:#0D0D0D" data-astro-cid-smlytbp2>8</div> <div class="pcs-stat-lbl" data-astro-cid-smlytbp2>System Layers</div> </div> </div> </section> <!-- ══ MODE BAR (appears after gate) ═══════════════════════ --> <div id="pcs-mode-bar" class="pcs-mode-bar" style="display:none" data-astro-cid-smlytbp2> <div class="pcs-mode-bar-inner" data-astro-cid-smlytbp2> <span class="pcs-mode-indicator" id="pcs-mode-indicator" data-astro-cid-smlytbp2></span> <button class="pcs-mode-switch" id="pcs-mode-switch" data-astro-cid-smlytbp2>Switch view</button> </div> </div> <!-- ══ RECRUITER VIEW ════════════════════════════════════ --> <div id="pcs-recruiter-view" style="display:none" data-astro-cid-smlytbp2> <div class="pcs-rec-section" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>Executive Summary</div> <h2 style="margin-bottom:20px;font-size:clamp(1.5rem,3vw,2rem)" data-astro-cid-smlytbp2>What was built, for whom, and why it mattered</h2> <div class="pcs-rec-summary" data-astro-cid-smlytbp2> <strong data-astro-cid-smlytbp2>Role:</strong> Sole AI Engineer — designed, built, and deployed end-to-end.<br data-astro-cid-smlytbp2> <strong data-astro-cid-smlytbp2>What:</strong> A production conversational AI agent for UPSC Civil Services exam preparation at <strong data-astro-cid-smlytbp2>Vision IAS, New Delhi</strong> — India's largest UPSC Civil Services coaching institute. UPSC is India's most competitive examination (~1M candidates, ~1,000 positions). Students needed round-the-clock access to accurate, domain-expert answers — where hallucination was simply not an option.<br data-astro-cid-smlytbp2> <strong data-astro-cid-smlytbp2>How:</strong> Multi-agent RAG system with LangGraph (Supervisor + 4 domain specialists), Pinecone vector retrieval with hierarchical chunking, GPT-4 generation, FastAPI async gateway, Celery workers on AWS ECS, Redis for caching and session memory, LangSmith observability, and RAGAS-gated CI/CD pipelines — all in production.
+</div> <div class="eyebrow" data-astro-cid-smlytbp2>Key Impact</div> <div class="pcs-rec-highlights" data-astro-cid-smlytbp2> <div class="pcs-rec-hl" data-astro-cid-smlytbp2> <div class="pcs-rec-hl-num" data-astro-cid-smlytbp2>01</div> <div class="pcs-rec-hl-metric" data-astro-cid-smlytbp2>40,000+</div> <div class="pcs-rec-hl-label" data-astro-cid-smlytbp2>Active Student Users</div> <div class="pcs-rec-hl-note" data-astro-cid-smlytbp2>Production system, live exam-season traffic</div> </div><div class="pcs-rec-hl" data-astro-cid-smlytbp2> <div class="pcs-rec-hl-num" data-astro-cid-smlytbp2>02</div> <div class="pcs-rec-hl-metric" data-astro-cid-smlytbp2>95%</div> <div class="pcs-rec-hl-label" data-astro-cid-smlytbp2>Answer Accuracy</div> <div class="pcs-rec-hl-note" data-astro-cid-smlytbp2>RAGAS-validated on UPSC domain golden set</div> </div><div class="pcs-rec-hl" data-astro-cid-smlytbp2> <div class="pcs-rec-hl-num" data-astro-cid-smlytbp2>03</div> <div class="pcs-rec-hl-metric" data-astro-cid-smlytbp2>22%</div> <div class="pcs-rec-hl-label" data-astro-cid-smlytbp2>GPT-4 Cost Reduction</div> <div class="pcs-rec-hl-note" data-astro-cid-smlytbp2>Retrieval optimization, zero accuracy loss</div> </div><div class="pcs-rec-hl" data-astro-cid-smlytbp2> <div class="pcs-rec-hl-num" data-astro-cid-smlytbp2>04</div> <div class="pcs-rec-hl-metric" data-astro-cid-smlytbp2>0</div> <div class="pcs-rec-hl-label" data-astro-cid-smlytbp2>Downtime Deployments</div> <div class="pcs-rec-hl-note" data-astro-cid-smlytbp2>Blue-green ECS + RAGAS CI/CD gate</div> </div> </div> <div class="pcs-rec-skills" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>Technical Skills</div> <h3 style="margin-bottom:4px;font-size:1rem" data-astro-cid-smlytbp2>Stack used in this project</h3> <div class="pcs-rec-skill-grid" data-astro-cid-smlytbp2> <div class="pcs-rec-skill-cat" data-astro-cid-smlytbp2> <div class="pcs-rec-skill-cat-name" style="color:var(--terra)" data-astro-cid-smlytbp2>AI / ML</div> <div class="pcs-rec-skill-chips" data-astro-cid-smlytbp2> <span class="pcs-rec-chip" data-astro-cid-smlytbp2>GPT-4</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>LangGraph</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>RAG Architecture</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>RAGAS Evaluation</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Prompt Engineering</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Vector Search</span> </div> </div><div class="pcs-rec-skill-cat" data-astro-cid-smlytbp2> <div class="pcs-rec-skill-cat-name" style="color:var(--muted2)" data-astro-cid-smlytbp2>Backend</div> <div class="pcs-rec-skill-chips" data-astro-cid-smlytbp2> <span class="pcs-rec-chip" data-astro-cid-smlytbp2>FastAPI</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Celery</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Redis</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Python 3.11</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>REST / SSE</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>JWT Auth</span> </div> </div><div class="pcs-rec-skill-cat" data-astro-cid-smlytbp2> <div class="pcs-rec-skill-cat-name" style="color:var(--muted2)" data-astro-cid-smlytbp2>Infrastructure</div> <div class="pcs-rec-skill-chips" data-astro-cid-smlytbp2> <span class="pcs-rec-chip" data-astro-cid-smlytbp2>AWS ECS</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Docker</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>ECR</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>CloudWatch</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>GitHub Actions</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Blue-Green</span> </div> </div><div class="pcs-rec-skill-cat" data-astro-cid-smlytbp2> <div class="pcs-rec-skill-cat-name" style="color:var(--sage)" data-astro-cid-smlytbp2>Observability</div> <div class="pcs-rec-skill-chips" data-astro-cid-smlytbp2> <span class="pcs-rec-chip" data-astro-cid-smlytbp2>LangSmith</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Pinecone</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Distributed Tracing</span><span class="pcs-rec-chip" data-astro-cid-smlytbp2>Prompt Versioning</span> </div> </div> </div> </div> <div class="pcs-rec-bullets" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>Accomplishments</div> <h3 style="margin-bottom:4px;font-size:1rem" data-astro-cid-smlytbp2>Resume-ready bullet points</h3> <div class="pcs-rec-bullet-list" data-astro-cid-smlytbp2> <div class="pcs-rec-bullet" data-astro-cid-smlytbp2>Architected and deployed multi-agent RAG system (LangGraph Supervisor + 4 domain specialists) serving 40,000+ active UPSC Civil Services students in production at a leading EdTech platform in New Delhi.</div><div class="pcs-rec-bullet" data-astro-cid-smlytbp2>Achieved 95% domain answer accuracy validated via RAGAS evaluation suite (faithfulness ≥ 0.90, accuracy ≥ 0.93) integrated as a CI/CD gate — blocking deploys on quality regression before any code reaches production.</div><div class="pcs-rec-bullet" data-astro-cid-smlytbp2>Reduced GPT-4 API cost 22% through retrieval optimization (top-k 8→5, RAGAS-validated) and Pinecone semantic caching at 0.92 cosine threshold — zero accuracy loss confirmed, ~40% cache hit rate at scale.</div><div class="pcs-rec-bullet" data-astro-cid-smlytbp2>Designed FastAPI async gateway + Celery worker decoupling on AWS ECS, enabling independent auto-scaling of inference workers by CloudWatch queue depth — handled 380-task peak queues without API-tier impact.</div><div class="pcs-rec-bullet" data-astro-cid-smlytbp2>Implemented three-job Redis strategy: semantic response cache, per-user rate limiting (atomic INCR, 100 q/day), and session memory (10-turn window, 30-min TTL), each tuned and monitored independently.</div><div class="pcs-rec-bullet" data-astro-cid-smlytbp2>Established LangSmith observability pipeline with per-node token attribution and user feedback loops — identified 12% Supervisor misclassification via trace analysis, reduced to &lt;2% with few-shot prompt optimization.</div><div class="pcs-rec-bullet" data-astro-cid-smlytbp2>Built zero-downtime blue-green ECS deployments (minimumHealthyPercent=100) with Docker multi-stage builds, maintaining always-on availability for an exam-prep service during peak UPSC exam windows.</div> </div> </div> <div class="pcs-rec-cta" data-astro-cid-smlytbp2> <div class="pcs-rec-cta-text" data-astro-cid-smlytbp2> <h3 data-astro-cid-smlytbp2>Interested in working together?</h3> <p data-astro-cid-smlytbp2>Available for AI Engineer / Senior AI Engineer roles. Open to discussing the full architecture in detail.</p> </div> <div class="pcs-rec-cta-actions" data-astro-cid-smlytbp2> <a href="mailto:sudheesh.ofc@gmail.com" class="pcs-rec-cta-btn pcs-rec-cta-btn--primary" data-astro-cid-smlytbp2>Get in touch →</a> <button class="pcs-rec-cta-btn pcs-rec-cta-btn--ghost" id="pcs-cta-switch-knowledge" data-astro-cid-smlytbp2>View full case study</button> </div> <div class="pcs-resume-req-wrap" data-astro-cid-smlytbp2> <button class="pcs-rec-cta-btn pcs-rec-cta-btn--resume" id="pcs-resume-btn" data-astro-cid-smlytbp2>Request Resume</button> <div class="pcs-resume-status" id="pcs-resume-status" data-astro-cid-smlytbp2></div> </div> </div> </div> </div> <!-- ══ KNOWLEDGE VIEW ════════════════════════════════════ --> <div id="pcs-knowledge-view" data-astro-cid-smlytbp2> <!-- ══ STICKY TABS ════════════════════════════════════════ --> <nav class="pcs-tab-nav" role="tablist" data-astro-cid-smlytbp2> <div class="pcs-tab-nav-inner" data-astro-cid-smlytbp2> <button class="pcs-tab active" data-tab="overview" role="tab" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-tab" data-tab="architecture" role="tab" data-astro-cid-smlytbp2>Architecture</button> <button class="pcs-tab" data-tab="components" role="tab" data-astro-cid-smlytbp2>Components</button> <button class="pcs-tab" data-tab="decisions" role="tab" data-astro-cid-smlytbp2>Decisions</button> <button class="pcs-tab" data-tab="enhancements" role="tab" data-astro-cid-smlytbp2>Production Hardening</button> </div> </nav> <!-- ══ PANEL: OVERVIEW ═══════════════════════════════════ --> <div id="panel-overview" class="pcs-panel active" role="tabpanel" data-astro-cid-smlytbp2> <div class="pcs-section-sm" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>The Problem</div> <h2 style="margin-bottom:16px;font-size:clamp(1.6rem,3vw,2.2rem)" data-astro-cid-smlytbp2>A domain where hallucination is not an option</h2> <p style="font-size:0.95rem;line-height:1.85;color:var(--muted);margin-bottom:32px" data-astro-cid-smlytbp2>UPSC Civil Services is India's most competitive examination — roughly 1 million candidates compete annually for under 1,000 positions. Students at a leading EdTech platform in New Delhi needed round-the-clock access to accurate, domain-expert answers across a vast multi-domain syllabus: History, Geography, Polity, Economy, Science, Current Affairs, and Ethics. The challenge was not building a chatbot. It was building a system where answer quality could never silently degrade.</p> <div class="pcs-constraints" data-astro-cid-smlytbp2> <div class="pcs-constraint" data-astro-cid-smlytbp2> <div class="pcs-constraint-label" data-astro-cid-smlytbp2>Constraint 1</div> <p data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Hallucination is unacceptable.</strong> A wrong answer about a constitutional article can directly damage a student's exam preparation. Generic LLM behaviour must be constrained to verified UPSC content.</p> </div> <div class="pcs-constraint" data-astro-cid-smlytbp2> <div class="pcs-constraint-label" data-astro-cid-smlytbp2>Constraint 2</div> <p data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Scale is real.</strong> 40,000 concurrent users means the system must handle exam-season spikes without degradation. Thread-blocking inference is not viable.</p> </div> <div class="pcs-constraint" data-astro-cid-smlytbp2> <div class="pcs-constraint-label" data-astro-cid-smlytbp2>Constraint 3</div> <p data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Cost must be controlled.</strong> GPT-4 at 40K users with unconstrained usage is financially unsustainable. Every architecture decision is a cost-quality trade-off.</p> </div> <div class="pcs-constraint" data-astro-cid-smlytbp2> <div class="pcs-constraint-label" data-astro-cid-smlytbp2>Core Tension</div> <p data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Maximise answer quality while minimising GPT-4 API calls.</strong> This single constraint drives caching strategy, agent routing, retrieval design, and the evaluation gate in CI/CD.</p> </div> </div> <div class="pcs-stack" data-astro-cid-smlytbp2> <span class="tag terra" data-astro-cid-smlytbp2>GPT-4</span><span class="tag terra" data-astro-cid-smlytbp2>LangGraph</span><span class="tag terra" data-astro-cid-smlytbp2>Pinecone</span><span class="tag " data-astro-cid-smlytbp2>FastAPI</span><span class="tag " data-astro-cid-smlytbp2>Celery</span><span class="tag " data-astro-cid-smlytbp2>Redis</span><span class="tag sage" data-astro-cid-smlytbp2>LangSmith</span><span class="tag sage" data-astro-cid-smlytbp2>RAGAS</span><span class="tag " data-astro-cid-smlytbp2>Docker</span><span class="tag " data-astro-cid-smlytbp2>AWS ECS</span><span class="tag amber" data-astro-cid-smlytbp2>GitHub Actions</span><span class="tag amber" data-astro-cid-smlytbp2>Python 3.11</span> </div> </div> </div> <!-- ══ PANEL: ARCHITECTURE ═══════════════════════════════ --> <div id="panel-architecture" class="pcs-panel" role="tabpanel" data-astro-cid-smlytbp2> <div class="pcs-section" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>System Design</div> <h2 style="margin-bottom:8px;font-size:clamp(1.6rem,3vw,2.2rem)" data-astro-cid-smlytbp2>Seven layers, one responsibility each</h2> <p style="font-size:0.9rem;color:var(--muted);line-height:1.75;margin-bottom:32px;max-width:680px" data-astro-cid-smlytbp2>No layer does two things. The gateway never touches GPT-4. The workers never handle auth. The agents never write to Redis. Separation of concerns at this scale makes debugging tractable and scaling decisions obvious.</p> <div class="pcs-arch-wrap" data-astro-cid-smlytbp2> <div class="pcs-arch-bar" data-astro-cid-smlytbp2> <span class="pcs-arch-title" data-astro-cid-smlytbp2>Full System Request Flow</span> <div class="pcs-arch-dots" data-astro-cid-smlytbp2> <div class="pcs-arch-dot" style="background:#FF5F57" data-astro-cid-smlytbp2></div> <div class="pcs-arch-dot" style="background:#FEBC2E" data-astro-cid-smlytbp2></div> <div class="pcs-arch-dot" style="background:#28C840" data-astro-cid-smlytbp2></div> </div> </div> <div class="pcs-arch-body" data-astro-cid-smlytbp2> <div class="pcs-flow-label" data-astro-cid-smlytbp2>Gateway Layer</div> <span class="pcs-node pcs-node--g" data-astro-cid-smlytbp2>Student Query</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--b" data-astro-cid-smlytbp2>FastAPI Gateway</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--y" data-astro-cid-smlytbp2>JWT Auth</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--y" data-astro-cid-smlytbp2>Redis Rate Limit</span> <br data-astro-cid-smlytbp2> <span style="padding-left:220px;font-size:0.65rem;color:rgba(255,255,255,0.18)" data-astro-cid-smlytbp2>cache hit path:</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--y" data-astro-cid-smlytbp2>Pinecone Semantic Cache</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--g" data-astro-cid-smlytbp2>Stream to Client</span> <br data-astro-cid-smlytbp2> <span style="padding-left:220px;font-size:0.65rem;color:rgba(255,255,255,0.18)" data-astro-cid-smlytbp2>cache miss:</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--r" data-astro-cid-smlytbp2>Celery Task Queue</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--b" data-astro-cid-smlytbp2>Celery Worker (AWS ECS)</span> <div class="pcs-flow-label" data-astro-cid-smlytbp2>Agent Layer — LangGraph</div> <span class="pcs-node pcs-node--p" data-astro-cid-smlytbp2>Supervisor Agent</span> <span class="pcs-arr" data-astro-cid-smlytbp2>── classifies intent ──▶</span> <span class="pcs-node pcs-node--g" data-astro-cid-smlytbp2>Factual</span> <span class="pcs-arr" data-astro-cid-smlytbp2>|</span> <span class="pcs-node pcs-node--g" data-astro-cid-smlytbp2>PYQ</span> <span class="pcs-arr" data-astro-cid-smlytbp2>|</span> <span class="pcs-node pcs-node--g" data-astro-cid-smlytbp2>Essay</span> <span class="pcs-arr" data-astro-cid-smlytbp2>|</span> <span class="pcs-node pcs-node--g" data-astro-cid-smlytbp2>Current Affairs</span> <div class="pcs-flow-label" data-astro-cid-smlytbp2>Retrieval + Generation</div> <span class="pcs-node pcs-node--y" data-astro-cid-smlytbp2>Pinecone Namespace Query</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--y" data-astro-cid-smlytbp2>Parent Chunk Assembly</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--r" data-astro-cid-smlytbp2>GPT-4</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--b" data-astro-cid-smlytbp2>Guardrail Check</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--g" data-astro-cid-smlytbp2>Stream Answer</span> <div class="pcs-flow-label" data-astro-cid-smlytbp2>Session + Cache Write-Back</div> <span class="pcs-node pcs-node--y" data-astro-cid-smlytbp2>Redis Session Memory</span> <span class="pcs-arr" data-astro-cid-smlytbp2>+</span> <span class="pcs-node pcs-node--y" data-astro-cid-smlytbp2>Pinecone Cache Upsert</span> <span class="pcs-arr" data-astro-cid-smlytbp2>── async ──▶</span> <span class="pcs-node pcs-node--w" data-astro-cid-smlytbp2>Next query cheaper</span> <div class="pcs-flow-label" data-astro-cid-smlytbp2>Observability</div> <span class="pcs-node pcs-node--b" data-astro-cid-smlytbp2>LangSmith Traces</span> <span class="pcs-arr" data-astro-cid-smlytbp2>+</span> <span class="pcs-node pcs-node--b" data-astro-cid-smlytbp2>CloudWatch Metrics</span> <span class="pcs-arr" data-astro-cid-smlytbp2>+</span> <span class="pcs-node pcs-node--b" data-astro-cid-smlytbp2>User Feedback Loop</span> <span class="pcs-arr" data-astro-cid-smlytbp2>+</span> <span class="pcs-node pcs-node--b" data-astro-cid-smlytbp2>RAGAS Eval Gate (CI)</span> <div class="pcs-flow-label" data-astro-cid-smlytbp2>Infrastructure</div> <span class="pcs-node pcs-node--w" data-astro-cid-smlytbp2>Docker (API image)</span> <span class="pcs-arr" data-astro-cid-smlytbp2>+</span> <span class="pcs-node pcs-node--w" data-astro-cid-smlytbp2>Docker (Worker image)</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--w" data-astro-cid-smlytbp2>AWS ECR</span> <span class="pcs-arr" data-astro-cid-smlytbp2>──▶</span> <span class="pcs-node pcs-node--w" data-astro-cid-smlytbp2>ECS Blue-Green Deploy</span> </div> </div> </div> </div> <!-- ══ PANEL: COMPONENTS ═════════════════════════════════ --> <div id="panel-components" class="pcs-panel" role="tabpanel" data-astro-cid-smlytbp2> <div class="pcs-section" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>System Components</div> <h2 style="margin-bottom:8px;font-size:clamp(1.6rem,3vw,2.2rem)" data-astro-cid-smlytbp2>Eight layers, fully decomposed</h2> <p style="font-size:0.9rem;color:var(--muted);line-height:1.75;margin-bottom:36px;max-width:680px" data-astro-cid-smlytbp2>Each component: what it does, why this approach over alternatives, the implementation with real code, and the key trade-off. Click any row to expand.</p> <div class="pcs-comp-list" data-astro-cid-smlytbp2> <div class="pcs-comp-item" id="comp-fastapi" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('fastapi')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>01</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#C4614A" data-astro-cid-smlytbp2></span> FastAPI <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— Gateway Layer</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>JWT auth · rate-limit · semantic cache · async dispatch</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'fastapi','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'fastapi','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'fastapi','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'fastapi','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="fastapi" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>FastAPI is the system&#39;s only public surface. Four responsibilities and nothing else: authenticate the student via JWT, enforce Redis rate-limits, check the semantic cache, and dispatch work to Celery. It never touches GPT-4. FastAPI&#39;s async event loop means a 1–2s RAG pipeline call does not block the thread — at 40K concurrent users, the difference between a working system and thread starvation.</p> <a href="/ai-engineering/ai-engineer-roadmap" class="pcs-learn-link" data-astro-cid-smlytbp2> FastAPI async patterns <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="fastapi" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>Django and Flask are synchronous by default. A 1.5s GPT-4 call blocks a worker thread for its full duration. A thread pool of 40 exhausts in under a second at peak load. FastAPI with uvicorn handles each request as a coroutine — the thread stays free while Celery executes the task. The two-step POST → stream pattern adds one round-trip but lets clients reconnect the stream on mobile network drops — essential for students on slow connections.</p> </div> <div class="pcs-det-pane" data-comp="fastapi" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — FastAPI gateway: auth · rate-limit · cache · Celery dispatch</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>@app.post(&quot;/chat&quot;)
+async def chat(req: ChatRequest, user: User = Depends(verify_jwt)):
+    # Rate limit: 100 queries/student/day — atomic Redis INCR
+    rate_key = f&quot;rate:{user.id}:{today()}&quot;
+    if await redis.incr(rate_key) &gt; 100:
+        raise HTTPException(429, &quot;Daily query limit reached&quot;)
+    await redis.expire(rate_key, 86400)
+
+    # Semantic cache lookup — zero GPT-4 cost on hit
+    cached = await semantic_cache.lookup(req.query)
+    if cached:
+        return StreamingResponse(stream_string(cached))
+
+    # Dispatch to Celery — return task ID in &lt;5ms, never block
+    task = rag_pipeline.delay(req.query, req.session_id, user.id)
+    return {&quot;task_id&quot;: task.id}
+
+@app.get(&quot;/stream/{task_id}&quot;)
+async def stream_result(task_id: str):
+    # SSE stream: tokens arrive as worker produces them
+    return StreamingResponse(
+        token_generator(task_id),
+        media_type=&quot;text/event-stream&quot;,
+    )</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="fastapi" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>Two-step POST → stream adds one round-trip. Benefit: the gateway never blocks; clients reconnect the SSE stream on network drops. At 40K mobile users, reconnect resilience is not optional.</p> </div> </div> </div> </div><div class="pcs-comp-item" id="comp-redis" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('redis')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>02</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#B87A28" data-astro-cid-smlytbp2></span> Redis <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— Three-Job Cache Layer</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>Semantic cache · per-user rate-limit · session memory</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'redis','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'redis','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'redis','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'redis','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="redis" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>Redis does three completely separate jobs. Each is tuned, monitored, and reasoned about independently. Mixing them into one key namespace would make each harder to debug and optimize. Job 1: semantic response caching (primary cost lever). Job 2: per-user rate limiting (cost guard). Job 3: conversation session memory (context store for multi-turn coherence).</p> <a href="/ai-engineering/data-databases" class="pcs-learn-link" data-astro-cid-smlytbp2> Data &amp; caching patterns <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="redis" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>At 40K students asking overlapping UPSC questions, cache hit rate is the single most impactful cost metric. A 40% hit rate means 40% of GPT-4 API spend simply does not happen. Threshold matters critically: at similarity 0.88 we had 6% false cache hits — wrong answers served. Moving to 0.92 reduced false hits to under 1% with only a 4% hit rate reduction. That trade-off is correct for high-stakes exam content.</p> </div> <div class="pcs-det-pane" data-comp="redis" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — Redis: semantic cache · rate limit · bounded session memory</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2># Job 1: Semantic cache — query Pinecone cache namespace
+async def cache_lookup(query: str) -&gt; str | None:
+    embedding = await embed(query)
+    results = pinecone_index.query(
+        vector=embedding, top_k=1, namespace=&quot;cache&quot;,
+        include_metadata=True,
+    )
+    if results.matches and results.matches[0].score &gt;= 0.92:
+        return results.matches[0].metadata[&quot;answer&quot;]
+    return None
+
+# Job 2: Rate limiter — atomic, no race conditions
+async def check_rate_limit(user_id: str) -&gt; bool:
+    key = f&quot;rate:{user_id}:{today()}&quot;
+    count = await redis.incr(key)
+    if count == 1:
+        await redis.expire(key, 86400)  # reset daily
+    return count &lt;= 100
+
+# Job 3: Session memory — bounded 10-turn window, 30-min TTL
+async def get_history(session_id: str) -&gt; list[dict]:
+    raw = await redis.lrange(f&quot;session:{session_id}&quot;, 0, 9)
+    return [json.loads(m) for m in reversed(raw)]
+
+async def append_turn(session_id: str, message: dict):
+    key = f&quot;session:{session_id}&quot;
+    await redis.lpush(key, json.dumps(message))
+    await redis.ltrim(key, 0, 9)     # enforce 10-turn limit
+    await redis.expire(key, 1800)    # 30-min inactivity TTL</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="redis" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>Semantic cache lives in a Pinecone namespace (not Redis) — embedding similarity search is Pinecone&#39;s native operation. A Redis+FAISS alternative would require maintaining a second in-memory vector index with operational overhead.</p> </div> </div> </div> </div><div class="pcs-comp-item" id="comp-celery" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('celery')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>03</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#4A6B50" data-astro-cid-smlytbp2></span> Celery <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— Async Inference Workers</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>Decoupled inference · ECS auto-scaling · retry logic</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'celery','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'celery','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'celery','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'celery','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="celery" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>Celery decouples the API layer from the inference layer entirely. FastAPI dispatches a task and returns in under 5ms. Workers execute the full RAG pipeline independently on AWS ECS and scale horizontally without touching the API servers. A lightweight Lambda publishes Celery queue depth to CloudWatch every 30 seconds — ECS scales workers up when depth exceeds 50 pending tasks, down below 10.</p> <a href="/ai-engineering/mlops-llmops" class="pcs-learn-link" data-astro-cid-smlytbp2> MLOps &amp; async pipelines <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="celery" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>Without Celery, every FastAPI request would block 1–2s while the RAG pipeline ran in-process. At 40K users, even with async FastAPI, you&#39;d need 40K concurrent RAG pipelines running simultaneously — impossible. With Celery, workers scale as an independent fleet. Peak queue depth during exam season: ~380 tasks. Auto-scaling ECS absorbs this in seconds without over-provisioning year-round.</p> </div> <div class="pcs-det-pane" data-comp="celery" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — Celery worker: restore context · invoke LangGraph · cache result</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>@celery.task(bind=True, max_retries=3)
+def rag_pipeline(self, query: str, session_id: str, user_id: str):
+    try:
+        # Restore conversation context from Redis
+        history = get_session_history_sync(session_id)
+
+        # Invoke LangGraph supervisor agent
+        result = supervisor_graph.invoke({
+            &quot;query&quot;: query,
+            &quot;history&quot;: history,
+            &quot;user_id&quot;: user_id,
+        })
+
+        # Cache answer in Pinecone cache namespace
+        pinecone_index.upsert(
+            vectors=[{
+                &quot;id&quot;: cache_id(query),
+                &quot;values&quot;: embed_sync(query),
+                &quot;metadata&quot;: {&quot;answer&quot;: result[&quot;answer&quot;]},
+            }],
+            namespace=&quot;cache&quot;,
+        )
+
+        # Append turn to session memory
+        append_turn_sync(session_id, {
+            &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: result[&quot;answer&quot;]
+        })
+        return result
+
+    except openai.RateLimitError as e:
+        raise self.retry(exc=e, countdown=5)
+    except Exception as e:
+        raise self.retry(exc=e, countdown=2)</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="celery" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>Separate API and worker containers means each scales to a different signal. API scales by CPU/memory; workers scale by queue depth. During exam-season spikes, workers go 4 → 20+ while the API tier stays at 3 instances unchanged.</p> </div> </div> </div> </div><div class="pcs-comp-item" id="comp-langgraph" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('langgraph')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>04</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#7C5CBF" data-astro-cid-smlytbp2></span> LangGraph <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— Multi-Agent Orchestration</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>Supervisor pattern · typed state · 4 domain specialists</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'langgraph','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'langgraph','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'langgraph','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'langgraph','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="langgraph" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>The agent follows a Supervisor → Specialist pattern. A supervisor node classifies query intent and routes to one of four domain specialists: Factual Lookup, PYQ Analysis, Essay Guidance, Current Affairs. Each specialist has its own Pinecone namespace, prompt template, and LangSmith trace — completely isolated. A regression in the PYQ agent does not require re-evaluating the full system.</p> <a href="/ai-engineering/ai-engineer-roadmap" class="pcs-learn-link" data-astro-cid-smlytbp2> Agentic workflows &amp; LangGraph <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="langgraph" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>A monolithic agent with a single system prompt for all UPSC query types consistently underperforms on edge cases. &quot;What is the 42nd Constitutional Amendment?&quot; needs a different retrieval namespace and prompt framing than &quot;Give me an essay structure on India-China border disputes.&quot; Separate agents means separate optimization loops, separate prompt versions, and isolated failure surfaces. The supervisor adds ~50ms classification latency — worth it for per-domain accuracy gains.</p> </div> <div class="pcs-det-pane" data-comp="langgraph" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — LangGraph: typed state · supervisor routing · specialist pattern</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>from langgraph.graph import StateGraph, END
+from typing import TypedDict
+
+class AgentState(TypedDict):
+    query:            str
+    history:          list[dict]
+    intent:           str           # set by supervisor
+    retrieved_chunks: list[str]
+    answer:           str
+    sources:          list[str]
+    guardrail_passed: bool
+    token_usage:      dict          # per-node cost attribution
+
+def supervisor_node(state: AgentState) -&gt; AgentState:
+    intent = classify_intent(state[&quot;query&quot;], state[&quot;history&quot;])
+    return {**state, &quot;intent&quot;: intent}
+
+def route(state: AgentState) -&gt; str:
+    return state[&quot;intent&quot;]  # &quot;factual&quot; | &quot;pyq&quot; | &quot;essay&quot; | &quot;current_affairs&quot;
+
+def factual_agent(state: AgentState) -&gt; AgentState:
+    chunks = pinecone_query(state[&quot;query&quot;], namespace=&quot;factual&quot;, top_k=5)
+    answer = gpt4_generate(FACTUAL_PROMPT, chunks, state[&quot;history&quot;])
+    return {**state, &quot;retrieved_chunks&quot;: chunks, &quot;answer&quot;: answer}
+
+graph = StateGraph(AgentState)
+graph.add_node(&quot;supervisor&quot;,      supervisor_node)
+graph.add_node(&quot;factual&quot;,         factual_agent)
+graph.add_node(&quot;pyq&quot;,             pyq_agent)
+graph.add_node(&quot;essay&quot;,           essay_agent)
+graph.add_node(&quot;current_affairs&quot;, current_affairs_agent)
+graph.set_entry_point(&quot;supervisor&quot;)
+graph.add_conditional_edges(&quot;supervisor&quot;, route, {
+    &quot;factual&quot;: &quot;factual&quot;, &quot;pyq&quot;: &quot;pyq&quot;,
+    &quot;essay&quot;: &quot;essay&quot;, &quot;current_affairs&quot;: &quot;current_affairs&quot;,
+})
+supervisor_graph = graph.compile()</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="langgraph" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>Four specialist agents adds ~50ms for the classification step per request. All queries pass through the supervisor. The latency cost is fixed within the 1–2s budget and the per-domain accuracy improvement justifies it unambiguously.</p> </div> </div> </div> </div><div class="pcs-comp-item" id="comp-pinecone" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('pinecone')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>05</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#C4614A" data-astro-cid-smlytbp2></span> Pinecone <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— Retrieval Layer</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>Namespace-per-domain · hierarchical chunking · cache namespace</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'pinecone','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'pinecone','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'pinecone','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'pinecone','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="pinecone" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>Three retrieval decisions define accuracy: (1) namespace-per-domain — each UPSC subject has its own Pinecone namespace, eliminating cross-domain retrieval noise; (2) hierarchical parent-child chunking — 128-token child chunks for precision retrieval, 512-token parent chunks assembled for GPT-4 context; (3) a dedicated cache namespace for semantic response caching, eliminating a second vector store.</p> <a href="/interview/llm-rag-interviews" class="pcs-learn-link" data-astro-cid-smlytbp2> Advanced RAG &amp; vector search <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="pinecone" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>LangSmith trace data exposed that without namespacing, the factual agent occasionally pulled irrelevant Current Affairs chunks when UPSC topic keywords overlapped with recent news. Hierarchical chunking addressed truncated-answer hallucinations — small chunks retrieve precisely but GPT-4 needs broader context to give complete answers. Reducing top-k from 8 to 5 (validated by RAGAS) cut token cost 22% with no accuracy loss.</p> </div> <div class="pcs-det-pane" data-comp="pinecone" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — Pinecone: namespace design · hierarchical upsert · cache lookup</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2># Namespace-per-domain: each subject isolated
+DOMAIN_NAMESPACES = {
+    &quot;factual&quot;: [&quot;polity&quot;, &quot;history&quot;, &quot;economy&quot;, &quot;geography&quot;],
+    &quot;pyq&quot;:     [&quot;pyq_prelims&quot;, &quot;pyq_mains&quot;],
+    &quot;essay&quot;:   [&quot;essay_structure&quot;, &quot;essay_content&quot;],
+    &quot;current&quot;: [&quot;current_affairs&quot;],
+    &quot;cache&quot;:   [&quot;cache&quot;],
+}
+
+def upsert_document(doc: Document, domain: str):
+    &quot;&quot;&quot;Hierarchical: child chunks indexed, parent assembled for context.&quot;&quot;&quot;
+    for i, parent in enumerate(chunk(doc.text, size=512, overlap=50)):
+        for j, child in enumerate(chunk(parent, size=128, overlap=20)):
+            pinecone_index.upsert(vectors=[{
+                &quot;id&quot;: f&quot;{doc.id}_p{i}_c{j}&quot;,
+                &quot;values&quot;: embed(child),
+                &quot;metadata&quot;: {
+                    &quot;child_text&quot;:  child,
+                    &quot;parent_text&quot;: parent,   # full context for GPT-4
+                    &quot;domain&quot;:      domain,
+                    &quot;updated_at&quot;:  doc.updated_at,
+                },
+            }], namespace=domain)
+
+def retrieve(query: str, namespace: str, top_k: int = 5) -&gt; list[str]:
+    &quot;&quot;&quot;Returns parent text — complete context — for matched child chunks.&quot;&quot;&quot;
+    results = pinecone_index.query(
+        vector=embed(query), top_k=top_k,
+        namespace=namespace, include_metadata=True,
+    )
+    return [m.metadata[&quot;parent_text&quot;] for m in results.matches]</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="pinecone" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>Hierarchical chunking doubles upsert complexity. Payload: two text fields (child + parent) per vector. Benefit: retrieval precision from child chunks + generation context from parent chunks. The accuracy gain at 95% benchmark validates the complexity.</p> </div> </div> </div> </div><div class="pcs-comp-item" id="comp-docker" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('docker')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>06</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#4A6B50" data-astro-cid-smlytbp2></span> Docker <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— Containerisation Strategy</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>Separate images · multi-stage builds · ECS independent scaling</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'docker','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'docker','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'docker','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'docker','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="docker" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>Three images, each with a single entrypoint: API gateway, Celery worker, Redis (standard image). API and worker share the same Python codebase but deploy as independent ECS services with different resource allocations and scaling policies. Multi-stage builds keep the API image at ~190MB (no ML dependencies) and the worker image at ~380MB (full stack). The same docker-compose.yml runs locally and in CI for environment parity.</p> <a href="/ai-engineering/mlops-llmops" class="pcs-learn-link" data-astro-cid-smlytbp2> MLOps &amp; deployment <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="docker" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>If API and workers run as the same process, they must scale together. During a traffic spike, you need inference capacity (workers), not gateway capacity (API). Separating into two ECS services means the API scales by CPU/request count and workers scale by queue depth — the correct signal for each. Independent scaling avoids over-provisioning the gateway tier during exam-season inference spikes.</p> </div> <div class="pcs-det-pane" data-comp="docker" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Dockerfile + docker-compose — multi-stage API image + worker service</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2># Dockerfile.api — multi-stage, lean gateway image (~190MB)
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY requirements/api.txt .
+RUN pip install --no-cache-dir -r api.txt
+
+FROM python:3.11-slim
+WORKDIR /app
+COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY src/ .
+EXPOSE 8000
+CMD [&quot;uvicorn&quot;, &quot;main:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;, &quot;--workers&quot;, &quot;4&quot;]
+
+# ── docker-compose.yml (local = production parity) ────────────
+services:
+  api:
+    build: { context: ., dockerfile: Dockerfile.api }
+    env_file: .env.local
+    ports: [&quot;8000:8000&quot;]
+    depends_on: [redis]
+
+  worker:
+    build: { context: ., dockerfile: Dockerfile.worker }
+    command: celery -A tasks worker --concurrency=8 --loglevel=info
+    env_file: .env.local
+    depends_on: [redis]
+
+  redis:
+    image: redis:7-alpine
+    ports: [&quot;6379:6379&quot;]</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="docker" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>Two Dockerfiles means two build contexts to maintain. Payoff: API image starts 40% faster (no ML stack import time), workers can use GPU-optimised base images without bloating the API container, and each can be updated independently without a joint deploy.</p> </div> </div> </div> </div><div class="pcs-comp-item" id="comp-cicd" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('cicd')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>07</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#B87A28" data-astro-cid-smlytbp2></span> CI/CD Pipeline <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— GitHub Actions + AWS ECS</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>RAGAS eval gate · blue-green deploy · prompt versioning</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'cicd','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'cicd','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'cicd','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'cicd','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="cicd" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>The pipeline enforces one rule: no code or prompt change reaches production without RAGAS eval sign-off. The eval suite runs first — before unit tests, before Docker build. A failing eval blocks the entire pipeline. Prompts are versioned in LangSmith Hub and pinned by tag in production config. ECS blue-green keeps the old version fully alive until the new one passes health checks.</p> <a href="/ai-engineering/mlops-llmops" class="pcs-learn-link" data-astro-cid-smlytbp2> MLOps &amp; CI/CD for LLMs <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="cicd" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>Blue-green over rolling: with 40K active students, a broken rolling deploy where 50% of requests fail for 3 minutes is a serious incident — especially during exam season. Blue-green means zero downtime and instant rollback. The RAGAS gate runs first because a green test suite is meaningless if answer quality dropped. The 4-minute eval overhead is the correct trade-off for a system students depend on for exam preparation.</p> </div> <div class="pcs-det-pane" data-comp="cicd" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>YAML — GitHub Actions: RAGAS gate → tests → Docker → ECR → ECS blue-green</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2># .github/workflows/deploy.yml
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run RAGAS eval suite  # blocks deploy on threshold failure
+        run: |
+          python evals/run_ragas.py
+            --dataset evals/golden_set.json
+            --thresholds &#39;{&quot;faithfulness&quot;:0.90,&quot;answer_relevancy&quot;:0.88,&quot;accuracy&quot;:0.93}&#39;
+
+  test:
+    needs: evaluate
+    steps:
+      - run: pytest tests/ -v --cov=app --cov-fail-under=80
+
+  build-push:
+    needs: test
+    steps:
+      - name: Build and push API + worker images to ECR
+        run: |
+          docker build -f Dockerfile.api    -t $ECR_REGISTRY/upsc-api:$GITHUB_SHA .
+          docker build -f Dockerfile.worker -t $ECR_REGISTRY/upsc-worker:$GITHUB_SHA .
+          docker push $ECR_REGISTRY/upsc-api:$GITHUB_SHA
+          docker push $ECR_REGISTRY/upsc-worker:$GITHUB_SHA
+
+  deploy:
+    needs: build-push
+    steps:
+      - name: Blue-green ECS deploy (old version stays live until health checks pass)
+        run: |
+          aws ecs update-service
+            --cluster upsc-prod --service upsc-api
+            --task-definition upsc-api:$NEW_REVISION
+            --deployment-configuration minimumHealthyPercent=100,maximumPercent=200</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="cicd" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>RAGAS eval adds ~4 minutes to every deploy. That is the correct trade-off: a 4-minute delay to ensure answer quality never drops below threshold is a bargain for a 40K-user live exam-prep system.</p> </div> </div> </div> </div><div class="pcs-comp-item" id="comp-langsmith" data-astro-cid-smlytbp2> <button class="pcs-comp-row" onclick="pcsToggle('langsmith')" aria-expanded="false" data-astro-cid-smlytbp2> <div class="pcs-comp-num" data-astro-cid-smlytbp2>08</div> <div class="pcs-comp-meta" data-astro-cid-smlytbp2> <div class="pcs-comp-name" data-astro-cid-smlytbp2> <span class="pcs-comp-accent" style="background:#4A6B50" data-astro-cid-smlytbp2></span> LangSmith <span style="font-weight:400;color:var(--muted2)" data-astro-cid-smlytbp2>— Observability Layer</span> </div> <div class="pcs-comp-tagline" data-astro-cid-smlytbp2>Full pipeline traces · token attribution · user feedback loop</div> </div> <div class="pcs-comp-chevron" data-astro-cid-smlytbp2> <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" data-astro-cid-smlytbp2> <polyline points="2,5 7,10 12,5" data-astro-cid-smlytbp2></polyline> </svg> </div> </button> <div class="pcs-comp-det" data-astro-cid-smlytbp2> <div class="pcs-det-tabs" data-astro-cid-smlytbp2> <button class="pcs-det-tab active" onclick="pcsDetTab(this,'langsmith','overview')" data-astro-cid-smlytbp2>Overview</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'langsmith','why')" data-astro-cid-smlytbp2>Why This Approach</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'langsmith','code')" data-astro-cid-smlytbp2>Implementation</button> <button class="pcs-det-tab" onclick="pcsDetTab(this,'langsmith','tradeoff')" data-astro-cid-smlytbp2>Trade-off</button> </div> <div class="pcs-det-pane active" data-comp="langsmith" data-pane="overview" data-astro-cid-smlytbp2> <p class="pcs-det-overview" data-astro-cid-smlytbp2>LangSmith makes the invisible visible. Every LangGraph node is traced with individual latency, token counts (input + output), retrieved chunk content with similarity scores, and the exact GPT-4 prompt for every production request. User feedback (thumbs up/down) feeds prompt refinement cycles. Custom CloudWatch dashboards track the four operational KPIs: queue depth, cache hit rate, per-specialist error rate, and P95 latency.</p> <a href="/ai-engineering/system-design-for-ai" class="pcs-learn-link" data-astro-cid-smlytbp2> LLM system design &amp; evaluation <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> <div class="pcs-det-pane" data-comp="langsmith" data-pane="why" data-astro-cid-smlytbp2> <p class="pcs-det-why" data-astro-cid-smlytbp2>Three production fixes came directly from LangSmith data: (1) 12% Supervisor misclassification rate discovered via intent trace analysis — fixed with 6 few-shot examples, dropped to under 2%; (2) Polity namespace latency anomaly found via per-node latency traces — namespace index size imbalance, resolved by splitting; (3) Token cost opportunity from token count traces — reducing chunks 8→5 cut cost 22%, validated zero accuracy loss via RAGAS. Operating without trace visibility is flying blind.</p> </div> <div class="pcs-det-pane" data-comp="langsmith" data-pane="code" data-astro-cid-smlytbp2> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — LangSmith: prompt pinning · node tracing · cost attribution · feedback</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>from langsmith import Client, traceable
+from langsmith.run_helpers import get_current_run_tree
+
+ls = Client()
+
+# Pin prompt versions — never &quot;latest&quot; in production
+SUPERVISOR_PROMPT = ls.pull_prompt(&quot;upsc-supervisor:prod-v1.4&quot;)
+FACTUAL_PROMPT    = ls.pull_prompt(&quot;upsc-factual:prod-v2.1&quot;)
+
+@traceable(name=&quot;factual_agent&quot;, tags=[&quot;specialist&quot;, &quot;factual&quot;])
+def factual_agent(state: AgentState) -&gt; AgentState:
+    run = get_current_run_tree()
+
+    chunks = retrieve(state[&quot;query&quot;], namespace=&quot;factual&quot;)
+    response = openai.chat.completions.create(
+        model=&quot;gpt-4&quot;,
+        messages=build_messages(FACTUAL_PROMPT, chunks, state[&quot;history&quot;]),
+    )
+
+    # Token usage tracked per node for cost attribution
+    run.extra[&quot;token_usage&quot;] = response.usage.model_dump()
+    return {**state, &quot;answer&quot;: response.choices[0].message.content}
+
+# User feedback captured per run for prompt refinement
+def record_feedback(run_id: str, score: int, comment: str = &quot;&quot;):
+    ls.create_feedback(
+        run_id=run_id,
+        key=&quot;user_rating&quot;,
+        score=score,          # 1 = thumbs up, 0 = thumbs down
+        comment=comment,
+    )</code></pre> </div> </div> <div class="pcs-det-pane" data-comp="langsmith" data-pane="tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff" data-astro-cid-smlytbp2> <div class="pcs-tradeoff-lbl" data-astro-cid-smlytbp2>Trade-off</div> <p data-astro-cid-smlytbp2>LangSmith stores every production trace. At 40K queries/day, trace volume is significant. Sampling strategy: 100% of errors always traced, 10% of successes sampled. This preserves full visibility on failures while keeping storage costs manageable.</p> </div> </div> </div> </div> </div> </div> </div> <!-- ══ PANEL: DECISIONS ══════════════════════════════════ --> <div id="panel-decisions" class="pcs-panel" role="tabpanel" data-astro-cid-smlytbp2> <div class="pcs-section" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>Design Decisions</div> <h2 style="margin-bottom:8px;font-size:clamp(1.6rem,3vw,2.2rem)" data-astro-cid-smlytbp2>Eight decisions that shaped the system</h2> <p style="font-size:0.9rem;color:var(--muted);line-height:1.75;margin-bottom:36px;max-width:680px" data-astro-cid-smlytbp2>Every architectural decision made, the alternative considered, and the reasoning. This is the section that matters most in a system design interview.</p> <div class="tbl-wrap" data-astro-cid-smlytbp2> <table data-astro-cid-smlytbp2> <thead data-astro-cid-smlytbp2> <tr data-astro-cid-smlytbp2> <th data-astro-cid-smlytbp2>Decision</th> <th data-astro-cid-smlytbp2>Chosen Approach</th> <th data-astro-cid-smlytbp2>Alternative</th> <th data-astro-cid-smlytbp2>Impact</th> <th data-astro-cid-smlytbp2>Reasoning</th> </tr> </thead> <tbody data-astro-cid-smlytbp2> <tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Agent pattern</td> <td class="hi" data-astro-cid-smlytbp2>Supervisor + 4 specialists</td> <td data-astro-cid-smlytbp2>Single monolithic agent</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--high" data-astro-cid-smlytbp2>High</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>Isolated prompts, namespaces, traces per domain. A regression in one specialist does not contaminate others. Debugging stays tractable.</td> </tr><tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Inference execution</td> <td class="hi" data-astro-cid-smlytbp2>Celery async workers</td> <td data-astro-cid-smlytbp2>Sync FastAPI endpoint</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--critical" data-astro-cid-smlytbp2>Critical</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>Prevents FastAPI thread exhaustion at 40K concurrent users. Workers scale horizontally independent of the API layer.</td> </tr><tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Semantic cache store</td> <td class="hi" data-astro-cid-smlytbp2>Pinecone cache namespace</td> <td data-astro-cid-smlytbp2>Redis + FAISS in-memory</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--medium" data-astro-cid-smlytbp2>Medium</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>Pinecone already running. Cache is a namespace, not a second service. Eliminates a second vector store to maintain.</td> </tr><tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Chunking strategy</td> <td class="hi" data-astro-cid-smlytbp2>Hierarchical parent-child</td> <td data-astro-cid-smlytbp2>Fixed 512-token chunks</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--high" data-astro-cid-smlytbp2>High</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>Child chunks give retrieval precision. Parent chunks give generation context. Reduces truncated-answer hallucinations.</td> </tr><tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Retrieved chunks</td> <td class="hi" data-astro-cid-smlytbp2>5 per query</td> <td data-astro-cid-smlytbp2>8–10 chunks</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--high" data-astro-cid-smlytbp2>High</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>LangSmith traces showed no accuracy gain above 5 (RAGAS validated). Reducing cut latency 300ms and GPT-4 cost 22%.</td> </tr><tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Deployment strategy</td> <td class="hi" data-astro-cid-smlytbp2>ECS blue-green</td> <td data-astro-cid-smlytbp2>Rolling update</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--critical" data-astro-cid-smlytbp2>Critical</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>40K active users. A broken rolling deploy affects live traffic immediately. Blue-green keeps old version alive until health checks pass.</td> </tr><tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Prompt versioning</td> <td class="hi" data-astro-cid-smlytbp2>LangSmith Hub (pinned tags)</td> <td data-astro-cid-smlytbp2>Git text files</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--high" data-astro-cid-smlytbp2>High</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>LangSmith ties prompt versions to trace data. Every production request permanently linked to the exact prompt that generated it.</td> </tr><tr data-astro-cid-smlytbp2> <td data-astro-cid-smlytbp2>Cache threshold</td> <td class="hi" data-astro-cid-smlytbp2>0.92 similarity</td> <td data-astro-cid-smlytbp2>0.88 (initial)</td> <td data-astro-cid-smlytbp2> <span class="pcs-impact pcs-impact--high" data-astro-cid-smlytbp2>High</span> </td> <td style="font-size:0.79rem;color:var(--muted)" data-astro-cid-smlytbp2>At 0.88, false cache hits were 6%. At 0.92, under 1%. Only a 4% hit rate reduction — correct trade-off for exam content.</td> </tr> </tbody> </table> </div> <div class="pcs-lessons" data-astro-cid-smlytbp2> <h3 style="margin-bottom:4px" data-astro-cid-smlytbp2>Production Lessons</h3> <div class="pcs-lesson amber" data-astro-cid-smlytbp2> <div class="pcs-lesson-lbl" data-astro-cid-smlytbp2>Lesson 1</div> <h4 data-astro-cid-smlytbp2>The Ingestion Pipeline Is Half the System</h4> <p data-astro-cid-smlytbp2>Most teams spend 90% of effort on the query path and 10% on ingestion. The quality of what is in Pinecone determines 80% of answer quality. UPSC content changes annually. Without a robust, versioned ingestion pipeline, accuracy silently degrades after every content update. This is the piece that keeps a 95% benchmark honest over time.</p> </div><div class="pcs-lesson sage" data-astro-cid-smlytbp2> <div class="pcs-lesson-lbl" data-astro-cid-smlytbp2>Lesson 2</div> <h4 data-astro-cid-smlytbp2>LangSmith Pays for Itself in Week One</h4> <p data-astro-cid-smlytbp2>The first week of production tracing revealed three prompt logic bugs that would have taken days to reproduce from application logs. The Supervisor misclassification, the Polity namespace latency, and the token count opportunity — all found through traces, not logs. Operating an LLM pipeline in production without full trace visibility is flying blind.</p> </div><div class="pcs-lesson " data-astro-cid-smlytbp2> <div class="pcs-lesson-lbl" data-astro-cid-smlytbp2>Lesson 3</div> <h4 data-astro-cid-smlytbp2>Cache Hit Rate Is Your Best Cost KPI</h4> <p data-astro-cid-smlytbp2>Tracking and optimising semantic cache hit rate is the highest-leverage cost intervention at 40K users. Tuning the similarity threshold from 0.88 to 0.92 reduced false cache hits from 6% to under 1% — the difference between occasionally serving wrong answers (unacceptable in an exam context) and reliably serving correct ones.</p> </div> </div> </div> </div> <!-- ══ PANEL: ENHANCEMENTS ═══════════════════════════════ --> <div id="panel-enhancements" class="pcs-panel" role="tabpanel" data-astro-cid-smlytbp2> <div class="pcs-section" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>Production Hardening</div> <h2 style="margin-bottom:8px;font-size:clamp(1.6rem,3vw,2.2rem)" data-astro-cid-smlytbp2>Four additions that complete the system</h2> <p style="font-size:0.9rem;color:var(--muted);line-height:1.75;margin-bottom:36px;max-width:680px" data-astro-cid-smlytbp2>What separates a production system from a prototype is how it handles edge cases, failures, and operational realities. These four additions are the gap between 90% complete and production-ready.</p> <div class="pcs-enh-grid" data-astro-cid-smlytbp2> <div class="pcs-enh-card" id="enh-reranker" data-astro-cid-smlytbp2> <div class="pcs-enh-head" data-astro-cid-smlytbp2> <div class="pcs-enh-num-title" data-astro-cid-smlytbp2> <span class="pcs-enh-num" data-astro-cid-smlytbp2>01</span> <span class="pcs-enh-title" data-astro-cid-smlytbp2>Cross-Encoder Reranker</span> </div> <span class="pcs-solved-badge" data-astro-cid-smlytbp2>Hardened</span> </div> <div class="pcs-enh-body" data-astro-cid-smlytbp2> <p class="pcs-enh-problem" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Problem:</strong> Pinecone returns top-K chunks by embedding similarity — cosine distance in embedding space does not always correlate with contextual relevance for GPT-4. Long-tail UPSC queries (specific Article numbers, Act citations, historical dates) suffered most because surface similarity diverged from semantic fit.</p> <p class="pcs-enh-solution" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Solution:</strong> Cohere Rerank cross-encoder between Pinecone retrieval and GPT-4 generation. Cross-encoders score query-chunk pairs jointly — not independently — producing significantly more accurate relevance rankings than bi-encoder similarity alone.</p> <div class="pcs-enh-impact" data-astro-cid-smlytbp2> <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" data-astro-cid-smlytbp2><circle cx="6" cy="6" r="5" data-astro-cid-smlytbp2></circle></svg> Estimated +3–5% accuracy on factual domain queries. +150ms latency, well within the 2s budget. </div> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — Cohere Rerank: broad retrieval → cross-encoder reranking → top-5</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>import cohere
+
+co = cohere.Client(api_key=COHERE_API_KEY)
+
+def retrieve_and_rerank(
+    query: str, namespace: str, top_k: int = 5
+) -&gt; list[str]:
+    # Step 1: broad candidate pool from Pinecone (20, not 5)
+    raw_chunks = retrieve(query, namespace=namespace, top_k=20)
+
+    # Step 2: cross-encoder reranking — scores all 20 jointly
+    results = co.rerank(
+        query=query,
+        documents=raw_chunks,
+        top_n=top_k,
+        model=&quot;rerank-english-v3.0&quot;,
+        return_documents=True,
+    )
+    return [r.document.text for r in results.results]
+
+# Replace in each specialist agent:
+# Before: chunks = retrieve(state[&quot;query&quot;], namespace=&quot;factual&quot;, top_k=5)
+# After:  chunks = retrieve_and_rerank(state[&quot;query&quot;], &quot;factual&quot;, top_k=5)</code></pre> </div> <a href="/interview/llm-rag-interviews" class="pcs-learn-link" data-astro-cid-smlytbp2> Advanced RAG patterns <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> </div><div class="pcs-enh-card" id="enh-fallback" data-astro-cid-smlytbp2> <div class="pcs-enh-head" data-astro-cid-smlytbp2> <div class="pcs-enh-num-title" data-astro-cid-smlytbp2> <span class="pcs-enh-num" data-astro-cid-smlytbp2>02</span> <span class="pcs-enh-title" data-astro-cid-smlytbp2>GPT-4 Fallback Chain</span> </div> <span class="pcs-solved-badge" data-astro-cid-smlytbp2>Hardened</span> </div> <div class="pcs-enh-body" data-astro-cid-smlytbp2> <p class="pcs-enh-problem" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Problem:</strong> OpenAI API outages during peak exam windows (Prelims in June, Mains in September) surface as 500 errors for 40K students with zero mitigation. No fallback tier existed — a single provider failure meant complete service outage at the most critical usage time.</p> <p class="pcs-enh-solution" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Solution:</strong> A LangGraph conditional node implementing three fallback tiers: GPT-4 → GPT-3.5-turbo → semantic cache (relaxed threshold 0.85). Each tier has a timeout. The response includes a model quality signal so the client can surface a subtle &quot;reduced quality&quot; indicator when serving a degraded-tier answer.</p> <div class="pcs-enh-impact" data-astro-cid-smlytbp2> <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" data-astro-cid-smlytbp2><circle cx="6" cy="6" r="5" data-astro-cid-smlytbp2></circle></svg> Eliminates complete outages during OpenAI incidents. GPT-3.5 handles ~80% of factual queries adequately. Cache fallback covers an additional ~40% of degraded-mode requests. </div> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — LangGraph fallback: GPT-4 → GPT-3.5 → cache → graceful error</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>def generation_with_fallback(state: AgentState) -&gt; AgentState:
+    &quot;&quot;&quot;Three-tier fallback. Each tier has independent timeout.&quot;&quot;&quot;
+
+    for model, timeout in [(&quot;gpt-4&quot;, 10), (&quot;gpt-3.5-turbo&quot;, 8)]:
+        try:
+            response = openai.chat.completions.create(
+                model=model,
+                messages=build_messages(state),
+                timeout=timeout,
+            )
+            return {
+                **state,
+                &quot;answer&quot;:      response.choices[0].message.content,
+                &quot;model_used&quot;:  model,
+                &quot;is_fallback&quot;: model != &quot;gpt-4&quot;,
+            }
+        except (openai.APIError, openai.Timeout, openai.APIConnectionError):
+            continue
+
+    # Tier 3: semantic cache with relaxed threshold (0.85 vs 0.92)
+    cached = semantic_cache.lookup(state[&quot;query&quot;], threshold=0.85)
+    if cached:
+        return {**state, &quot;answer&quot;: cached, &quot;model_used&quot;: &quot;cache&quot;, &quot;is_fallback&quot;: True}
+
+    return {**state, &quot;answer&quot;: SERVICE_DEGRADED_MSG, &quot;model_used&quot;: &quot;none&quot;}</code></pre> </div> <a href="/ai-engineering/system-design-for-ai" class="pcs-learn-link" data-astro-cid-smlytbp2> LLM system reliability <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> </div><div class="pcs-enh-card" id="enh-migration" data-astro-cid-smlytbp2> <div class="pcs-enh-head" data-astro-cid-smlytbp2> <div class="pcs-enh-num-title" data-astro-cid-smlytbp2> <span class="pcs-enh-num" data-astro-cid-smlytbp2>03</span> <span class="pcs-enh-title" data-astro-cid-smlytbp2>Embedding Model Migration Pipeline</span> </div> <span class="pcs-solved-badge" data-astro-cid-smlytbp2>Hardened</span> </div> <div class="pcs-enh-body" data-astro-cid-smlytbp2> <p class="pcs-enh-problem" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Problem:</strong> Updating the embedding model (e.g., text-embedding-ada-002 → text-embedding-3-large) silently invalidates all existing Pinecone vectors. New query embeddings are incompatible with old stored vectors — cosine distance comparisons return noise, answer quality collapses, and no error fires. No migration pipeline existed.</p> <p class="pcs-enh-solution" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Solution:</strong> A Celery pipeline that creates a versioned namespace, re-embeds all documents with the new model, runs RAGAS eval against the new namespace, and performs an atomic config cutover only if the eval passes threshold. The old namespace is retained for a 7-day rollback window.</p> <div class="pcs-enh-impact" data-astro-cid-smlytbp2> <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" data-astro-cid-smlytbp2><circle cx="6" cy="6" r="5" data-astro-cid-smlytbp2></circle></svg> Enables safe embedding model upgrades with zero downtime. Dual-namespace atomic cutover means students never experience a degraded retrieval state during migration. </div> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — Celery migration: re-embed → RAGAS gate → atomic namespace cutover</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>@celery.task(bind=True)
+def migrate_embedding_model(self, domain: str, new_model: str):
+    old_ns  = get_active_namespace(domain)
+    new_ns  = f&quot;{domain}_{model_version(new_model)}&quot;
+
+    try:
+        # 1. Fetch all documents from old namespace
+        docs = [v.metadata[&quot;parent_text&quot;]
+                for v in fetch_all_vectors(namespace=old_ns)]
+
+        # 2. Re-embed with new model (batched)
+        new_vecs = embed_batch(docs, model=new_model, batch_size=100)
+
+        # 3. Upsert to new namespace
+        upsert_namespace(new_vecs, namespace=new_ns)
+
+        # 4. RAGAS eval gate — must pass before cutover
+        score = run_ragas_eval(namespace=new_ns,
+                               dataset=&quot;evals/golden_set.json&quot;)
+
+        if score[&quot;accuracy&quot;] &lt; 0.93:
+            raise ValueError(
+                f&quot;Migration failed RAGAS gate: {score[&#39;accuracy&#39;]:.2%}. &quot;
+                f&quot;Old namespace {old_ns} unchanged.&quot;
+            )
+
+        # 5. Atomic cutover — old namespace retained for rollback
+        set_active_namespace(domain, new_ns)
+        schedule_cleanup(old_ns, delay_days=7)
+
+    except Exception as e:
+        notify_team(f&quot;Migration FAILED for {domain}: {e}&quot;)
+        raise</code></pre> </div> <a href="/ai-engineering/mlops-llmops" class="pcs-learn-link" data-astro-cid-smlytbp2> MLOps &amp; model lifecycle <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> </div><div class="pcs-enh-card" id="enh-loadtest" data-astro-cid-smlytbp2> <div class="pcs-enh-head" data-astro-cid-smlytbp2> <div class="pcs-enh-num-title" data-astro-cid-smlytbp2> <span class="pcs-enh-num" data-astro-cid-smlytbp2>04</span> <span class="pcs-enh-title" data-astro-cid-smlytbp2>Pre-Season Load Testing</span> </div> <span class="pcs-solved-badge" data-astro-cid-smlytbp2>Hardened</span> </div> <div class="pcs-enh-body" data-astro-cid-smlytbp2> <p class="pcs-enh-problem" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Problem:</strong> The 1–2s latency claim was observed organically in production — never validated upfront under simulated peak concurrent load. Before each major UPSC exam window (Prelims June, Mains September), the system ran untested at peak concurrency. Auto-scaling configuration was never stress-verified.</p> <p class="pcs-enh-solution" data-astro-cid-smlytbp2><strong data-astro-cid-smlytbp2>Solution:</strong> Locust load tests with realistic student behaviour profiles (weighted mix of factual, PYQ, and essay queries with think time). Run against staging with production-equivalent ECS task counts. Target: P95 latency ≤ 2.5s at 500 concurrent users. Scheduled to run 7 days before each exam cutoff date.</p> <div class="pcs-enh-impact" data-astro-cid-smlytbp2> <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" data-astro-cid-smlytbp2><circle cx="6" cy="6" r="5" data-astro-cid-smlytbp2></circle></svg> Finds breaking points before students do. Validates auto-scaling triggers. Gives defensible confidence in latency SLAs for the highest-traffic windows of the year. </div> <div class="pcs-code" data-astro-cid-smlytbp2> <div class="pcs-code-bar" data-astro-cid-smlytbp2> <span class="pcs-code-lang" data-astro-cid-smlytbp2>Python — Locust: realistic UPSC student behaviour under sustained load</span> <div class="pcs-code-dots" data-astro-cid-smlytbp2><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span><span data-astro-cid-smlytbp2></span></div> </div> <pre class="pcs-code-pre" data-astro-cid-smlytbp2><code data-astro-cid-smlytbp2>from locust import HttpUser, task, between
+import random, uuid
+
+FACTUAL = [&quot;What is the 73rd Constitutional Amendment?&quot;,
+           &quot;Explain the doctrine of basic structure.&quot;]
+ESSAY   = [&quot;Essay structure: climate diplomacy 250 words&quot;,
+           &quot;UPSC essay: federal governance challenges&quot;]
+PYQ     = [&quot;Previous year questions on monetary policy 2023&quot;,
+           &quot;UPSC 2022 GS2 questions on judiciary&quot;]
+
+class UPSCStudent(HttpUser):
+    wait_time = between(2, 8)    # realistic reading + thinking time
+
+    def on_start(self):
+        self.session_id = str(uuid.uuid4())
+        self.headers = {&quot;Authorization&quot;: f&quot;Bearer {get_test_token()}&quot;}
+
+    @task(4)  # 4x weight — factual is most common query type
+    def ask_factual(self):
+        r = self.client.post(&quot;/chat&quot;,
+            json={&quot;query&quot;: random.choice(FACTUAL),
+                  &quot;session_id&quot;: self.session_id},
+            headers=self.headers)
+        if r.status_code == 200:
+            self.client.get(f&quot;/stream/{r.json()[&#39;task_id&#39;]}&quot;,
+                           headers=self.headers)
+
+    @task(2)
+    def ask_pyq(self):
+        self.client.post(&quot;/chat&quot;,
+            json={&quot;query&quot;: random.choice(PYQ), &quot;session_id&quot;: self.session_id},
+            headers=self.headers)
+
+    @task(1)
+    def ask_essay(self):
+        self.client.post(&quot;/chat&quot;,
+            json={&quot;query&quot;: random.choice(ESSAY), &quot;session_id&quot;: self.session_id},
+            headers=self.headers)
+
+# Run: locust -f locustfile.py --headless -u 500 -r 50 --run-time 600s</code></pre> </div> <a href="/ai-engineering/system-design-for-ai" class="pcs-learn-link" data-astro-cid-smlytbp2> System design &amp; reliability <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" data-astro-cid-smlytbp2><path d="M2.5 6h7M6.5 3l3 3-3 3" data-astro-cid-smlytbp2></path></svg> </a> </div> </div> </div> </div> </div> </div><!-- /pcs-knowledge-view --> <!-- ══ RELATED TOPICS — always visible ═══════════════════ --> <section class="pcs-related-section" data-astro-cid-smlytbp2> <div class="pcs-related-inner" data-astro-cid-smlytbp2> <div class="eyebrow" data-astro-cid-smlytbp2>Knowledge Map</div> <h2 style="margin-bottom:8px;font-size:clamp(1.6rem,3vw,2.2rem)" data-astro-cid-smlytbp2>Everything this system touches</h2> <p style="font-size:0.9rem;color:var(--muted);line-height:1.75;max-width:640px" data-astro-cid-smlytbp2>Every component in this case study maps to a deeper topic in the knowledge base. Follow the threads that matter to you.</p> <div class="pcs-related-grid" data-astro-cid-smlytbp2> <a href="/interview/llm-rag-interviews" class="pcs-related-card" style="--card-accent:#C4614A" data-astro-cid-smlytbp2> <div class="pcs-related-tag" style="color:#C4614A" data-astro-cid-smlytbp2>Interview Prep</div> <div class="pcs-related-title" data-astro-cid-smlytbp2>Advanced RAG &amp; Retrieval</div> <p class="pcs-related-desc" data-astro-cid-smlytbp2>Hybrid search, reranking, hierarchical chunking, and retrieval failure modes — the full interview prep guide.</p> <span class="pcs-related-arrow" style="color:#C4614A" data-astro-cid-smlytbp2>→</span> </a><a href="/ai-engineering/ai-engineer-roadmap" class="pcs-related-card" style="--card-accent:#4A6B50" data-astro-cid-smlytbp2> <div class="pcs-related-tag" style="color:#4A6B50" data-astro-cid-smlytbp2>AI Engineering</div> <div class="pcs-related-title" data-astro-cid-smlytbp2>Agentic Workflows</div> <p class="pcs-related-desc" data-astro-cid-smlytbp2>LangGraph state machines, supervisor patterns, tool use, multi-agent collaboration, and human-in-the-loop design.</p> <span class="pcs-related-arrow" style="color:#4A6B50" data-astro-cid-smlytbp2>→</span> </a><a href="/ai-engineering/system-design-for-ai" class="pcs-related-card" style="--card-accent:#B87A28" data-astro-cid-smlytbp2> <div class="pcs-related-tag" style="color:#B87A28" data-astro-cid-smlytbp2>Architecture</div> <div class="pcs-related-title" data-astro-cid-smlytbp2>System Design for AI</div> <p class="pcs-related-desc" data-astro-cid-smlytbp2>Six-step framework: requirements, data flow, model strategy, serving, evaluation, and operations for AI systems.</p> <span class="pcs-related-arrow" style="color:#B87A28" data-astro-cid-smlytbp2>→</span> </a><a href="/ai-engineering/mlops-llmops" class="pcs-related-card" style="--card-accent:#C4614A" data-astro-cid-smlytbp2> <div class="pcs-related-tag" style="color:#C4614A" data-astro-cid-smlytbp2>Operations</div> <div class="pcs-related-title" data-astro-cid-smlytbp2>MLOps &amp; LLMOps</div> <p class="pcs-related-desc" data-astro-cid-smlytbp2>CI/CD for models, prompt versioning, evaluation gates, deployment strategies, and LLM observability in production.</p> <span class="pcs-related-arrow" style="color:#C4614A" data-astro-cid-smlytbp2>→</span> </a><a href="/interview/ml-system-design" class="pcs-related-card" style="--card-accent:#4A6B50" data-astro-cid-smlytbp2> <div class="pcs-related-tag" style="color:#4A6B50" data-astro-cid-smlytbp2>Interview Prep</div> <div class="pcs-related-title" data-astro-cid-smlytbp2>ML System Design Interview</div> <p class="pcs-related-desc" data-astro-cid-smlytbp2>How to structure and communicate system design answers for senior AI/ML engineering roles.</p> <span class="pcs-related-arrow" style="color:#4A6B50" data-astro-cid-smlytbp2>→</span> </a><a href="/ai-engineering/data-databases" class="pcs-related-card" style="--card-accent:#B87A28" data-astro-cid-smlytbp2> <div class="pcs-related-tag" style="color:#B87A28" data-astro-cid-smlytbp2>AI Engineering</div> <div class="pcs-related-title" data-astro-cid-smlytbp2>Data &amp; Vector Databases</div> <p class="pcs-related-desc" data-astro-cid-smlytbp2>Pinecone, pgvector, Weaviate — indexing strategies, embedding pipelines, and when to use which vector store.</p> <span class="pcs-related-arrow" style="color:#B87A28" data-astro-cid-smlytbp2>→</span> </a> </div> </div> </section> </main> <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script> <script>
+/* ── EmailJS config ────────────────────────────────────── */
+var PCS_EJS_SERVICE = 'service_0p6y8mo';
+var PCS_EJS_WELCOME = 'template_bwmwpcc';  // Welcome — recruiter confirmation
+var PCS_EJS_RESUME  = 'template_3e5vd9f';  // Contact US — resume request
+var PCS_OWNER       = 'sudheesh.ofc@gmail.com';
+var PCS_PUB_KEY     = 'm1uwf6GMZShIkVoxn';
+
+/* ── Gate + mode logic ─────────────────────────────────── */
+(function() {
+  if (window.emailjs) emailjs.init(PCS_PUB_KEY);
+
+  var gate       = document.getElementById('pcs-gate');
+  var modeBar    = document.getElementById('pcs-mode-bar');
+  var modeInd    = document.getElementById('pcs-mode-indicator');
+  var modeSwitch = document.getElementById('pcs-mode-switch');
+  var recView    = document.getElementById('pcs-recruiter-view');
+  var knowView   = document.getElementById('pcs-knowledge-view');
+  var gateForm   = document.getElementById('pcs-gate-form');
+  var btnRec     = document.getElementById('pcs-gate-btn-recruiter');
+  var btnKnow    = document.getElementById('pcs-gate-btn-knowledge');
+  var btnSubmit  = document.getElementById('pcs-gate-submit');
+  var sendStatus = document.getElementById('pcs-gate-send-status');
+  var ctaSwitch  = document.getElementById('pcs-cta-switch-knowledge');
+
+  /* ── Validation ──────────────────────────────────────── */
+  var BLOCKED = ['test.com','example.com','fake.com','mailinator.com',
+    'guerrillamail.com','throwaway.email','temp-mail.org','yopmail.com',
+    'sharklasers.com','spam4.me','noemail.com','nomail.com'];
+
+  function isValidEmail(e) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) return false;
+    return !BLOCKED.includes(e.split('@')[1].toLowerCase());
+  }
+
+  function setErr(inputId, errId, msg) {
+    var err = document.getElementById(errId);
+    var inp = document.getElementById(inputId);
+    if (err) err.textContent = msg;
+    if (inp) msg ? inp.classList.add('error') : inp.classList.remove('error');
+  }
+
+  function clearErrors() {
+    setErr('pcs-form-name',    'pcs-err-name',    '');
+    setErr('pcs-form-company', 'pcs-err-company', '');
+    setErr('pcs-form-email',   'pcs-err-email',   '');
+  }
+
+  function validateForm() {
+    var name    = document.getElementById('pcs-form-name').value.trim();
+    var company = document.getElementById('pcs-form-company').value.trim();
+    var email   = document.getElementById('pcs-form-email').value.trim();
+    clearErrors();
+    var ok = true;
+    if (!name)              { setErr('pcs-form-name',    'pcs-err-name',    'Full name is required');              ok = false; }
+    if (!company)           { setErr('pcs-form-company', 'pcs-err-company', 'Company / organisation is required'); ok = false; }
+    if (!email)             { setErr('pcs-form-email',   'pcs-err-email',   'Work email is required');             ok = false; }
+    else if (!isValidEmail(email)) { setErr('pcs-form-email', 'pcs-err-email', 'Please enter a valid work email'); ok = false; }
+    return ok;
+  }
+
+  function getFormData() {
+    return {
+      name:     document.getElementById('pcs-form-name').value.trim(),
+      company:  document.getElementById('pcs-form-company').value.trim(),
+      email:    document.getElementById('pcs-form-email').value.trim(),
+      linkedin: (document.getElementById('pcs-form-linkedin').value || '').trim() || 'Not provided',
+    };
+  }
+
+  /* ── EmailJS ─────────────────────────────────────────── */
+  function ejsParams(data, recipientEmail) {
+    return {
+      recruiter_name:     data.name,
+      recruiter_company:  data.company,
+      recruiter_linkedin: data.linkedin,
+      recruiter_email:    recipientEmail,
+      timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+    };
+  }
+
+  // On gate unlock: Welcome → recruiter, Contact-US → owner as notification
+  function sendAccessEmails(data, done) {
+    if (!window.emailjs) { done(null); return; }
+    Promise.all([
+      emailjs.send(PCS_EJS_SERVICE, PCS_EJS_WELCOME, ejsParams(data, data.email)),
+      emailjs.send(PCS_EJS_SERVICE, PCS_EJS_RESUME,  ejsParams(data, PCS_OWNER)),
+    ]).then(function() { done(null); }).catch(function(e) { done(e); });
+  }
+
+  // On resume request: Contact-US → recruiter, Welcome → owner as notification
+  function sendResumeEmails(data, done) {
+    if (!window.emailjs) { done(null); return; }
+    Promise.all([
+      emailjs.send(PCS_EJS_SERVICE, PCS_EJS_RESUME,  ejsParams(data, data.email)),
+      emailjs.send(PCS_EJS_SERVICE, PCS_EJS_WELCOME, ejsParams(data, PCS_OWNER)),
+    ]).then(function() { done(null); }).catch(function(e) { done(e); });
+  }
+
+  /* ── Mode switch ─────────────────────────────────────── */
+  function applyMode(mode, skipSave) {
+    if (!skipSave) { try { localStorage.setItem('pcs-visitor', mode); } catch(e) {} }
+    if (mode === 'recruiter') {
+      recView.style.display  = 'block';
+      knowView.style.display = 'none';
+      modeInd.textContent    = 'Recruiter view';
+      modeSwitch.textContent = 'Switch to technical view →';
+    } else {
+      recView.style.display  = 'none';
+      knowView.style.display = 'block';
+      modeInd.textContent    = 'Technical view';
+      modeSwitch.textContent = 'Switch to recruiter view →';
+    }
+    gate.style.display           = 'none';
+    modeBar.style.display        = 'block';
+    document.body.style.overflow = '';
+  }
+
+  /* ── Init ────────────────────────────────────────────── */
+  var stored = null;
+  try { stored = localStorage.getItem('pcs-visitor'); } catch(e) {}
+  if (stored === 'recruiter' || stored === 'knowledge') {
+    applyMode(stored, true);
+  } else {
+    gate.style.display           = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  /* ── Gate card handlers ──────────────────────────────── */
+  if (btnKnow) btnKnow.addEventListener('click', function() { applyMode('knowledge'); });
+
+  if (btnRec) {
+    btnRec.addEventListener('click', function() {
+      gateForm.classList.add('visible');
+      btnRec.style.borderColor = 'rgba(196,97,74,0.5)';
+      if (btnKnow) btnKnow.style.opacity = '0.4';
+    });
+  }
+
+  /* ── Form submit ─────────────────────────────────────── */
+  if (btnSubmit) {
+    btnSubmit.addEventListener('click', function() {
+      if (!validateForm()) return;
+      var data = getFormData();
+      try { localStorage.setItem('pcs-recruiter-data', JSON.stringify(data)); } catch(e) {}
+
+      btnSubmit.disabled    = true;
+      btnSubmit.textContent = 'Sending…';
+      if (sendStatus) { sendStatus.textContent = 'Verifying details…'; sendStatus.className = 'pcs-gate-send-status sending'; }
+
+      sendAccessEmails(data, function(err) {
+        if (err) console.warn('EmailJS access error:', err);
+        applyMode('recruiter');
+      });
+    });
+  }
+
+  /* ── Mode bar + CTA switch ───────────────────────────── */
+  if (modeSwitch) {
+    modeSwitch.addEventListener('click', function() {
+      var cur = null; try { cur = localStorage.getItem('pcs-visitor'); } catch(e) {}
+      applyMode(cur === 'recruiter' ? 'knowledge' : 'recruiter');
+    });
+  }
+  if (ctaSwitch) ctaSwitch.addEventListener('click', function() { applyMode('knowledge'); });
+
+  /* ── Resume request ──────────────────────────────────── */
+  var resumeBtn    = document.getElementById('pcs-resume-btn');
+  var resumeStatus = document.getElementById('pcs-resume-status');
+
+  if (resumeBtn) {
+    resumeBtn.addEventListener('click', function() {
+      var data = null;
+      try { data = JSON.parse(localStorage.getItem('pcs-recruiter-data')); } catch(e) {}
+      if (!data) return;
+
+      resumeBtn.disabled    = true;
+      resumeBtn.textContent = 'Sending request…';
+
+      sendResumeEmails(data, function(err) {
+        if (err) console.warn('EmailJS resume error:', err);
+        resumeBtn.textContent = 'Requested ✓';
+        if (resumeStatus) {
+          resumeStatus.textContent =
+            'Hi ' + data.name + ', your request has been received. ' +
+            'Sudheesh will send his resume to ' + data.email + ' within 24 hours.';
+          resumeStatus.style.display = 'block';
+        }
+      });
+    });
+  }
+})();
+
+/* ── Tab switching ─────────────────────────────────────── */
+document.querySelectorAll('.pcs-tab').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var tab = btn.dataset.tab;
+    document.querySelectorAll('.pcs-tab').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.pcs-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    var panel = document.getElementById('panel-' + tab);
+    if (panel) panel.classList.add('active');
+    if (window.innerWidth < 860) window.scrollTo({ top: document.querySelector('.pcs-tab-nav').offsetTop, behavior: 'smooth' });
+  });
+});
+
+/* ── Component accordion ───────────────────────────────── */
+function pcsToggle(id) {
+  var item = document.getElementById('comp-' + id);
+  if (!item) return;
+  var isOpen = item.classList.contains('pcs-comp-item--open');
+  document.querySelectorAll('.pcs-comp-item--open').forEach(function(el) {
+    el.classList.remove('pcs-comp-item--open');
+    var btn = el.querySelector('.pcs-comp-row');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+  if (!isOpen) {
+    item.classList.add('pcs-comp-item--open');
+    var btn = item.querySelector('.pcs-comp-row');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  }
+}
+
+/* ── Component detail tabs ─────────────────────────────── */
+function pcsDetTab(btn, compId, pane) {
+  var det = btn.closest('.pcs-comp-det');
+  if (!det) return;
+  det.querySelectorAll('.pcs-det-tab').forEach(function(t) { t.classList.remove('active'); });
+  det.querySelectorAll('.pcs-det-pane').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  var target = det.querySelector('[data-comp="' + compId + '"][data-pane="' + pane + '"]');
+  if (target) target.classList.add('active');
+}
+
+/* ── Intersection observer: fade-in ───────────────────── */
+(function() {
+  if (!window.IntersectionObserver) return;
+  var cards = document.querySelectorAll('.pcs-enh-card, .pcs-related-card, .pcs-rec-hl, .pcs-rec-bullet');
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.04 });
+  cards.forEach(function(el) {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(14px)';
+    el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    io.observe(el);
+  });
+})();
+</script>  <footer style="background:var(--ink);padding:48px clamp(20px,5vw,72px) 32px;"> <div style="max-width:1160px;margin:0 auto;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start;"> <div> <div style="font-family:var(--serif);font-size:1.35rem;color:var(--cream);margin-bottom:8px;">Sudheesh K. Reddy</div> <p style="font-size:0.82rem;color:rgba(232,220,204,0.55);max-width:360px;">AI engineering portfolio and open-source knowledge base for production-minded AI/ML engineers.</p> </div> <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end;"> <a href="/" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Home</a> <a href="/foundations" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Foundations</a> <a href="/ai-engineering" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">AI Engineering</a> <a href="/projects" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Projects</a> <a href="/experience" style="font-size:0.78rem;color:rgba(232,220,204,0.45);text-decoration:none;">Experience</a> <a href="/contact" style="font-size:0.78rem;color:var(--terra2);text-decoration:none;">Contact</a> </div> </div> </footer> <script src="/site.js?v=nav-mobile-20260517"></script> </body> </html>
