@@ -4,8 +4,9 @@ import ArticleLayout from '@/layouts/ArticleLayout.astro';
 
 export async function getStaticPaths() {
   const entries = await getCollection('experience');
+  const excluded = ['ai-engineer-production-systems', 'data-scientist-recommendation-nlp'];
   return entries
-    .filter((entry) => entry.slug !== 'ai-engineer-production-systems')
+    .filter((entry) => !excluded.includes(entry.slug))
     .map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
 }
 

@@ -4,7 +4,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 const heroStats = [
   { val: '4 yrs',  label: 'AI/ML in production' },
   { val: '40K+',   label: 'LLM agent users'      },
-  { val: '500K+',  label: 'RecSys users/day'     },
+  { val: '+34%',   label: 'RecSys CTR lift'       },
   { val: '2',      label: 'Production systems'   },
 ];
 
@@ -35,14 +35,14 @@ const entries = [
     period: '2022 – 2023',
     org: 'Product Platform',
     title: 'Recommendation & NLP Systems',
-    tagline: 'Collaborative filtering, content-based NLP models, and A/B experimentation pipelines serving 500K+ daily user events. The foundation beneath the AI engineering work.',
+    tagline: 'Hybrid recommendation system — ALS collaborative filtering, TF-IDF content-based NLP, and a LightGBM ranker — personalising the student homepage for 40,000+ UPSC aspirants. Five A/B experiments. +34% CTR lift. The production ML foundation built before the AI engineering work.',
     metrics: [
-      { val: '500K+', label: 'Daily rec events' },
-      { val: '3',     label: 'Models shipped'   },
+      { val: '500K+', label: 'Interaction events' },
+      { val: '+34%',  label: 'CTR improvement'  },
       { val: '5',     label: 'A/B experiments'  },
-      { val: '1 yr',  label: 'Domain tenure'    },
+      { val: '<8ms',  label: 'P95 serve latency'},
     ],
-    stack: ['PyTorch', 'scikit-learn', 'Pandas', 'SQL', 'Spark', 'MLflow', 'A/B Testing', 'FastAPI'],
+    stack: ['Pandas', 'implicit (ALS)', 'LightGBM', 'scikit-learn', 'PostgreSQL', 'MLflow', 'Celery', 'Redis', 'FastAPI'],
     href: '/experience/data-scientist-recommendation-nlp',
     cta: 'View case study',
     gated: false,
