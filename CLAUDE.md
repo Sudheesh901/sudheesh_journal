@@ -118,3 +118,99 @@ Tools shown as pills: scipy.stats · statsmodels · numpy · pandas · pingouin 
 3. Code tab: fully runnable scipy/statsmodels/numpy — no pseudocode
 4. In DS & AI tab: at least one named ML algorithm or workflow linked per spec item
 5. Interview Q&A: min 2 questions per spec item, one conceptual + one applied
+
+---
+
+# Deep Learning Systems Page
+
+## Route
+`/foundations/deep-learning-systems` → `src/pages/foundations/deep-learning-systems.astro`
+
+## Status: NOT STARTED — build in a fresh session
+
+## Pre-existing file
+`src/content/foundations/deep-learning-systems.mdx` — MDX stub currently served via `src/pages/foundations/[slug].astro`.
+The new `.astro` page takes over the same URL automatically (static page wins over dynamic `[slug]`).
+**Do NOT delete the MDX file** — it may be referenced elsewhere.
+
+## Architecture
+Same `rm-*` design system as Python / AI-ML / Statistics pages.
+Copy the scaffold (hero, tool pills, stage-index nav, layer headers, JS functions) from `src/pages/foundations/statistics.astro` and adapt.
+
+## Tab Labels
+| Tab | Purpose |
+|---|---|
+| **Overview** | Concept + math/notation + beginner-friendly intuition |
+| **Code** | PyTorch (primary) — fully runnable, no pseudocode |
+| **In Production** | Real engineering patterns: scaling, memory, deployment, debugging |
+| **Interview Q&A** | Min 2 questions per item — one conceptual + one applied |
+
+> "In Production" (same as AI-ML page) fits DL better than "In DS & AI" because
+> the content is engineering-heavy: GPU memory, mixed precision, model serving, quantization.
+
+## Tool Pills
+PyTorch · JAX · HuggingFace Transformers · PEFT · bitsandbytes · ONNX · TensorRT · WandB · torchvision
+
+## Layers & Stages (12 total)
+
+| Stage | Layer | ID | Core Topics | Production Angle |
+|---|---|---|---|---|
+| 01 | Neural Net Foundations | `foundations` | Perceptron → MLP, forward pass, activation fns (ReLU/GELU/sigmoid/tanh), universal approximation | Activation choice impact on training speed; dead ReLU problem |
+| 02 | Neural Net Foundations | `foundations` | Backprop, chain rule, computational graphs, autograd (torch.autograd) | Debugging gradient flow; `retain_graph`, `detach()` patterns |
+| 03 | Training Mechanics | `training` | Loss functions (MSE, cross-entropy, BCE, focal, contrastive/triplet), gradient flow, vanishing/exploding gradients | Loss selection per task; gradient clipping in practice |
+| 04 | Training Mechanics | `training` | Optimizers (SGD+momentum, Adam, AdamW, Lion), LR schedules (cosine, warmup, cyclic), weight decay | AdamW vs Adam for LLM fine-tuning; 1-cycle policy |
+| 05 | Regularization & Init | `regularization` | BatchNorm, LayerNorm, GroupNorm; dropout, weight decay; He/Xavier/orthogonal init | BN pitfalls with small batch; LN in Transformers; init impact on convergence |
+| 06 | Regularization & Init | `regularization` | Data augmentation (flip, crop, colour jitter), mixup, cutmix, label smoothing; early stopping, learning curves | Augmentation pipelines with `torchvision.transforms.v2`; WandB learning curves |
+| 07 | Architectures | `architectures` | CNNs: convolutions, pooling, receptive field, ResNet skip connections, EfficientNet scaling; transfer learning | Feature extraction vs full fine-tune; torchvision pretrained models |
+| 08 | Architectures | `architectures` | Transformers: scaled dot-product attention, multi-head attention, positional encoding, encoder/decoder; BERT vs GPT paradigm | Attention memory O(n²); Flash Attention motivation |
+| 09 | Training at Scale | `scale` | Mixed precision (FP16/BF16, `torch.autocast`), gradient accumulation, DDP vs FSDP; memory optimisation (activation checkpointing, `torch.compile`) | Multi-GPU setup with `torchrun`; memory profiling with `torch.cuda.memory_summary` |
+| 10 | Efficient Fine-tuning | `scale` | LoRA (low-rank decomposition), QLoRA (4-bit + LoRA), adapter layers, prefix tuning; PEFT library | When LoRA rank matters; merging adapters back; `bitsandbytes` quantization |
+| 11 | Model Compression | `deployment` | Quantization (INT8, INT4, GPTQ, AWQ), pruning (magnitude/structured), knowledge distillation; ONNX export, TorchScript | `torch.quantization` API; ONNX → TensorRT pipeline; latency benchmarking |
+| 12 | Training Stability & MLOps | `deployment` | Gradient debugging (grad norms, loss spikes, NaN detection), hyperparameter sweeps (WandB Sweeps), experiment tracking, reproducibility (seeds, determinism) | WandB integration; `torch.backends.cudnn.deterministic`; checkpoint strategy |
+
+## Diagrams to Include (ASCII in Overview panes)
+- Stage 01: MLP diagram — input → hidden layers → output with activation labels
+- Stage 02: Computational graph for `z = x·w + b`, `L = (z−y)²` with gradient arrows
+- Stage 03: Vanishing gradient illustration — gradient magnitude per layer (bar chart)
+- Stage 04: Loss curve comparison — SGD vs Adam vs AdamW on same task
+- Stage 05: BatchNorm vs LayerNorm normalisation axes (batch × features grid)
+- Stage 07: ResNet skip connection diagram — `F(x) + x`
+- Stage 08: Attention matrix heatmap (Q·Kᵀ/√d) + softmax → weighted V
+- Stage 09: GPU memory breakdown — parameters + gradients + activations + optimizer states
+- Stage 10: LoRA decomposition — W = W₀ + BA where rank(BA) ≪ rank(W₀)
+- Stage 11: Quantization: FP32 → INT8 bucket mapping with scale/zero-point
+
+## Critical Build Note — JS Template Literal Escape
+Python f-strings like `print(f"Loss = {loss:.4f}")` inside JS backtick template literals
+**must** be escaped: `\${loss:.4f}`. Failure to escape causes Astro build error:
+`Expected "}" but found ":"` at the f-string format spec colon.
+Apply this proactively to every Python code block that uses f-strings with format specs.
+
+## Build Sub-tasks (3 coding sessions)
+
+### Task A — Scaffold + Layers 1 & 2 (Stages 01–04)  [STATUS: not started]
+- Create `src/pages/foundations/deep-learning-systems.astro`
+- Full scaffold: hero, tool pills, stage index nav, BaseLayout, CSS layer colours, JS (rmToggle/rmTab/rmQA/scroll-reveal)
+- Layer 1 — Neural Net Foundations (stages 01–02)
+- Layer 2 — Training Mechanics (stages 03–04)
+
+### Task B — Layers 3 & 4 (Stages 05–08)  [STATUS: not started]
+- Layer 3 — Regularization & Init (stages 05–06)
+- Layer 4 — Architectures (stages 07–08)
+
+### Task C — Layers 5 & 6 + Nav (Stages 09–12)  [STATUS: not started]
+- Layer 5 — Training at Scale (stages 09–10)
+- Layer 6 — Model Compression & MLOps (stages 11–12)
+- Nav: verify `/foundations/deep-learning-systems` link in `src/components/Nav.astro`
+
+## Files
+- New:   `src/pages/foundations/deep-learning-systems.astro`
+- Keep:  `src/content/foundations/deep-learning-systems.mdx` (do not delete)
+- Nav:   `src/components/Nav.astro` — Foundations dropdown, Deep Learning link (likely already correct URL)
+
+## Content Rules
+1. Every stage opens with a concrete engineering scenario (e.g. "Your ResNet is converging slowly — here's why init matters")
+2. Math in Overview uses plain-text notation: ∂L/∂w = ∂L/∂ŷ · ∂ŷ/∂w, not just prose
+3. Code tab: PyTorch primary, fully runnable — define model/data inline, no `# ... rest of code`
+4. In Production: name real tools/flags (e.g. `torch.compile`, `FSDP`, `bitsandbytes`) with realistic code
+5. Interview Q&A: min 2 questions per spec item — one conceptual ("why does X happen?") + one applied ("how would you debug Y?")
