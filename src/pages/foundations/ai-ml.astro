@@ -1,0 +1,2695 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const layers = [
+  /* ═══════════════════════════════════════════════════════
+     LAYER 1 · Problem Framing & Data  —  Stages 01–02
+  ═══════════════════════════════════════════════════════ */
+  {
+    id: 'framing',
+    label: 'Problem Framing & Data',
+    range: '01–02',
+    stages: [
+      {
+        num: '01',
+        title: 'ML Problem Types & Task Formulation',
+        intro: 'The single most impactful decision in any ML project happens before you open a notebook: converting a vague business question into a precise learning problem. Most production failures trace back to this stage, not to model choice.',
+        insight: 'A better model rarely fixes a badly framed problem. Write the decision first, then the prediction, then choose the model family. Reversing that order causes expensive pivots months later.',
+        points: [
+          {
+            term: 'Supervised vs Unsupervised vs Self-Supervised vs RL',
+            desc: 'Choosing the learning paradigm based on label availability, reward structure, and data scale',
+            detail: {
+              overview: `Supervised learning requires labelled (X, y) pairs and optimises a mapping from inputs to targets. Unsupervised learning finds structure without labels — clustering, density estimation, dimensionality reduction. Self-supervised learning constructs labels from the data itself (next-token prediction, masked image modelling) enabling massive scale without manual annotation — this is how GPT and BERT are pre-trained. Reinforcement learning optimises a policy against a reward signal through environment interaction.\n\nThe paradigm choice is driven by what you have: if you have ground-truth labels at scale → supervised. If labels are expensive → self-supervised pre-training then fine-tune. If the world is the reward signal → RL. If you want to understand the data structure → unsupervised.`,
+              code: {
+                label: 'Python — paradigm selection decision tree and sklearn/PyTorch minimal examples',
+                lines: `import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+
+# ── Supervised: labelled (X, y) pairs ────────────────────
+X_train = np.random.randn(1000, 20)
+y_train = (X_train[:, 0] + X_train[:, 1] > 0).astype(int)   # binary label
+
+clf = LogisticRegression(max_iter=500)
+clf.fit(X_train, y_train)
+print(clf.score(X_train, y_train))   # accuracy ~0.85
+
+# ── Unsupervised: no labels, find structure ───────────────
+X_unlabelled = np.random.randn(500, 10)
+km = KMeans(n_clusters=4, random_state=42, n_init=10)
+km.fit(X_unlabelled)
+print(km.labels_[:10])   # cluster assignments
+
+# ── Self-supervised: construct labels from data itself ────
+# Minimal masked-token example (concept)
+text_tokens = [101, 2054, 2003, 103, 2023, 102]  # 103 = [MASK]
+# Model predicts the masked token — label comes from the data itself
+# Full implementation uses HuggingFace AutoModelForMaskedLM
+
+# ── RL: policy optimised against reward ──────────────────
+# Pseudocode: agent observes state, takes action, receives reward
+# import gymnasium as gym
+# env = gym.make("CartPole-v1")
+# state, _ = env.reset()
+# for _ in range(200):
+#     action = policy(state)       # ε-greedy or learned policy
+#     state, reward, done, _, _ = env.step(action)
+#     if done: break`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Framing a ranking problem as classification',
+                  context: 'Predicting a binary "will the user click?" label trains a click estimator, not a ranker. The model can achieve high AUC while degrading NDCG — clicks on position 1 and position 10 are not equivalent. The loss function does not care about rank order.',
+                  fix: 'Use a learning-to-rank objective (LambdaRank, ListNet, pairwise cross-entropy) when order matters. Feed the model position-aware features. Evaluate with NDCG@K or MRR, not AUC.',
+                },
+                {
+                  issue: 'Applying supervised learning when labels are proxies, not ground truth',
+                  context: '"User engagement" labels (clicks, watch-time) optimise for the proxy, not the underlying goal (satisfaction, retention). Models trained this way learn to maximise the metric, not the business outcome — leading to clickbait optimisation.',
+                  fix: 'Audit what the label actually measures. Add human-rated relevance labels for calibration. Use multi-objective losses that include long-term signals. Track business KPIs separately from training metrics.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How do you decide which ML paradigm to use for a new problem?',
+                  a: 'Start with the data and the decision. If you have labelled examples and a clear target → supervised. If labelling is expensive but raw data is abundant → self-supervised pre-training then fine-tune on a small labelled set. If the environment can simulate consequences of actions → RL. If you want to find structure or compress → unsupervised. In practice, most production systems combine paradigms: self-supervised for representation learning + supervised for the task head + unsupervised for anomaly detection in monitoring.',
+                },
+                {
+                  q: 'When should you NOT use machine learning?',
+                  a: 'When the problem can be solved with deterministic rules with no meaningful false-positive cost. When the data available is too small to generalise (< a few hundred examples for tabular, less for vision). When the cost of a mistake is catastrophic and the model cannot provide uncertainty estimates. When the system needs to be fully auditable under regulation and the model cannot explain its decisions. Start with a rule-based baseline — if it is good enough, ship it. ML adds complexity, latency, and maintenance cost.',
+                },
+                {
+                  q: 'What is the difference between self-supervised and semi-supervised learning?',
+                  a: 'Self-supervised learning generates pseudo-labels automatically from the input structure itself — next token, masked patch, contrastive pairs — with no human labels at all. Semi-supervised learning uses a small set of human labels alongside a large unlabelled set, typically to propagate labels via pseudo-labelling, consistency regularisation (FixMatch), or graph-based methods. BERT pre-training is self-supervised; then fine-tuning on 1% labelled data with the rest unlabelled is semi-supervised.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Task Types: Classification, Regression, Ranking, Generation',
+            desc: 'Mapping business problems to ML tasks, loss functions, and output representations',
+            detail: {
+              overview: `Classification predicts a discrete class label — binary (spam/not-spam), multiclass (10 digits), multilabel (multiple tags). Regression predicts a continuous value. Ranking orders items by relevance. Generation produces sequences, images, or structured output.\n\nThe task type determines the output layer, loss function, and evaluation metric. Getting the task type wrong is a frequent source of miscalibrated models: treating ordinal regression (star ratings 1–5) as 5-class classification discards the ordinal structure, causing the model to treat "1 star vs 5 stars" the same as "2 stars vs 3 stars."`,
+              code: {
+                label: 'Python — task types mapped to sklearn/PyTorch loss functions and output layers',
+                lines: `import torch
+import torch.nn as nn
+
+# ── Binary classification ─────────────────────────────────
+# Output: sigmoid → scalar in [0,1], loss: BCEWithLogitsLoss
+binary_head = nn.Linear(128, 1)
+loss_binary  = nn.BCEWithLogitsLoss()
+logits = binary_head(torch.randn(32, 128))    # (batch, 1)
+labels = torch.randint(0, 2, (32, 1)).float()
+loss   = loss_binary(logits, labels)
+
+# ── Multiclass classification ─────────────────────────────
+# Output: softmax over C classes, loss: CrossEntropyLoss
+mc_head   = nn.Linear(128, 10)               # 10 classes
+loss_mc   = nn.CrossEntropyLoss()
+logits_mc = mc_head(torch.randn(32, 128))    # (batch, 10)
+labels_mc = torch.randint(0, 10, (32,))      # (batch,) long
+loss_mc_v = loss_mc(logits_mc, labels_mc)
+
+# ── Regression ────────────────────────────────────────────
+# Output: linear → scalar, loss: MSELoss or HuberLoss
+reg_head  = nn.Linear(128, 1)
+loss_reg  = nn.HuberLoss(delta=1.0)          # robust to outliers
+preds     = reg_head(torch.randn(32, 128))
+targets   = torch.randn(32, 1)
+loss_r    = loss_reg(preds, targets)
+
+# ── Ordinal regression (star ratings 1–5) ─────────────────
+# Treat as 4 cumulative binary thresholds, not 5 classes
+# P(y >= k) for k in {2,3,4,5} via 4 sigmoid outputs
+ordinal_head = nn.Linear(128, 4)
+# label encoding: rating 3 → [1, 1, 0, 0] (passes thresholds 2, 3, not 4, 5)
+
+# ── Multilabel (tags: can have many) ─────────────────────
+# Output: sigmoid per class independently
+ml_head  = nn.Linear(128, 20)               # 20 possible tags
+loss_ml  = nn.BCEWithLogitsLoss()
+targets_ml = torch.randint(0, 2, (32, 20)).float()
+loss_ml_v  = loss_ml(ml_head(torch.randn(32, 128)), targets_ml)`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using CrossEntropyLoss for ordinal targets (star ratings)',
+                  context: 'Rating 1 and rating 5 are treated as equally different from rating 3 in cross-entropy. The model has no incentive to learn order. This causes poor calibration on boundary cases (1-2 star confusion, 4-5 star confusion) which are the most costly in production.',
+                  fix: 'Use ordinal regression (cumulative link models, CORN loss) or treat as regression with MSE/Huber when the ordinal gap is roughly uniform. Alternatively, use cross-entropy but add an adjacent-class soft label penalty.',
+                },
+                {
+                  issue: 'Sigmoid output for multiclass (instead of softmax)',
+                  context: 'Using sigmoid activations for mutually-exclusive classes allows all class probabilities to be high simultaneously. Softmax enforces they sum to 1. Probabilities from a sigmoid multiclass model are not comparable across classes.',
+                  fix: 'Use softmax (CrossEntropyLoss in PyTorch applies log-softmax + NLL internally) for mutually-exclusive classes. Use sigmoid (BCEWithLogitsLoss) only for multilabel tasks where multiple classes can co-occur.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How do you choose between regression and classification for a problem like customer churn?',
+                  a: 'Churn is naturally a binary classification problem (churned / not churned) if you have a clear event definition. However, if the business needs a probability score to decide intervention priority, calibrated probability from logistic regression or gradient boosting is more useful than a hard label. Consider regression when the target is a continuous time-to-event (days until churn) — this gives you more granularity for intervention scheduling. The business decision drives the formulation.',
+                },
+                {
+                  q: 'What is the difference between multilabel and multiclass classification?',
+                  a: 'Multiclass: each sample belongs to exactly one of K classes (mutually exclusive). Multilabel: each sample can belong to zero or more classes simultaneously (e.g., a document tagged with both "science" and "politics"). Multiclass uses softmax + cross-entropy. Multilabel uses sigmoid per class + BCEWithLogitsLoss. scikit-learn\'s MultiLabelBinarizer converts tag lists to binary matrices. Evaluation differs: for multilabel use per-label F1, macro-F1, or Hamming loss.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'The Prediction-to-Decision Gap',
+            desc: 'Why a model that is accurate offline can fail to move business metrics',
+            detail: {
+              overview: `The prediction-to-decision gap is the distance between what the model outputs and the decision the business needs. A fraud detection model might achieve 99% accuracy but only block 40% of fraudulent transactions because the threshold is miscalibrated for the asymmetric cost structure.\n\nThree sources of gap: (1) Wrong metric — optimising accuracy on a 1% fraud dataset means always predicting "not fraud" wins. (2) Uncalibrated probabilities — a model that outputs 0.7 when the true probability is 0.3 leads to wrong threshold decisions. (3) Missing cost matrix — the cost of a false positive (blocking a legitimate transaction) and a false negative (allowing fraud) are very different; accuracy treats them equally.`,
+              code: {
+                label: 'Python — cost-sensitive thresholding, calibration check, expected value framework',
+                lines: `import numpy as np
+from sklearn.calibration import calibration_curve
+from sklearn.metrics import confusion_matrix
+import matplotlib
+matplotlib.use('Agg')  # non-interactive
+
+# ── Cost-sensitive threshold selection ────────────────────
+# Cost matrix: FP=1 (blocked legit txn), FN=50 (fraud loss)
+cost_fp, cost_fn = 1, 50
+
+y_true = np.array([0]*990 + [1]*10)          # 1% fraud
+y_prob = np.random.beta(1, 9, 1000)          # scores in [0,1]
+y_prob[990:] = np.random.beta(5, 2, 10)      # fraud scores higher
+
+# Sweep thresholds and pick the lowest expected cost
+thresholds = np.linspace(0.01, 0.99, 99)
+costs = []
+for t in thresholds:
+    y_pred = (y_prob >= t).astype(int)
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    tn, fp, fn, tp = cm.ravel()
+    expected_cost = fp * cost_fp + fn * cost_fn
+    costs.append(expected_cost)
+
+best_t = thresholds[np.argmin(costs)]
+print(f"Optimal threshold: {best_t:.2f}")
+
+# ── Calibration check ─────────────────────────────────────
+# Perfectly calibrated: P(y=1 | score=0.7) should be 0.7
+fraction_pos, mean_pred = calibration_curve(y_true, y_prob, n_bins=10)
+# If mean_pred >> fraction_pos → overconfident
+# Use isotonic regression or Platt scaling to fix
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import RandomForestClassifier
+clf = RandomForestClassifier(n_estimators=50, random_state=42)
+cal_clf = CalibratedClassifierCV(clf, cv=3, method='isotonic')`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using accuracy as the primary metric on imbalanced data',
+                  context: 'On a 1% fraud dataset, a model that always predicts "not fraud" achieves 99% accuracy. This metric is meaningless — it never fires on any actual fraud. The model passes code review but fails in production.',
+                  fix: 'Use precision-recall AUC, F-beta (weighted toward recall if missing fraud is more costly), or the Matthews Correlation Coefficient. Always check the confusion matrix, not just the headline number.',
+                },
+                {
+                  issue: 'Shipping an uncalibrated model that outputs probabilities',
+                  context: 'Random forests and gradient boosting produce well-ranked scores but poorly calibrated probabilities. Using a 0.5 threshold on an uncalibrated model is arbitrary. The model may output 0.8 when the true risk is only 0.3.',
+                  fix: 'Apply probability calibration: CalibratedClassifierCV with isotonic regression (≥1000 samples) or Platt scaling (small datasets). Validate calibration curves before deploying to any system that uses scores for decisions.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How do you select the classification threshold in production?',
+                  a: 'Define the cost matrix first: what does a false positive cost vs a false negative? Then sweep thresholds on a held-out validation set, compute expected cost at each threshold, and select the minimum. For equal costs, 0.5 is optimal. For fraud (FN >> FP), a lower threshold (higher recall) is typically correct. Document the threshold and retune it when the business cost structure changes — the model does not need retraining just because the operating point shifted.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      {
+        num: '02',
+        title: 'Data, Features & the Bias in Logged Data',
+        intro: 'Your model is only as good as its training data. Understanding how data was generated — and how that process introduces systematic biases — is the difference between a model that performs on a leaderboard and one that holds up in production.',
+        insight: 'Logged behaviour data is never neutral. It is shaped by the UI, previous models, user selection effects, and feedback loops. Every dataset has a story — find out what it is before modelling.',
+        points: [
+          {
+            term: 'Data Generating Process & Feedback Loops',
+            desc: 'Positional bias, exposure bias, and how historical models corrupt future training data',
+            detail: {
+              overview: `The data generating process (DGP) describes the causal mechanism that produced your training set. In recommendation systems, only shown items can be clicked — non-shown items have no feedback signal (exposure bias). Items shown at position 1 get more clicks than identical items at position 10 (positional bias). If a model is trained on this data and used to generate the next round of training data, it amplifies its own biases — a feedback loop.\n\nUnderstanding the DGP is critical before feature engineering. Features that look predictive may only be proxies for position, popularity, or historical model confidence — not genuine user preference.`,
+              code: {
+                label: 'Python — simulating positional bias, inverse propensity scoring correction',
+                lines: `import numpy as np
+import pandas as pd
+
+np.random.seed(42)
+
+# ── Simulate positional bias in click data ────────────────
+n_impressions = 10_000
+positions = np.random.randint(1, 11, n_impressions)   # positions 1–10
+true_relevance = np.random.beta(2, 5, n_impressions)   # intrinsic quality
+
+# Click probability drops with position (positional bias)
+position_bias = 1.0 / positions                        # P(examine | pos)
+click_prob = true_relevance * position_bias            # P(click) = P(rel) * P(examine)
+clicks = (np.random.rand(n_impressions) < click_prob).astype(int)
+
+df = pd.DataFrame({
+    'position': positions,
+    'true_relevance': true_relevance,
+    'clicks': clicks,
+})
+
+# Naive CTR per position — higher positions appear more relevant
+print(df.groupby('position')['clicks'].mean().round(3))
+# position 1: ~0.21, position 10: ~0.02 — purely from position!
+
+# ── Inverse Propensity Scoring (IPS) correction ───────────
+# Weight each click by inverse of its examination probability
+# so items at position 10 are upweighted to account for fewer examinations
+df['propensity'] = 1.0 / df['position']
+df['ips_weight'] = df['clicks'] / df['propensity']
+
+# IPS-corrected relevance estimate per item cluster
+# In practice: fit a position bias model first, then debias
+print(df.groupby('position')['ips_weight'].mean().round(3))
+# Much flatter — positional effect partially removed`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Training on biased historical data without debiasing',
+                  context: 'A model trained on click-through data without accounting for positional bias learns "items at position 1 are good" rather than "these items are intrinsically relevant." When deployed, it reinforces the existing ranking, creating a feedback loop that makes the rich richer.',
+                  fix: 'Apply Inverse Propensity Scoring to reweight samples, or use counterfactual learning-to-rank (CLTR). At minimum, add position as a feature during training and set it to a neutral value (e.g., position=1 or median) during inference.',
+                },
+                {
+                  issue: 'Using the prediction of a previous model as a training feature',
+                  context: 'If model v1 output score is used as a feature in model v2, v2 inherits all of v1\'s biases and amplifies them. The feature looks very predictive offline but causes circularity and degrades coverage of low-confidence items.',
+                  fix: 'Never use a deployed model\'s output as a raw feature in its successor. Instead, use it as a regulariser or initialisation point. If using it as a feature is unavoidable, ensure it is out-of-fold scored to avoid leakage.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'What is exposure bias and how do you address it in recommendation systems?',
+                  a: 'Exposure bias occurs because users can only interact with items they were shown. Items never shown have no feedback signal — the model cannot learn their true quality. Approaches: (1) Exploration: random or epsilon-greedy injection to expose unseen items. (2) IPS weighting: upweight feedback from low-propensity exposures. (3) Causal inference: model the selection mechanism explicitly. (4) Matrix factorisation with implicit feedback that treats unobserved as soft negatives (WRMF). The right approach depends on how much control you have over the serving system.',
+                },
+                {
+                  q: 'How do feedback loops degrade ML systems over time?',
+                  a: 'When a model\'s predictions influence the data used to train the next version, the system enters a feedback loop. Examples: a news recommender optimising clicks causes users to see increasingly extreme content, generating more click data for extreme content, reinforcing the cycle. A fraud model that blocks transactions removes future fraud examples from training, causing the model to forget evolving fraud patterns. Countermeasures: regular out-of-distribution evaluation, canary traffic with exploration, adversarial testing with held-out fraud patterns, and monitoring data distribution shifts over time.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Feature Engineering for Tabular Data',
+            desc: 'Encoding, interaction features, target encoding, time-series leakage prevention',
+            detail: {
+              overview: `Feature engineering transforms raw data into a representation that makes the learning problem easier. For tabular data the core operations are: encoding categoricals (one-hot for low cardinality, target encoding or embeddings for high cardinality), creating interaction features, handling temporal structure (lag features, rolling statistics), and normalising continuous values.\n\nThe most dangerous step is also the most common mistake: computing statistics over the full dataset before splitting, which leaks future information into training features and inflates offline metrics dramatically.`,
+              code: {
+                label: 'Python — target encoding with CV, lag features, interaction terms, Pipeline integration',
+                lines: `import numpy as np
+import pandas as pd
+from sklearn.model_selection import KFold
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from category_encoders import TargetEncoder   # pip install category_encoders
+
+np.random.seed(42)
+
+# ── Safe target encoding (fold-based, avoids leakage) ─────
+# category_encoders.TargetEncoder with smoothing
+# Use inside a Pipeline with cross_val_score to ensure
+# encoding is fit only on training folds
+df = pd.DataFrame({
+    'city': np.random.choice(['NYC','LA','Chicago','Houston'], 10_000),
+    'user_tenure': np.random.randint(1, 365, 10_000),
+    'price': np.random.lognormal(4, 1, 10_000),
+    'converted': np.random.binomial(1, 0.12, 10_000),
+})
+
+# ── Interaction features ───────────────────────────────────
+df['tenure_x_price'] = df['user_tenure'] * np.log1p(df['price'])
+df['price_per_tenure'] = df['price'] / (df['user_tenure'] + 1)
+
+# ── Time-series lag features (NO leakage) ─────────────────
+# Assume data is time-ordered
+df['price_lag1'] = df['price'].shift(1)   # t-1 value
+df['price_roll7'] = df['price'].shift(1).rolling(7).mean()  # shift FIRST!
+# WRONG: df['price'].rolling(7).mean() — includes current row
+
+# ── Pipeline to prevent leakage ───────────────────────────
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from xgboost import XGBClassifier
+
+num_features = ['user_tenure', 'price', 'tenure_x_price']
+cat_features = ['city']
+
+preprocessor = ColumnTransformer([
+    ('num', Pipeline([
+        ('impute', SimpleImputer(strategy='median')),
+        ('scale', StandardScaler()),
+    ]), num_features),
+    ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False),
+     cat_features),
+])
+
+model = Pipeline([
+    ('prep', preprocessor),
+    ('clf', XGBClassifier(n_estimators=100, learning_rate=0.05,
+                          random_state=42, eval_metric='logloss')),
+])`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Computing target encoding statistics on the full dataset before the train/val split',
+                  context: 'target_mean = df.groupby("city")["converted"].mean() then merging back into df before splitting causes data leakage. The target-encoded feature for each row in the training set includes information from its own label, inflating validation AUC by 5–15%.',
+                  fix: 'Fit target encoding inside a cross-validation fold: use category_encoders.TargetEncoder inside a sklearn Pipeline so it is fit only on training rows and applied to validation/test rows. The m-estimate smoothing parameter prevents overfitting on rare categories.',
+                },
+                {
+                  issue: 'Not shifting before rolling statistics on time-series data',
+                  context: 'df["price"].rolling(7).mean() at time t includes the current value (time t itself) in the window. This looks like a strong feature but uses information that is not available at prediction time. A model trained on this leaks future price into past predictions.',
+                  fix: 'Always shift before rolling: df["price"].shift(1).rolling(7).mean(). This creates a feature using only t-1 through t-7, which is genuinely available when predicting at time t.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'When should you use target encoding vs one-hot encoding for categorical features?',
+                  a: 'One-hot encoding: low cardinality (< 20 unique values), interpretability matters, linear models. Target encoding: high cardinality (city names, user IDs, product IDs with thousands of values) where one-hot would create sparse, wide feature matrices. Target encoding compresses the category into its conditional mean of the target, which is informative and compact. The risk is leakage and overfitting on rare categories — apply smoothing (m-estimate or count-based) and always encode within cross-validation folds. For tree models, consider learned embeddings for very high cardinality categoricals.',
+                },
+                {
+                  q: 'How do you prevent feature leakage in a time-series ML project?',
+                  a: 'Three rules: (1) Always use time-based train/val/test splits, never random — future data must never appear in past splits. (2) All feature computations that use rolling statistics or aggregations must be shifted by at least one period. (3) Any fitted transformer (scaler, encoder, imputer) must be fit only on the training window and applied to validation/test. Use a sklearn Pipeline to enforce rule 3. For production, ensure that at serving time, the feature computation exactly mirrors the training-time computation over the same historical window.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Class Imbalance Strategies',
+            desc: 'SMOTE, class weights, threshold tuning, and when oversampling hurts',
+            detail: {
+              overview: `Class imbalance — where one class represents a tiny fraction of the data — is the norm in production ML: fraud (0.1%), rare diseases (<1%), hardware faults (<0.01%). The naive model that always predicts the majority class achieves high accuracy but is useless. The right treatment depends on the degree of imbalance and whether you need calibrated probabilities.\n\nStrategies: class weights (cheapest, changes the loss gradient), undersampling (loses majority data), oversampling (SMOTE, synthesises minority examples), threshold adjustment (post-hoc, no retraining), and algorithm-level methods (XGBoost scale_pos_weight, Focal Loss).`,
+              code: {
+                label: 'Python — class weights, SMOTE, threshold tuning, Focal Loss for deep models',
+                lines: `import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.utils.class_weight import compute_class_weight
+from imblearn.over_sampling import SMOTE   # pip install imbalanced-learn
+import torch, torch.nn as nn
+
+np.random.seed(42)
+X = np.random.randn(10_000, 10)
+y = np.zeros(10_000, dtype=int)
+y[:100] = 1   # 1% minority class
+
+# ── Strategy 1: class_weight='balanced' ──────────────────
+clf_w = LogisticRegression(class_weight='balanced', max_iter=1000)
+clf_w.fit(X, y)
+
+# ── Strategy 2: manual class weights ─────────────────────
+weights = compute_class_weight('balanced', classes=np.array([0,1]), y=y)
+class_weight_dict = {0: weights[0], 1: weights[1]}
+# For PyTorch: pos_weight in BCEWithLogitsLoss
+pos_weight = torch.tensor([weights[1] / weights[0]])
+loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+
+# ── Strategy 3: SMOTE oversampling ────────────────────────
+# Only apply SMOTE to TRAINING data, never test data!
+from sklearn.model_selection import train_test_split
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2,
+                                           stratify=y, random_state=42)
+sm = SMOTE(random_state=42, k_neighbors=5)
+X_res, y_res = sm.fit_resample(X_tr, y_tr)
+print(f"Before SMOTE: {y_tr.sum()} pos | After: {y_res.sum()} pos")
+
+# ── Strategy 4: XGBoost scale_pos_weight ─────────────────
+from xgboost import XGBClassifier
+n_neg, n_pos = (y_tr == 0).sum(), (y_tr == 1).sum()
+xgb = XGBClassifier(
+    scale_pos_weight=n_neg / n_pos,   # ~99
+    eval_metric='aucpr', random_state=42
+)
+
+# ── Strategy 5: Focal Loss (for deep models) ─────────────
+class FocalLoss(nn.Module):
+    def __init__(self, gamma=2.0, alpha=0.25):
+        super().__init__()
+        self.gamma, self.alpha = gamma, alpha
+    def forward(self, logits, targets):
+        bce = nn.functional.binary_cross_entropy_with_logits(
+            logits, targets, reduction='none')
+        pt = torch.exp(-bce)
+        return (self.alpha * (1 - pt) ** self.gamma * bce).mean()`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Applying SMOTE before the train/test split',
+                  context: 'SMOTE generates synthetic examples by interpolating between real minority examples. If applied before splitting, synthetic examples derived from test-set real examples appear in training — data leakage. The model has indirectly seen the test set. Validation metrics are unrealistically high.',
+                  fix: 'Split first, then apply SMOTE only to the training set. In a sklearn Pipeline, place SMOTE as an imblearn step before the model: imblearn.pipeline.Pipeline([("smote", SMOTE()), ("clf", XGBClassifier())]). imblearn pipelines handle this correctly.',
+                },
+                {
+                  issue: 'Using SMOTE for high-dimensional sparse data (text, images)',
+                  context: 'SMOTE interpolates in feature space assuming continuity. For TF-IDF vectors or image pixel arrays, the interpolated "synthetic" examples do not correspond to any realistic data point — they are noise. SMOTE is designed for low-dimensional continuous tabular features.',
+                  fix: 'For text: oversample at the data level (paraphrase, back-translation) rather than in feature space. For deep models: use Focal Loss or class-weighted cross-entropy instead of synthetic oversampling. For tabular with many categorical features, use SMOTENC which handles mixed types.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'What is the best strategy for handling class imbalance?',
+                  a: 'No single best — it depends on the degree of imbalance and model type. For mild imbalance (1:10): class_weight="balanced" is often sufficient. For moderate (1:100): SMOTE + class weights, or scale_pos_weight in XGBoost. For severe (1:1000+): combine oversampling with threshold calibration. For deep models: Focal Loss is most principled — it down-weights easy negatives and focuses learning on hard examples. Always evaluate with PR-AUC, not accuracy. Always calibrate thresholds on held-out data after training.',
+                },
+                {
+                  q: 'How does Focal Loss address class imbalance differently from class weights?',
+                  a: 'Class weights multiply the loss for minority-class samples by a constant, treating all minority examples equally. Focal Loss uses a dynamic factor (1 - pt)^γ that down-weights easy-to-classify examples regardless of class — an easy majority-class example contributes little gradient, while a hard minority-class example contributes full gradient. This is more adaptive: in early training when the model is uncertain, all examples contribute. As training progresses, easy majority examples are suppressed, focusing the model on difficult boundary cases. γ=2, α=0.25 is the standard starting point from the RetinaNet paper.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ═══════════════════════════════════════════════════════
+     LAYER 2 · Classical Algorithms  —  Stages 03–04
+  ═══════════════════════════════════════════════════════ */
+  {
+    id: 'classical',
+    label: 'Classical Algorithms',
+    range: '03–04',
+    stages: [
+      {
+        num: '03',
+        title: 'Linear & Logistic Regression',
+        intro: 'Linear models are not "simple" — they are the first models to deploy, the baseline every complex model must beat, and the lens through which you understand coefficients, regularisation, and the geometry of decision boundaries.',
+        insight: 'A logistic regression baseline built in two hours tells you the signal ceiling of your features before you spend a week on XGBoost. Always build the linear baseline first.',
+        points: [
+          {
+            term: 'Linear Regression: OLS, Assumptions & Gradient Descent',
+            desc: 'Closed-form solution, Gauss-Markov assumptions, when OLS fails and gradient descent is used instead',
+            detail: {
+              overview: `Linear regression models y = Xβ + ε. The Ordinary Least Squares (OLS) closed-form solution β = (X^T X)^{-1} X^T y minimises the sum of squared residuals. It is the Best Linear Unbiased Estimator (BLUE) under the Gauss-Markov assumptions: linearity, no multicollinearity, homoscedasticity, zero-mean errors, and independence.\n\nWhen the design matrix is too large to invert (millions of features, distributed data), gradient descent is used instead. Mini-batch SGD converges faster on large datasets and is the default in production training pipelines.`,
+              code: {
+                label: 'Python — OLS closed form, gradient descent from scratch, sklearn Ridge comparison',
+                lines: `import numpy as np
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+
+np.random.seed(42)
+n, p = 1000, 10
+X = np.random.randn(n, p)
+true_beta = np.array([3, -2, 1.5, 0, 0, 0, 0, 0, 0, 0])  # sparse signal
+y = X @ true_beta + np.random.randn(n) * 0.5
+
+# ── OLS closed-form: β = (X'X)^{-1} X'y ─────────────────
+X_b = np.hstack([np.ones((n, 1)), X])   # add bias column
+beta_ols = np.linalg.lstsq(X_b, y, rcond=None)[0]
+# lstsq is numerically stable; never invert directly with np.linalg.inv
+
+# ── Gradient Descent from scratch ─────────────────────────
+def mse_gradient(X, y, beta):
+    n = len(y)
+    residuals = X @ beta - y
+    return (2 / n) * X.T @ residuals
+
+beta_gd = np.zeros(p + 1)
+lr = 0.01
+for epoch in range(500):
+    grad = mse_gradient(X_b, y, beta_gd)
+    beta_gd -= lr * grad
+# Converges to same solution as OLS for convex MSE
+
+# ── Checking assumptions: residual plot ──────────────────
+y_pred = X_b @ beta_ols
+residuals = y - y_pred
+print(f"Mean of residuals: {residuals.mean():.4f}")   # should be ~0
+# Plot residuals vs fitted — look for heteroscedasticity (fan shape)
+
+# ── Ridge vs Lasso vs OLS ─────────────────────────────────
+lr_ols  = LinearRegression().fit(X, y)
+lr_ridge = Ridge(alpha=10.0).fit(X, y)    # L2 — shrinks all, keeps all
+lr_lasso = Lasso(alpha=0.1).fit(X, y)    # L1 — sets some to exactly 0
+print("OLS  coefs:", lr_ols.coef_.round(2))
+print("Ridge coefs:", lr_ridge.coef_.round(2))
+print("Lasso coefs:", lr_lasso.coef_.round(2))  # 0s on irrelevant features`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Inverting X^TX directly with np.linalg.inv',
+                  context: 'np.linalg.inv(X.T @ X) @ X.T @ y is numerically unstable — it amplifies floating-point errors when X^TX is close to singular (multicollinear features). Results can be incorrect without any error being raised.',
+                  fix: 'Use np.linalg.lstsq(X, y, rcond=None) which uses SVD internally and handles near-singular matrices gracefully. Or use sklearn\'s LinearRegression which calls LAPACK\'s least-squares solver.',
+                },
+                {
+                  issue: 'Not scaling features before applying regularisation',
+                  context: 'Ridge and Lasso penalties apply equally to all coefficients. A feature with values in [0, 10000] has a much larger coefficient than one in [0, 1] — the penalty shrinks the large-magnitude coefficient much more aggressively, effectively ignoring that feature. The regularisation is scale-dependent.',
+                  fix: 'Always StandardScale (zero mean, unit variance) features before Ridge/Lasso. sklearn Pipeline: Pipeline([(\"scaler\", StandardScaler()), (\"ridge\", Ridge())]). The alpha then has a consistent interpretation across features.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'What are the Gauss-Markov assumptions and when do they break down in practice?',
+                  a: 'The five assumptions: (1) Linearity — y is a linear function of X. (2) No perfect multicollinearity — X has full column rank. (3) Zero conditional mean — E[ε|X]=0. (4) Homoscedasticity — Var(ε|X) is constant. (5) No serial correlation. In DS practice: (1) breaks when relationships are non-linear → use polynomial features or tree models. (2) breaks with correlated features → use Ridge. (3) breaks with omitted variable bias → confounding. (4) breaks in financial time series (volatility clustering) → use heteroscedasticity-robust standard errors. When assumptions break, OLS is still unbiased but no longer efficient (has higher variance than alternatives).',
+                },
+                {
+                  q: 'When should you use Lasso vs Ridge regularisation?',
+                  a: 'Lasso (L1) adds an L1 penalty that creates sparse solutions — coefficients can go exactly to zero, performing automatic feature selection. Use Lasso when you believe only a few features are truly relevant and you want interpretability. Ridge (L2) shrinks all coefficients toward zero but never to exactly zero — it handles multicollinearity better by distributing the penalty across correlated features. Use Ridge when all features are potentially relevant and you have multicollinearity. ElasticNet combines both: alpha controls total regularisation, l1_ratio controls the L1/L2 mix. In practice, ElasticNet with cross-validated alpha is the default for linear models on tabular data.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Logistic Regression: Sigmoid, Cross-Entropy & Decision Boundary',
+            desc: 'Probabilistic interpretation, log-odds, multiclass with softmax, calibration',
+            detail: {
+              overview: `Logistic regression models P(y=1|x) = σ(x^T β) where σ is the sigmoid. The log-odds (logit) is linear: log[p/(1-p)] = x^T β. This means the decision boundary is linear in feature space. Training minimises binary cross-entropy (log-loss): L = -[y log(p) + (1-y) log(1-p)]. Unlike linear regression, there is no closed-form solution — gradient descent or Newton's method is used.\n\nLogistic regression produces well-calibrated probabilities (unlike SVMs or tree models without calibration), making it a strong baseline for any classification problem where probability scores are needed.`,
+              code: {
+                label: 'Python — logistic regression from scratch, sklearn, coefficient interpretation, calibration',
+                lines: `import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import log_loss, roc_auc_score
+
+np.random.seed(42)
+n = 2000
+X = np.random.randn(n, 5)
+# True decision boundary: x0 + 2*x1 - x2 > 0
+log_odds = X[:, 0] + 2*X[:, 1] - X[:, 2]
+prob_true = 1 / (1 + np.exp(-log_odds))
+y = (np.random.rand(n) < prob_true).astype(int)
+
+# ── Logistic Regression from scratch ─────────────────────
+def sigmoid(z): return 1 / (1 + np.exp(-np.clip(z, -500, 500)))
+
+def log_loss_fn(X, y, beta):
+    p = sigmoid(X @ beta)
+    return -np.mean(y * np.log(p + 1e-9) + (1-y) * np.log(1-p + 1e-9))
+
+X_b = np.hstack([np.ones((n, 1)), X])
+beta = np.zeros(6)
+lr = 0.1
+for _ in range(300):
+    p = sigmoid(X_b @ beta)
+    grad = X_b.T @ (p - y) / n
+    beta -= lr * grad
+print(f"Learned beta: {beta.round(2)}")   # ~[bias, 1, 2, -1, 0, 0]
+
+# ── sklearn with feature scaling ─────────────────────────
+scaler = StandardScaler()
+X_sc = scaler.fit_transform(X)
+clf = LogisticRegression(C=1.0, max_iter=1000, random_state=42)
+clf.fit(X_sc, y)
+
+# ── Interpreting coefficients as log-odds ─────────────────
+# A unit increase in scaled feature i changes log-odds by coef_[i]
+# odds ratio: exp(coef_) → how much the odds multiply per unit increase
+odds_ratios = np.exp(clf.coef_[0])
+print("Odds ratios:", odds_ratios.round(2))
+
+# ── Probability calibration check ─────────────────────────
+from sklearn.calibration import calibration_curve
+prob_pred = clf.predict_proba(X_sc)[:, 1]
+print(f"Log-loss: {log_loss(y, prob_pred):.4f}")
+print(f"AUC-ROC:  {roc_auc_score(y, prob_pred):.4f}")`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Not scaling features before logistic regression',
+                  context: 'Logistic regression uses gradient descent. Features with large scales (e.g., income in thousands) have large gradients; features with small scales (e.g., binary flags) have tiny gradients. Without scaling, gradient descent converges slowly and the regularisation parameter C has inconsistent effect across features.',
+                  fix: 'StandardScaler before LogisticRegression — always. Use sklearn Pipeline to prevent train/test contamination.',
+                },
+                {
+                  issue: 'Interpreting logistic regression coefficients as probabilities',
+                  context: 'Logistic regression coefficients are log-odds, not probabilities or percentage changes. A coefficient of 0.5 means a 1-unit increase in the feature increases the log-odds by 0.5 (odds multiply by exp(0.5) ≈ 1.65). Reporting "a 50% increase in conversion" from a coefficient of 0.5 is wrong.',
+                  fix: 'Report as odds ratios: exp(coef). For a binary feature (0/1), exp(coef) is the odds ratio of the event given the feature is present vs absent. For continuous features, report the odds ratio per standard deviation change for a cleaner interpretation.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Why does logistic regression use cross-entropy loss and not MSE?',
+                  a: 'MSE applied to sigmoid outputs creates a non-convex loss with many local minima (because the gradient vanishes when the sigmoid saturates). Cross-entropy -[y log(p) + (1-y) log(1-p)] is convex with the sigmoid output — it has a unique global minimum reachable by gradient descent. Intuitively, cross-entropy heavily penalises confident wrong predictions (predicting p=0.99 when y=0 incurs loss ≈ 4.6), while MSE penalises them much less. Cross-entropy is also the maximum likelihood estimator for Bernoulli observations, giving it a principled probabilistic interpretation.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Regularisation: L1, L2, ElasticNet & the Bias-Variance Tradeoff',
+            desc: 'What regularisation actually does geometrically, alpha tuning, early stopping as implicit regularisation',
+            detail: {
+              overview: `Regularisation adds a penalty to the loss that constrains coefficient magnitudes, reducing model variance at the cost of some bias. L2 (Ridge) adds λ Σ β_i² — it has a circular constraint region in coefficient space, shrinking all coefficients toward zero without making any exactly zero. L1 (Lasso) adds λ Σ |β_i| — it has a diamond constraint region with corners on the axes; gradient descent solutions are often at these corners, making exact zeros more likely.\n\nElasticNet combines both: λ [α|β| + (1-α)β²/2]. It inherits Lasso's sparsity and Ridge's group selection (correlated features are shrunk together rather than one being arbitrarily zeroed).`,
+              code: {
+                label: 'Python — regularisation path, cross-validated alpha selection, LassoCV',
+                lines: `import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+from sklearn.linear_model import LassoCV, RidgeCV, ElasticNetCV
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(42)
+n, p = 500, 50
+X = np.random.randn(n, p)
+# Only 5 features are truly relevant
+true_beta = np.zeros(p)
+true_beta[:5] = [3, -2, 1.5, -1, 0.8]
+y = X @ true_beta + np.random.randn(n)
+
+scaler = StandardScaler()
+X_sc = scaler.fit_transform(X)
+
+# ── LassoCV: finds optimal alpha via cross-validation ─────
+lasso_cv = LassoCV(cv=5, random_state=42, max_iter=5000)
+lasso_cv.fit(X_sc, y)
+print(f"Lasso optimal alpha: {lasso_cv.alpha_:.4f}")
+n_nonzero = (lasso_cv.coef_ != 0).sum()
+print(f"Non-zero coefficients: {n_nonzero} / {p}")
+# Should recover ~5 non-zero features
+
+# ── RidgeCV ───────────────────────────────────────────────
+ridge_cv = RidgeCV(alphas=np.logspace(-3, 4, 100), cv=5)
+ridge_cv.fit(X_sc, y)
+print(f"Ridge optimal alpha: {ridge_cv.alpha_:.4f}")
+print(f"Ridge non-zero: {(ridge_cv.coef_ != 0).sum()} / {p}")
+# All 50 features non-zero (Ridge never zeros out)
+
+# ── ElasticNet: combines L1 + L2 ─────────────────────────
+enet_cv = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.9, 0.99],
+                       cv=5, random_state=42, max_iter=5000)
+enet_cv.fit(X_sc, y)
+print(f"ElasticNet l1_ratio: {enet_cv.l1_ratio_:.2f}, alpha: {enet_cv.alpha_:.4f}")
+
+# ── Early stopping as implicit regularisation (neural nets) ──
+# Training loss keeps decreasing; validation loss starts rising
+# Stop at the validation minimum = implicit weight regularisation
+# torch.optim with scheduler + patience achieves this`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using Lasso when features are highly correlated',
+                  context: 'When two features are nearly identical, Lasso arbitrarily zeros one and keeps the other — the choice depends on tiny numerical differences. This gives unstable feature selection: a different random seed or a slightly different dataset may select the other correlated feature.',
+                  fix: 'Use ElasticNet or Ridge when multicollinearity is present. ElasticNet groups correlated features and shrinks them together. If feature selection is the goal and features are correlated, use stability selection: run Lasso many times on bootstrapped data and select features that survive in > 80% of runs.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Explain the geometric intuition for why L1 produces sparse solutions and L2 does not.',
+                  a: 'Both regularisations constrain the solution to a region in coefficient space. Ridge constrains to a hypersphere (L2 ball) — the gradient descent path typically meets the sphere at a smooth point where no coefficient is exactly zero. Lasso constrains to a hypercube (L1 ball) with sharp corners on the coordinate axes — the gradient descent path is pulled toward the nearest corner, where several coefficients are exactly zero. In high dimensions, the proportion of the L1 ball\'s surface near corners grows with p, making sparsity increasingly likely as dimensionality increases.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      {
+        num: '04',
+        title: 'Tree-Based Methods: Random Forests & Gradient Boosting',
+        intro: 'Tree-based ensemble methods dominate structured/tabular data competitions and production systems. They handle non-linearity, mixed feature types, and missing values natively — but their interpretability and calibration require careful engineering.',
+        insight: 'LightGBM or XGBoost on well-engineered tabular features beats a neural network in most production tabular problems. Do not skip straight to deep learning on structured data.',
+        points: [
+          {
+            term: 'Decision Trees: Splitting Criteria, Depth & Overfitting',
+            desc: 'Gini impurity vs information gain, max_depth, min_samples_leaf, pruning',
+            detail: {
+              overview: `A decision tree recursively partitions the feature space by choosing the split (feature, threshold) that maximises the reduction in impurity. For classification: Gini impurity G = 1 - Σ p_k² or entropy H = -Σ p_k log(p_k). For regression: variance reduction.\n\nUnconstrained trees overfit completely — a single tree can memorise all training examples by growing deep enough. The regularisation knobs are max_depth, min_samples_leaf, min_impurity_decrease, and ccp_alpha (cost-complexity pruning). Trees are interpretable (follow the if-else path), handle categorical features and missing values natively, and require no feature scaling.`,
+              code: {
+                label: 'Python — decision tree with sklearn, feature importance, visualisation, pruning',
+                lines: `from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import numpy as np
+
+X, y = make_classification(n_samples=5000, n_features=20, n_informative=10,
+                            random_state=42)
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ── Unconstrained tree — overfits ─────────────────────────
+dt_deep = DecisionTreeClassifier(random_state=42)
+dt_deep.fit(X_tr, y_tr)
+print(f"Depth={dt_deep.get_depth()}, "
+      f"Train acc={accuracy_score(y_tr, dt_deep.predict(X_tr)):.3f}, "
+      f"Test acc={accuracy_score(y_te, dt_deep.predict(X_te)):.3f}")
+# Train 1.0, Test ~0.83 — clear overfitting
+
+# ── Regularised tree ──────────────────────────────────────
+dt_reg = DecisionTreeClassifier(max_depth=5, min_samples_leaf=20,
+                                 random_state=42)
+dt_reg.fit(X_tr, y_tr)
+print(f"Depth={dt_reg.get_depth()}, "
+      f"Train acc={accuracy_score(y_tr, dt_reg.predict(X_tr)):.3f}, "
+      f"Test acc={accuracy_score(y_te, dt_reg.predict(X_te)):.3f}")
+# More balanced train/test gap
+
+# ── Feature importance (impurity-based) ──────────────────
+importances = dt_reg.feature_importances_
+top_feat = np.argsort(importances)[::-1][:5]
+print("Top 5 features:", top_feat, "importances:", importances[top_feat].round(3))
+
+# ── Print tree rules (human-readable) ────────────────────
+tree_rules = export_text(dt_reg, feature_names=[f"x{i}" for i in range(20)])
+print(tree_rules[:500])   # first 500 chars of the rules
+
+# ── Cost-complexity pruning ───────────────────────────────
+path = dt_deep.cost_complexity_pruning_path(X_tr, y_tr)
+# path.ccp_alphas: array of alpha values at which a node is pruned
+# Select alpha with best validation accuracy`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Trusting impurity-based feature importance with correlated or high-cardinality features',
+                  context: 'sklearn feature_importances_ uses mean impurity decrease, which is biased toward high-cardinality features (continuous features with many split points get more chances to be selected) and correlated features (importance is split between them, undervaluing both). A truly irrelevant feature can appear important if it correlates with the target through a confounding variable.',
+                  fix: 'Use permutation importance (sklearn.inspection.permutation_importance) evaluated on held-out data. It measures the actual drop in metric when a feature is shuffled, avoiding cardinality bias. For correlated features, use SHAP values which attribute importance via cooperative game theory.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'What is Gini impurity and how does it differ from entropy for splitting?',
+                  a: 'Gini impurity G = 1 - Σ p_k² measures the probability of misclassifying a randomly drawn sample if labelled according to the class distribution of the node. Entropy H = -Σ p_k log(p_k) measures information content. Both quantify node purity — both reach 0 at a pure node and maximum at uniform distribution. In practice they produce almost identical trees. Gini is slightly faster to compute (no log). sklearn defaults to Gini. Use entropy when you want slightly more balanced splits in deep trees. The difference in final model performance is negligible compared to hyperparameter choices.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Random Forests: Bagging & Feature Subsampling',
+            desc: 'How variance reduction works, out-of-bag evaluation, n_estimators, max_features',
+            detail: {
+              overview: `Random Forests reduce the variance of a single decision tree by averaging many uncorrelated trees. Two sources of randomness achieve this: (1) bootstrap aggregating (bagging) — each tree is trained on a random sample with replacement; (2) feature subsampling — each split considers only √p features, preventing any single strong feature from dominating all trees and forcing diversity.\n\nThe central theorem: averaging B trees each with variance σ² and pairwise correlation ρ gives total variance ρσ² + (1-ρ)σ²/B. As B → ∞, variance approaches ρσ². Reducing correlation ρ (via feature subsampling) is more impactful than just adding more trees.`,
+              code: {
+                label: 'Python — Random Forest, OOB score, feature importance, n_estimators convergence',
+                lines: `from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+import numpy as np
+
+X, y = make_classification(n_samples=10_000, n_features=30, n_informative=15,
+                            n_redundant=5, random_state=42)
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y,
+                                           random_state=42)
+
+# ── Random Forest with OOB score ─────────────────────────
+rf = RandomForestClassifier(
+    n_estimators=300,           # more trees = lower variance, diminishing returns
+    max_features='sqrt',        # √p features per split — key for de-correlation
+    min_samples_leaf=10,        # regularise individual trees
+    oob_score=True,             # free validation using out-of-bag samples
+    n_jobs=-1,
+    random_state=42,
+)
+rf.fit(X_tr, y_tr)
+
+print(f"OOB score:  {rf.oob_score_:.4f}")   # unbiased estimate, no val set needed
+print(f"Test AUC:   {roc_auc_score(y_te, rf.predict_proba(X_te)[:,1]):.4f}")
+
+# ── Permutation importance (unbiased) ────────────────────
+from sklearn.inspection import permutation_importance
+perm = permutation_importance(rf, X_te, y_te, n_repeats=10, random_state=42)
+top_idx = np.argsort(perm.importances_mean)[::-1][:5]
+print("Top 5 (perm):", top_idx, perm.importances_mean[top_idx].round(3))
+
+# ── n_estimators convergence: when do more trees stop helping? ──
+for n in [10, 50, 100, 200, 500]:
+    rf_n = RandomForestClassifier(n_estimators=n, oob_score=True,
+                                   max_features='sqrt', n_jobs=-1, random_state=42)
+    rf_n.fit(X_tr, y_tr)
+    print(f"n_estimators={n:4d}, OOB={rf_n.oob_score_:.4f}")
+# Gains plateau around 200–300; beyond that: diminishing returns`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Setting max_features=None (using all features at each split)',
+                  context: 'With max_features=None, all trees use the same strong features at every split. The trees become highly correlated — average correlation ρ is high — and averaging them gives little variance reduction. The ensemble behaves like a single tree. This defeats the purpose of Random Forests.',
+                  fix: 'Keep max_features="sqrt" (default for classification) or max_features=0.33 (for regression). Experiment with max_features in {sqrt, log2, 0.2, 0.3} during hyperparameter search — it has more impact on performance than n_estimators.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Explain the out-of-bag (OOB) error in Random Forests.',
+                  a: 'Each tree is trained on a bootstrap sample (~63% of training data). The remaining ~37% samples (out-of-bag) were never seen by that tree during training. Predicting each training sample using only trees that did not see it gives an unbiased estimate of generalisation error — similar to leave-one-out cross-validation but free computationally. OOB score eliminates the need for a separate validation set when training data is scarce. It slightly underestimates performance because each OOB prediction uses only ~37% of trees (those that did not see the sample), but in practice it is a reliable estimate.',
+                },
+                {
+                  q: 'When would you prefer a Random Forest over Gradient Boosting?',
+                  a: 'Random Forest advantages: (1) Trains in parallel — n_jobs=-1 scales linearly with cores. (2) Less sensitive to hyperparameters — n_estimators and max_features usually suffice. (3) More robust to noisy or irrelevant features — bagging and subsampling provide natural regularisation. (4) OOB validation is free. Prefer Random Forest for quick baselines, when training time is constrained, or when the dataset is noisy. Prefer Gradient Boosting (XGBoost, LightGBM) for maximum predictive performance on structured data — it typically outperforms Random Forest by 2–5% AUC when tuned properly.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Gradient Boosting: XGBoost, LightGBM & CatBoost',
+            desc: 'Boosting as additive model fitting, learning rate vs n_estimators, key hyperparameters',
+            detail: {
+              overview: `Gradient Boosting builds an additive model F(x) = Σ_m h_m(x) where each tree h_m fits the negative gradient of the loss at the current residuals — a form of functional gradient descent. The learning rate η scales each tree's contribution, slowing convergence but improving generalisation.\n\nXGBoost adds L2 regularisation on leaf weights and second-order gradients (Newton step). LightGBM uses leaf-wise (best-first) splitting instead of level-wise — faster on large datasets but more prone to overfitting without constraints. CatBoost handles categorical features natively via ordered target statistics, avoiding leakage from target encoding.`,
+              code: {
+                label: 'Python — XGBoost/LightGBM training, early stopping, SHAP values, hyperparameter template',
+                lines: `import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+import xgboost as xgb
+import lightgbm as lgb
+
+X, y = make_classification(n_samples=20_000, n_features=30, n_informative=20,
+                            random_state=42)
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y,
+                                           random_state=42)
+X_tr2, X_val, y_tr2, y_val = train_test_split(X_tr, y_tr, test_size=0.15,
+                                               stratify=y_tr, random_state=42)
+
+# ── XGBoost with early stopping ───────────────────────────
+xgb_model = xgb.XGBClassifier(
+    n_estimators=1000,          # upper bound — early stopping controls actual count
+    learning_rate=0.05,         # lower lr + more trees = better generalisation
+    max_depth=6,                # 5–8 is typical; deeper → more overfit
+    subsample=0.8,              # row subsampling per tree
+    colsample_bytree=0.8,       # feature subsampling per tree
+    min_child_weight=10,        # regularise — min sum of hessian in a leaf
+    reg_lambda=1.0,             # L2 on leaf weights
+    eval_metric='auc',
+    random_state=42,
+    n_jobs=-1,
+)
+xgb_model.fit(X_tr2, y_tr2,
+              eval_set=[(X_val, y_val)],
+              early_stopping_rounds=50,   # stop if no improvement for 50 rounds
+              verbose=False)
+print(f"XGB best iteration: {xgb_model.best_iteration}")
+print(f"XGB Test AUC: {roc_auc_score(y_te, xgb_model.predict_proba(X_te)[:,1]):.4f}")
+
+# ── LightGBM — faster on large datasets ───────────────────
+lgb_model = lgb.LGBMClassifier(
+    n_estimators=1000,
+    learning_rate=0.05,
+    num_leaves=63,              # 2^max_depth - 1; key LightGBM param
+    min_child_samples=50,       # min data in a leaf — critical for regularisation
+    subsample=0.8,
+    colsample_bytree=0.8,
+    reg_lambda=1.0,
+    random_state=42,
+    n_jobs=-1,
+)
+callbacks = [lgb.early_stopping(50, verbose=False), lgb.log_evaluation(period=0)]
+lgb_model.fit(X_tr2, y_tr2, eval_set=[(X_val, y_val)], callbacks=callbacks)
+print(f"LGB Test AUC: {roc_auc_score(y_te, lgb_model.predict_proba(X_te)[:,1]):.4f}")
+
+# ── SHAP values for model explanation ────────────────────
+import shap
+explainer = shap.TreeExplainer(xgb_model)
+shap_values = explainer.shap_values(X_te[:100])  # (100, 30) matrix
+# shap_values[i, j] = contribution of feature j to prediction for sample i
+print("Mean |SHAP| per feature:", np.abs(shap_values).mean(0).round(3))`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Tuning n_estimators without early stopping',
+                  context: 'Setting n_estimators=1000 and cross-validating over [100, 500, 1000] wastes compute. Gradient boosting monotonically overfits as trees are added after the optimal point. Without early stopping, the optimal n_estimators requires training and evaluating many full models.',
+                  fix: 'Set n_estimators high (1000–3000) and use early_stopping_rounds on a held-out validation set. The model stops training when validation metric stops improving. Best practice: use 80/10/10 train/val/test splits. Set early_stopping_rounds = 50–100. Retrieve best_iteration after fitting.',
+                },
+                {
+                  issue: 'Using a high learning rate with few trees',
+                  context: 'learning_rate=0.3 with n_estimators=100 converges quickly but to a suboptimal solution. Each tree makes large updates, overshooting the optimum. The model is fast but underperforms compared to smaller steps.',
+                  fix: 'Use learning_rate in [0.01, 0.1] with n_estimators in [300–3000] and early stopping. Lower learning rates with more trees consistently outperform higher learning rates with fewer trees, at the cost of training time. For production, 0.05 + 1000 trees + early stopping is a reliable starting point.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How does gradient boosting differ from Random Forests conceptually?',
+                  a: 'Random Forest: parallel ensemble of independent trees trained on bootstrap samples; reduces variance by averaging. Gradient Boosting: sequential ensemble where each tree corrects the errors (residuals) of the previous — reduces bias by iterative refinement, with regularisation to control variance. Random Forest: high-variance low-bias trees (deep); Gradient Boosting: high-bias low-variance stumps or shallow trees (typically max_depth=3–8). Gradient Boosting can achieve lower error but is more sensitive to hyperparameters and overfitting. Random Forest is more robust out-of-the-box.',
+                },
+                {
+                  q: 'What are SHAP values and why are they preferred over feature importances?',
+                  a: 'SHAP (SHapley Additive exPlanations) decomposes each prediction into the additive contribution of each feature, grounded in cooperative game theory (Shapley values). For a single prediction: f(x) = E[f(x)] + Σ φ_i where φ_i is feature i\'s contribution. Properties: (1) Local — explains individual predictions, not just global averages. (2) Consistent — if a feature has more impact in model A than B, its SHAP importance is also higher in A. (3) No cardinality bias — unlike impurity importance. Preferred over feature_importances_ because impurity-based importance is biased toward high-cardinality features and does not tell you the direction of influence.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  /* ═══════════════════════════════════════════════════════
+     LAYER 3 · Evaluation & Generalization  —  Stages 05–06
+  ═══════════════════════════════════════════════════════ */
+  {
+    id: 'evaluation',
+    label: 'Evaluation & Generalization',
+    range: '05–06',
+    stages: [
+      {
+        num: '05',
+        title: 'Evaluation Metrics for Classification, Regression & Ranking',
+        intro: 'Metric selection is a design decision, not a technicality. The metric you optimise during training is the metric the model will game. Align it with the business objective from day one.',
+        insight: 'AUC-ROC tells you about rank order quality. Precision-Recall AUC tells you about performance on the minority class. They can give opposite conclusions on the same model. Know which one your business cares about.',
+        points: [
+          {
+            term: 'Classification Metrics: Accuracy, Precision, Recall, F1, AUC-ROC',
+            desc: 'Confusion matrix, threshold dependence, macro vs micro F1, imbalanced data traps',
+            detail: {
+              overview: `Every classification metric is a function of the confusion matrix: TP (correct positive), FP (false alarm), FN (miss), TN (correct negative). Accuracy = (TP+TN)/N — misleading on imbalanced data. Precision = TP/(TP+FP) — of all flagged positives, how many were real? Recall = TP/(TP+FN) — of all real positives, how many did we catch?\n\nF1 = 2·P·R/(P+R) is the harmonic mean — it penalises extreme imbalance between precision and recall. AUC-ROC measures rank-order quality across all thresholds, independent of class balance — but it can be misleadingly high when the majority class dominates. For imbalanced data, AUC-PR (area under the Precision-Recall curve) is more informative.`,
+              code: {
+                label: 'Python — full classification metrics suite, AUC-ROC vs AUC-PR comparison',
+                lines: `import numpy as np
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    roc_auc_score, average_precision_score,
+    confusion_matrix, classification_report,
+    precision_recall_curve, roc_curve,
+)
+from sklearn.calibration import calibration_curve
+
+np.random.seed(42)
+# Simulated imbalanced scenario: 1% positive class
+n = 10_000
+y_true = np.zeros(n, dtype=int)
+y_true[:100] = 1
+
+# Model A: weak discriminator (AUC-ROC misleadingly high)
+y_prob_a = np.random.beta(1, 9, n)
+y_prob_a[:100] += 0.15          # slight lift on positives
+
+# Model B: strong on positives
+y_prob_b = np.random.beta(1, 9, n)
+y_prob_b[:100] = np.random.beta(8, 2, 100)   # high scores for positives
+
+threshold = 0.5
+y_pred_b = (y_prob_b >= threshold).astype(int)
+
+# ── Full metric suite ─────────────────────────────────────
+print(classification_report(y_true, y_pred_b, target_names=['neg', 'pos']))
+
+# ── AUC-ROC vs AUC-PR ─────────────────────────────────────
+print(f"AUC-ROC  A: {roc_auc_score(y_true, y_prob_a):.4f}")
+print(f"AUC-ROC  B: {roc_auc_score(y_true, y_prob_b):.4f}")
+print(f"AUC-PR   A: {average_precision_score(y_true, y_prob_a):.4f}")
+print(f"AUC-PR   B: {average_precision_score(y_true, y_prob_b):.4f}")
+# Model B is clearly better on AUC-PR; difference less obvious on AUC-ROC
+
+# ── Threshold sweep: find precision/recall operating point ──
+prec, rec, thresholds = precision_recall_curve(y_true, y_prob_b)
+# For each threshold: what precision/recall tradeoff do we get?
+target_recall = 0.80
+idx = np.searchsorted(rec[::-1], target_recall)
+operating_threshold = thresholds[-(idx+1)] if idx < len(thresholds) else 0.5
+print(f"Threshold for {target_recall:.0%} recall: {operating_threshold:.3f}")
+
+# ── Macro vs Micro F1 ─────────────────────────────────────
+y_mc = np.random.randint(0, 5, 1000)    # 5-class, balanced
+y_pred_mc = np.random.randint(0, 5, 1000)
+print("Macro F1:", f1_score(y_mc, y_pred_mc, average='macro'))    # mean across classes
+print("Micro F1:", f1_score(y_mc, y_pred_mc, average='micro'))    # global TP/FP/FN
+# Macro: weights each class equally (use when classes are equally important)
+# Micro: weights each sample equally (dominated by majority class)`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Reporting AUC-ROC as the primary metric for highly imbalanced problems',
+                  context: 'On a 1% positive-rate dataset, a model with AUC-ROC=0.92 can still have a precision of 5% at 50% recall — flagging 10 negative for every positive. The ROC curve\'s false positive rate denominator is dominated by the huge TN pool, masking how many false alarms the model generates per real detection.',
+                  fix: 'Use AUC-PR (average_precision_score) as the primary metric for imbalanced classification. It explicitly measures precision at every recall level, where the denominator does not include TN. Report both, but make decisions based on the PR curve.',
+                },
+                {
+                  issue: 'Using a fixed 0.5 threshold without considering the operating point',
+                  context: 'sklearn classifiers default to 0.5. This is optimal only when positive and negative costs are equal and the model is perfectly calibrated. In production, the business cost matrix almost always makes a different threshold optimal.',
+                  fix: 'Plot the PR curve or ROC curve, identify the operating point required by the business (e.g., "catch 90% of fraud"), read off the threshold, and set it explicitly. Recalibrate the threshold any time the class distribution or cost structure changes.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'When would you prefer AUC-PR over AUC-ROC?',
+                  a: 'AUC-PR is preferred when: (1) the positive class is rare (< 5%), (2) false positives have significant cost (user experience, alert fatigue), (3) you need to understand performance at specific precision or recall operating points. AUC-ROC is appropriate when: (1) classes are roughly balanced, (2) you need a threshold-independent measure of overall discriminative ability, (3) the cost of FP and FN are roughly equal. In practice, report both — they can diverge significantly on imbalanced data and give complementary information.',
+                },
+                {
+                  q: 'What is the Matthews Correlation Coefficient and when is it better than F1?',
+                  a: 'MCC = (TP·TN - FP·FN) / sqrt((TP+FP)(TP+FN)(TN+FP)(TN+FN)). It considers all four cells of the confusion matrix and produces a score in [-1, 1] where 1 is perfect, 0 is random, -1 is perfectly wrong. Unlike F1, which ignores TN entirely, MCC captures whether the model performs well on both classes. For highly imbalanced data where TN vastly outnumbers TP, F1 can be high even if the model is near-random — MCC catches this. Preferred for binary classification with extreme class imbalance.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Regression Metrics: MAE, MSE, RMSE, MAPE, R²',
+            desc: 'Scale dependence, outlier sensitivity, percentage errors, explained variance and its limits',
+            detail: {
+              overview: `MAE (Mean Absolute Error) = mean(|y - ŷ|) is robust to outliers and interpretable in original units. MSE = mean((y - ŷ)²) penalises large errors quadratically — good when large errors are disproportionately costly. RMSE = √MSE is in original units. MAPE = mean(|y-ŷ|/|y|) ×100% is percentage-based but undefined at y=0 and asymmetric (unbounded above, bounded below by 0%). R² = 1 - SS_res/SS_tot measures the fraction of variance explained — meaningful only when compared to a naive mean predictor, and negative for models worse than the mean.`,
+              code: {
+                label: 'Python — regression metrics comparison, outlier sensitivity test, custom SMAPE',
+                lines: `import numpy as np
+from sklearn.metrics import (mean_absolute_error, mean_squared_error,
+                              r2_score, mean_absolute_percentage_error)
+
+np.random.seed(42)
+y_true = np.random.lognormal(4, 1, 1000)   # right-skewed, like prices
+
+# Model A: generally good, few big misses
+y_pred_a = y_true + np.random.normal(0, 10, 1000)
+
+# Model B: generally ok, 10 catastrophic outlier errors
+y_pred_b = y_true + np.random.normal(0, 5, 1000)
+y_pred_b[:10] += 1000    # 10 large errors
+
+mae_a  = mean_absolute_error(y_true, y_pred_a)
+rmse_a = mean_squared_error(y_true, y_pred_a, squared=False)
+mape_a = mean_absolute_percentage_error(y_true, y_pred_a) * 100
+r2_a   = r2_score(y_true, y_pred_a)
+
+mae_b  = mean_absolute_error(y_true, y_pred_b)
+rmse_b = mean_squared_error(y_true, y_pred_b, squared=False)
+mape_b = mean_absolute_percentage_error(y_true, y_pred_b) * 100
+r2_b   = r2_score(y_true, y_pred_b)
+
+print("         MAE    RMSE   MAPE%    R²")
+print(f"Model A: {mae_a:6.1f} {rmse_a:6.1f} {mape_a:6.1f}%  {r2_a:.3f}")
+print(f"Model B: {mae_b:6.1f} {rmse_b:6.1f} {mape_b:6.1f}%  {r2_b:.3f}")
+# Model B: lower MAE (10 outliers don't move it much) but much higher RMSE
+# This shows MAE vs RMSE tell different stories
+
+# ── SMAPE (symmetric MAPE): handles near-zero targets better ──
+def smape(y_true, y_pred):
+    denom = (np.abs(y_true) + np.abs(y_pred)) / 2
+    return 100 * np.mean(np.abs(y_true - y_pred) / np.where(denom==0, 1, denom))
+
+print(f"SMAPE A: {smape(y_true, y_pred_a):.2f}%")
+
+# ── R² caveats ────────────────────────────────────────────
+# R² is not bounded in [0,1] for out-of-sample predictions
+# Negative R²: model is worse than the mean predictor
+y_terrible = np.full_like(y_true, y_true.mean() + 100)
+print(f"R² terrible model: {r2_score(y_true, y_terrible):.3f}")   # strongly negative
+
+# ── Huber Loss: MSE for small errors, MAE for large errors ──
+from sklearn.linear_model import HuberRegressor
+# delta parameter: errors < delta penalised as MSE; > delta as MAE
+hub = HuberRegressor(epsilon=1.35)   # default: 1.35σ transition point`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using MAPE when targets can be zero or near-zero',
+                  context: 'MAPE = |y-ŷ|/|y| is undefined when y=0 and explodes when y is near zero. Demand forecasting often has zero sales on some days — MAPE on these produces inf or NaN, corrupting the aggregate metric silently.',
+                  fix: 'Use SMAPE (symmetric MAPE) which uses the average of prediction and actual in the denominator, or sMAPE with a floor: max(|y|, ε). Better yet, use MAE on log-transformed targets for right-skewed distributions: MAE on log(1+y) is equivalent to mean absolute log ratio.',
+                },
+                {
+                  issue: 'Reporting only RMSE without checking residual distributions',
+                  context: 'RMSE is a single number that masks whether errors are systematic (model always underpredicts by 20% on weekends), heteroscedastic (larger errors for larger targets), or due to a few outliers vs general noise. Two models with identical RMSE can have entirely different failure modes.',
+                  fix: 'Always plot: (1) predicted vs actual, (2) residuals vs predicted, (3) residuals over time if time-series. Look for fan shapes (heteroscedasticity), systematic over/under-prediction by subgroup, and outlier patterns. RMSE is a summary — plots are the diagnosis.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'When would you choose MAE over RMSE as the primary metric?',
+                  a: 'Choose MAE when: (1) Outliers are genuine data points and large errors should not be penalised disproportionately (e.g., demand forecasting where spikes are real). (2) You need the metric to be interpretable in original units and robust to noise. (3) The loss function that best matches the business cost is linear in error. Choose RMSE/MSE when: (1) Large errors are disproportionately costly (e.g., safety-critical systems). (2) The distribution of errors is approximately normal (RMSE is the MLE estimator for Gaussian noise). (3) You want to penalise variance in errors. In practice, train on Huber loss (compromise) and report both MAE and RMSE.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Ranking Metrics: NDCG, MRR & MAP',
+            desc: 'Position-discounted relevance, first-relevant-result quality, precision averaged over ranks',
+            detail: {
+              overview: `Ranking metrics evaluate ordered lists, not just binary predictions. Mean Reciprocal Rank (MRR) = mean(1/rank_of_first_relevant_item) — focuses on the first relevant result, ideal for factual Q&A and search. Mean Average Precision (MAP) = mean over queries of average precision at each relevant document position. NDCG (Normalized Discounted Cumulative Gain) uses a logarithmic discount: DCG = Σ (2^rel_i - 1) / log2(i+1), normalised by the ideal ordering (IDCG). NDCG handles graded relevance (0/1/2/3) and is the standard metric for learning-to-rank systems.`,
+              code: {
+                label: 'Python — NDCG, MRR, MAP from scratch and via sklearn',
+                lines: `import numpy as np
+from sklearn.metrics import ndcg_score
+
+# ── NDCG@K from scratch ───────────────────────────────────
+def dcg_at_k(relevances, k):
+    """relevances: list ordered by model rank, graded 0/1/2/3"""
+    relevances = np.array(relevances[:k], dtype=float)
+    n = len(relevances)
+    if n == 0: return 0.0
+    discounts = np.log2(np.arange(2, n + 2))   # log2(2), log2(3), ...
+    return np.sum((2**relevances - 1) / discounts)
+
+def ndcg_at_k(relevances, k):
+    ideal = sorted(relevances, reverse=True)
+    idcg = dcg_at_k(ideal, k)
+    if idcg == 0: return 0.0
+    return dcg_at_k(relevances, k) / idcg
+
+# Example: query with 5 results, graded relevance
+model_ranking = [3, 1, 2, 0, 3]     # relevance scores in model's rank order
+ideal_ranking = sorted(model_ranking, reverse=True)  # [3, 3, 2, 1, 0]
+
+print(f"NDCG@5: {ndcg_at_k(model_ranking, 5):.4f}")
+print(f"NDCG@3: {ndcg_at_k(model_ranking, 3):.4f}")   # only top 3 matter
+
+# ── sklearn ndcg_score ────────────────────────────────────
+y_true = np.array([[3, 1, 2, 0, 3]])   # true relevance scores
+y_score = np.array([[0.9, 0.4, 0.7, 0.1, 0.85]])  # model scores
+print(f"sklearn NDCG@5: {ndcg_score(y_true, y_score, k=5):.4f}")
+
+# ── MRR (Mean Reciprocal Rank) ────────────────────────────
+def mrr(ranked_relevances_per_query):
+    """ranked_relevances_per_query: list of lists, 1=relevant, 0=not"""
+    rr_list = []
+    for rel_list in ranked_relevances_per_query:
+        for rank, rel in enumerate(rel_list, 1):
+            if rel == 1:
+                rr_list.append(1.0 / rank)
+                break
+        else:
+            rr_list.append(0.0)   # no relevant result found
+    return np.mean(rr_list)
+
+queries = [[1, 0, 0, 1], [0, 1, 0, 0], [0, 0, 0, 1]]
+print(f"MRR: {mrr(queries):.4f}")   # (1/1 + 1/2 + 1/4) / 3 ≈ 0.583
+
+# ── MAP (Mean Average Precision) ─────────────────────────
+def average_precision(relevances):
+    hits, prec_sum = 0, 0.0
+    for rank, rel in enumerate(relevances, 1):
+        if rel == 1:
+            hits += 1
+            prec_sum += hits / rank
+    if hits == 0: return 0.0
+    return prec_sum / hits
+
+query_results = [[1, 0, 1, 0, 1], [0, 0, 1, 0, 0]]
+map_score = np.mean([average_precision(q) for q in query_results])
+print(f"MAP: {map_score:.4f}")`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using binary relevance (0/1) for NDCG when graded relevance is available',
+                  context: 'Treating a "very relevant" document the same as a "slightly relevant" document (both labelled 1) collapses the ranking signal. Models trained or evaluated on binary-NDCG can score highly by placing mildly relevant documents at position 1 and missing the truly relevant ones.',
+                  fix: 'Use graded relevance scores (0, 1, 2, 3) in NDCG if your annotation pipeline supports it. The 2^rel - 1 gain formula in NDCG heavily rewards high-relevance documents — a graded 3 contributes 7× more gain than a graded 1.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'When would you use MRR vs MAP vs NDCG?',
+                  a: 'MRR: use when there is a single correct answer per query (factual QA, known-item search). It focuses purely on where the first correct result appears — other results do not matter. MAP: use when multiple relevant documents exist per query and you care about precision at every recall level (information retrieval, document search). NDCG: use when relevance is graded and position discounting matters (recommendation, web search). NDCG@K is the industry standard for search and recommendation because it handles graded relevance and is directly optimisable via LambdaRank/LambdaMART.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      {
+        num: '06',
+        title: 'Bias-Variance, Cross-Validation & Model Selection',
+        intro: 'Understanding why a model fails — high bias vs high variance — is the foundation of principled model debugging. Cross-validation makes generalisation estimates reliable. Learning curves diagnose without extra data.',
+        insight: 'A learning curve saves you from training a model for a week on 10× more data when the problem is high bias. Adding data only helps if the model is underfitting — if it is overfitting, add regularisation first.',
+        points: [
+          {
+            term: 'Bias-Variance Decomposition',
+            desc: 'Expected MSE = bias² + variance + irreducible noise; diagnosing underfitting vs overfitting',
+            detail: {
+              overview: `The expected prediction error of any model can be decomposed as: E[(y - ŷ)²] = Bias² + Variance + σ². Bias is the error from wrong assumptions in the learning algorithm — a linear model fitting non-linear data has high bias. Variance is sensitivity to fluctuations in the training set — a deep decision tree that memorises training noise has high variance. Irreducible noise σ² is the label noise floor that no model can overcome.\n\nThe tradeoff: simple models (linear regression, shallow trees) have high bias but low variance. Complex models (deep trees, large neural nets) have low bias but high variance — they fit training data well but generalise poorly without regularisation. The goal is to find the sweet spot where total expected error is minimised.`,
+              code: {
+                label: 'Python — bias-variance simulation, learning curves, train vs val gap diagnosis',
+                lines: `import numpy as np
+from sklearn.model_selection import learning_curve
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures
+import matplotlib
+matplotlib.use('Agg')
+
+np.random.seed(42)
+
+# ── Generate non-linear ground truth ─────────────────────
+def true_fn(x): return np.sin(2*x) + 0.3*x**2
+
+n = 300
+X = np.random.uniform(-3, 3, n).reshape(-1, 1)
+y = true_fn(X.ravel()) + np.random.normal(0, 0.3, n)   # σ=0.3
+
+# ── High-bias model: linear (underfit) ────────────────────
+ridge_linear = Ridge(alpha=1.0)
+ridge_linear.fit(X, y)
+# Will have systematic error on curved regions → high bias
+
+# ── Low-bias model: degree-10 polynomial ─────────────────
+poly_model = make_pipeline(PolynomialFeatures(degree=10), Ridge(alpha=1e-4))
+poly_model.fit(X, y)
+# Fits training perfectly but wiggles between points → high variance
+
+# ── Learning curves diagnose bias vs variance ─────────────
+train_sizes, tr_scores, val_scores = learning_curve(
+    ridge_linear, X, y,
+    train_sizes=np.linspace(0.1, 1.0, 10),
+    cv=5, scoring='neg_mean_squared_error', n_jobs=-1
+)
+tr_mean  = -tr_scores.mean(1)
+val_mean = -val_scores.mean(1)
+
+# ── Reading the learning curve ────────────────────────────
+# HIGH BIAS (underfitting):
+#   Both training and validation error are high and plateau close together
+#   → model cannot capture the pattern regardless of data size
+#   Fix: use a more complex model or add polynomial features
+
+# HIGH VARIANCE (overfitting):
+#   Training error is low, validation error is high; large gap
+#   Adding more data closes the gap
+#   Fix: more data, stronger regularisation, or simpler model
+
+print(f"Linear — Train MSE: {tr_mean[-1]:.4f}, Val MSE: {val_mean[-1]:.4f}")
+# If both high and close → high bias
+# If train low, val high → high variance`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Adding more data when the model has high bias',
+                  context: 'A linear model on non-linear data has high bias regardless of how many samples you have. The training and validation error curves are both high and converge — adding data makes no difference. Engineers waste weeks collecting data when the bottleneck is model expressiveness.',
+                  fix: 'Plot learning curves first. If train and val error are both high and plateau close together → high bias → increase model complexity (more polynomial features, deeper tree, larger network), not more data. If the gap between train and val is large → high variance → more data helps, or add regularisation.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How does regularisation affect the bias-variance tradeoff?',
+                  a: 'Regularisation (L1, L2, dropout, early stopping) increases bias while reducing variance. A Ridge regression with high λ shrinks all coefficients toward zero — it introduces bias (estimates are no longer the OLS estimates) but reduces the sensitivity to training set fluctuations. The regularisation hyperparameter controls where on the bias-variance spectrum the model sits. The goal is to find the λ where total expected test error is minimised — typically via cross-validation. As a rule: if the model overfits (high variance), increase λ. If it underfits (high bias), decrease λ.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'K-Fold Cross-Validation & Stratified CV',
+            desc: 'Why CV gives a better generalisation estimate, stratification, time-series CV, nested CV',
+            detail: {
+              overview: `K-fold cross-validation partitions the data into K folds, trains K models each on K-1 folds, evaluates on the held-out fold, and averages the K scores. This gives a lower-variance estimate of generalisation performance than a single train/val split, at the cost of K× training time.\n\nStratified K-fold preserves the class distribution in each fold — critical for imbalanced classification where a random fold might contain no positive examples. For time-series, use TimeSeriesSplit which ensures the test fold always comes after the training fold in time — random cross-validation on time-series leaks future information.`,
+              code: {
+                label: 'Python — KFold, StratifiedKFold, TimeSeriesSplit, nested CV for model selection',
+                lines: `import numpy as np
+from sklearn.model_selection import (
+    KFold, StratifiedKFold, TimeSeriesSplit,
+    cross_val_score, GridSearchCV,
+)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_classification
+from sklearn.metrics import roc_auc_score
+
+X, y = make_classification(n_samples=5000, n_features=20, n_informative=10,
+                            class_sep=0.5, weights=[0.9, 0.1], random_state=42)
+
+# ── Stratified K-Fold (preserves class ratio in each fold) ──
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+rf  = RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=42)
+
+auc_scores = cross_val_score(rf, X, y, cv=skf,
+                              scoring='roc_auc', n_jobs=-1)
+print(f"CV AUC: {auc_scores.mean():.4f} ± {auc_scores.std():.4f}")
+
+# ── Time-series CV: test folds must always come AFTER train ──
+n_ts = 1000
+X_ts = np.random.randn(n_ts, 5)
+y_ts = np.random.randint(0, 2, n_ts)
+tscv = TimeSeriesSplit(n_splits=5)
+for fold, (tr_idx, te_idx) in enumerate(tscv.split(X_ts)):
+    print(f"Fold {fold}: train {tr_idx[0]}–{tr_idx[-1]}, test {te_idx[0]}–{te_idx[-1]}")
+# Each test window is strictly after the corresponding train window
+
+# ── Nested CV: unbiased model selection ───────────────────
+# WRONG: do grid search on full data, then cross-validate the best model
+# This leaks the val-set-selected hyperparameters into the estimate
+
+# CORRECT: outer CV estimates test performance; inner CV selects hyperparameters
+outer_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+inner_cv  = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+
+param_grid = {'n_estimators': [50, 100], 'max_depth': [None, 5, 10]}
+gs = GridSearchCV(rf, param_grid, cv=inner_cv, scoring='roc_auc', n_jobs=-1)
+nested_scores = cross_val_score(gs, X, y, cv=outer_cv,
+                                 scoring='roc_auc', n_jobs=-1)
+print(f"Nested CV AUC: {nested_scores.mean():.4f} ± {nested_scores.std():.4f}")
+# Outer score is unbiased; inner GridSearchCV fits independently per outer fold`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using random K-fold cross-validation on time-series data',
+                  context: 'Random shuffling violates temporal order — the model trains on future data to predict past data. A stock price model that can see tomorrow\'s price to predict yesterday\'s will show spectacular cross-validation results that completely fail in production.',
+                  fix: 'Use TimeSeriesSplit (or sklearn\'s walk-forward validation) exclusively for time-dependent data. Ensure that every evaluation fold\'s test window strictly follows its training window. Also ensure that feature engineering (rolling means, lag features) is recomputed for each fold using only training-window data.',
+                },
+                {
+                  issue: 'Reporting the score from a GridSearchCV object as the final performance estimate',
+                  context: 'GridSearchCV\'s best_score_ is biased upward because the model selection step and the evaluation step used the same data. The best hyperparameters were chosen to minimise validation error — reporting that same score as generalisation performance is optimistic.',
+                  fix: 'Use nested cross-validation: GridSearchCV as the inner loop for hyperparameter selection, and an outer cross_val_score for an unbiased performance estimate. On large datasets where nested CV is expensive, hold out a final test set that is never touched during model development.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How many folds should you use in K-fold cross-validation?',
+                  a: 'The choice of K trades off bias vs variance of the CV estimate and computation. K=5 or K=10 are the standard choices. With K=5: each training set uses 80% of data — reasonable. With K=10: each training set uses 90% — less bias in the estimate, more computation. Leave-one-out CV (K=n) is nearly unbiased but has high variance. For small datasets (< 500 samples): K=10 or LOOCV. For large datasets (> 10k samples): K=5 is sufficient. For imbalanced classification: always use StratifiedKFold regardless of K. Repeated K-fold (e.g., 5×5=25 folds) gives more stable estimates when compute allows.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ═══════════════════════════════════════════════════════
+     LAYER 4 · Neural Networks  —  Stages 07–08
+  ═══════════════════════════════════════════════════════ */
+  {
+    id: 'neural',
+    label: 'Neural Networks',
+    range: '07–08',
+    stages: [
+      {
+        num: '07',
+        title: 'Neural Network Foundations & Backpropagation',
+        intro: 'Before transformers and diffusion models, there is a perceptron. Understanding the mechanics of forward pass, loss, backpropagation, and parameter update is non-negotiable for debugging training failures.',
+        insight: 'Most neural network training bugs are not architecture bugs — they are initialization bugs, data pipeline bugs (wrong normalisation, shuffling errors), or loss function bugs. Check the simple things first.',
+        points: [
+          {
+            term: 'Forward Pass, Activations & the Universal Approximation Theorem',
+            desc: 'MLP computation graph, activation function choices, depth vs width, UAT intuition',
+            detail: {
+              overview: `A Multi-Layer Perceptron (MLP) computes h_l = σ(W_l h_{l-1} + b_l) at each layer l, where σ is an elementwise nonlinearity. Without nonlinearities, stacked linear layers collapse to a single linear transformation — depth adds no expressive power. The Universal Approximation Theorem (UAT) states that a single hidden layer with enough units can approximate any continuous function — but "enough units" can be exponential in the input dimension. Depth provides exponential gain in representational efficiency: functions that require exponentially wide shallow networks are representable by polynomial-width deep networks.\n\nActivation function choice: ReLU = max(0,x) is standard — computationally cheap, avoids vanishing gradients for positive inputs. GELU (used in transformers) is smoother: x·Φ(x) where Φ is the Gaussian CDF. Leaky ReLU and ELU address dying ReLU (neurons stuck at zero).`,
+              code: {
+                label: 'PyTorch — MLP from scratch, activation comparison, parameter count audit',
+                lines: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+
+# ── Minimal MLP implementation ────────────────────────────
+class MLP(nn.Module):
+    def __init__(self, in_dim: int, hidden: list[int], out_dim: int,
+                 activation=nn.GELU()):
+        super().__init__()
+        dims = [in_dim] + hidden + [out_dim]
+        self.layers = nn.ModuleList([
+            nn.Linear(d_in, d_out)
+            for d_in, d_out in zip(dims[:-1], dims[1:])
+        ])
+        self.act = activation
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i < len(self.layers) - 1:   # no activation on output layer
+                x = self.act(x)
+        return x
+
+model = MLP(in_dim=128, hidden=[256, 256, 128], out_dim=10)
+
+# ── Parameter count ───────────────────────────────────────
+total = sum(p.numel() for p in model.parameters())
+trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(f"Total params: {total:,} | Trainable: {trainable:,}")
+
+# ── Forward pass manually (educational) ──────────────────
+x = torch.randn(32, 128)   # batch of 32, 128-dim input
+h = x
+for i, layer in enumerate(model.layers):
+    z = layer(h)       # linear: W·h + b
+    h = F.gelu(z) if i < len(model.layers)-1 else z  # activation except last
+print(f"Output shape: {h.shape}")   # (32, 10)
+
+# ── Activation comparison ─────────────────────────────────
+x_demo = torch.linspace(-3, 3, 100)
+relu  = F.relu(x_demo)
+gelu  = F.gelu(x_demo)
+lrelu = F.leaky_relu(x_demo, 0.01)   # small negative slope prevents dying
+
+# Dying ReLU: neuron where pre-activation is always negative
+# gradient = 0 for all inputs → weights never update → neuron is dead
+# Fix: Leaky ReLU, ELU, or careful initialisation + BN
+
+# ── Without nonlinearity: just a linear map ───────────────
+linear_only = nn.Sequential(nn.Linear(4, 8), nn.Linear(8, 2))
+x4 = torch.randn(10, 4)
+# Both layers are linear → equivalent to a single nn.Linear(4, 2)
+# This is why activation functions are essential`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using sigmoid or tanh activations in deep networks',
+                  context: 'Sigmoid maps to (0,1) and tanh to (-1,1). Both saturate: gradients near 0 when |input| is large. In a 10-layer network, the gradient at the first layer is the product of 10 terms, each near 0 — it vanishes to zero (vanishing gradient), and early layers stop learning.',
+                  fix: 'Use ReLU or GELU for hidden layers in modern networks. Sigmoid is appropriate for the final layer of binary classifiers (probability output). tanh can work in recurrent cells (LSTM gates) where it is bounded by design. If you must use sigmoid/tanh in hidden layers, use residual connections and batch normalisation.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'What does the Universal Approximation Theorem actually guarantee?',
+                  a: 'The UAT guarantees that a single-hidden-layer feedforward network with a finite number of neurons can approximate any continuous function on a compact subset of R^n to arbitrary accuracy. What it does NOT guarantee: the width needed may be exponential in the input dimension. It says nothing about learnability (whether gradient descent can find the weights). It says nothing about generalisation. It says nothing about efficiency. In practice, deep networks learn hierarchical representations far more efficiently than wide shallow networks — the UAT is a theoretical existence result, not a practical design guide.',
+                },
+                {
+                  q: 'Why is GELU preferred over ReLU in transformer architectures?',
+                  a: 'GELU (Gaussian Error Linear Unit) = x·Φ(x) is smooth and differentiable everywhere, including at x=0. ReLU has a non-differentiable kink at 0. GELU has a stochastic interpretation: it scales the input by the probability that a standard Gaussian exceeds the input, creating a smooth "soft gate." In transformers, GELU showed empirically better performance in BERT and GPT models, likely because the smooth gradient flow around zero helps with the attention-weighted activations that frequently pass through zero. SwiGLU (used in LLaMA) extends this with a learnable gating mechanism.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Backpropagation & Gradient Flow',
+            desc: 'Chain rule applied to computation graphs, vanishing/exploding gradients, gradient clipping',
+            detail: {
+              overview: `Backpropagation applies the chain rule through a computation graph to compute ∂L/∂θ for all parameters θ. For a parameter θ in layer l: ∂L/∂θ = ∂L/∂h_l · ∂h_l/∂θ. The ∂L/∂h_l term is computed from the next layer backward (backprop) and multiplied by ∂h_l/∂θ (local gradient).\n\nVanishing gradients: in very deep networks or RNNs, the product of many small Jacobians (<1) causes gradients to shrink exponentially. Early layers receive near-zero gradient and stop learning. Exploding gradients: the product of many large Jacobians (>1) causes gradients to grow exponentially, causing NaN losses. Gradient clipping bounds the gradient norm to prevent this.`,
+              code: {
+                label: 'PyTorch — manual backprop, gradient inspection, clipping, NaN detection',
+                lines: `import torch
+import torch.nn as nn
+import numpy as np
+
+# ── Manual backprop on a 2-layer net (educational) ────────
+torch.manual_seed(42)
+W1 = torch.randn(4, 3, requires_grad=True)
+b1 = torch.zeros(4, requires_grad=True)
+W2 = torch.randn(2, 4, requires_grad=True)
+b2 = torch.zeros(2, requires_grad=True)
+
+x  = torch.randn(5, 3)       # batch=5, in_dim=3
+y  = torch.randint(0, 2, (5,))
+
+# Forward pass
+h1 = torch.relu(x @ W1.T + b1)   # (5, 4)
+logits = h1 @ W2.T + b2           # (5, 2)
+loss = nn.CrossEntropyLoss()(logits, y)
+print(f"Loss: {loss.item():.4f}")
+
+# Backward pass: PyTorch autograd computes ∂loss/∂W1, ∂loss/∂W2, etc.
+loss.backward()
+print(f"||∇W1||: {W1.grad.norm().item():.4f}")
+print(f"||∇W2||: {W2.grad.norm().item():.4f}")
+
+# ── Gradient clipping (prevent exploding gradients) ───────
+model = nn.Sequential(nn.Linear(10, 64), nn.ReLU(), nn.Linear(64, 1))
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+x_batch = torch.randn(32, 10)
+y_batch = torch.randn(32, 1)
+
+optimizer.zero_grad()
+loss = nn.MSELoss()(model(x_batch), y_batch)
+loss.backward()
+
+# BEFORE clipping: inspect gradient norms
+total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+print(f"Grad norm before clip: {total_norm:.4f}")
+# Gradients are now clipped to max_norm=1.0 if they exceeded it
+optimizer.step()
+
+# ── NaN gradient detection ────────────────────────────────
+def check_gradients(model):
+    for name, param in model.named_parameters():
+        if param.grad is not None:
+            if torch.isnan(param.grad).any():
+                print(f"NaN gradient: {name}")
+            elif torch.isinf(param.grad).any():
+                print(f"Inf gradient: {name}")
+check_gradients(model)
+
+# ── Residual connections solve vanishing gradients ────────
+class ResidualBlock(nn.Module):
+    def __init__(self, dim: int):
+        super().__init__()
+        self.ff = nn.Sequential(nn.Linear(dim, dim), nn.GELU(),
+                                 nn.Linear(dim, dim))
+    def forward(self, x):
+        return x + self.ff(x)   # gradient highway: ∂/∂x(x + f(x)) = 1 + ∂f/∂x`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Not zeroing gradients before each backward pass',
+                  context: 'optimizer.zero_grad() must be called before loss.backward(). PyTorch accumulates gradients by default — if you forget zero_grad(), gradients from previous batches are added to the current batch\'s gradients. The effective gradient is the sum over all processed batches, causing unstable training that appears to converge then diverges.',
+                  fix: 'The standard training loop order: zero_grad() → forward → loss → backward → [clip] → step. Never skip zero_grad(). Gradient accumulation (intentional) is the only case where you want to sum gradients over multiple batches before calling step().',
+                },
+                {
+                  issue: 'Not monitoring gradient norms during training',
+                  context: 'Gradients exploding to NaN can take many batches to manifest as a loss=nan. By then, model weights are corrupted. Gradients vanishing to zero silently stalls learning — the loss plateaus and the diagnosis is unclear.',
+                  fix: 'Log the total gradient norm (torch.nn.utils.clip_grad_norm_ returns the norm before clipping) every N steps. A sudden spike signals exploding gradients. A steady monotonic decrease toward zero signals vanishing gradients. Use these as training health signals in your monitoring dashboard.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Explain how residual connections solve the vanishing gradient problem.',
+                  a: 'In a residual block y = x + F(x), the gradient flowing back through the shortcut path is ∂L/∂x = ∂L/∂y · (1 + ∂F/∂x). The "+1" term ensures that even if ∂F/∂x is near zero (saturated activations), the gradient ∂L/∂x is at least ∂L/∂y — it does not vanish through the block. This creates a "gradient highway" that allows gradients to flow directly from the loss to early layers in very deep networks (ResNet-1000+). Residual connections are the single most important architectural innovation for training depth — they enable networks that were previously untrainable.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Weight Initialisation & Normalisation Layers',
+            desc: 'Xavier/Glorot, He initialisation, Batch Norm, Layer Norm — what they fix and when to use each',
+            detail: {
+              overview: `Weight initialisation determines the initial scale of activations and gradients. If weights are too small: activations shrink to zero through layers (vanishing). If too large: activations and gradients explode. Xavier/Glorot initialisation: W ~ U[-√(6/(fan_in + fan_out)), √(6/(fan_in + fan_out))], designed to maintain activation variance under tanh/sigmoid. He initialisation: W ~ N(0, √(2/fan_in)), designed for ReLU where half the neurons are zeroed, requiring 2× larger variance.\n\nBatch Normalisation normalises activations within a mini-batch: μ and σ computed over the batch, then learnable scale γ and shift β applied. LayerNorm normalises over feature dimensions within each sample — critical for variable-length sequences in transformers where batch statistics are ill-defined.`,
+              code: {
+                label: 'PyTorch — initialisation comparison, BatchNorm vs LayerNorm, activation statistics tracking',
+                lines: `import torch
+import torch.nn as nn
+import numpy as np
+
+# ── Weight initialisation ─────────────────────────────────
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        nn.init.kaiming_normal_(m.weight, mode='fan_in',
+                                nonlinearity='relu')   # He init for ReLU
+        nn.init.zeros_(m.bias)
+
+def init_weights_xavier(m):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)   # Glorot for tanh/sigmoid
+        nn.init.zeros_(m.bias)
+
+# ── Track activation statistics across layers ─────────────
+torch.manual_seed(42)
+n_layers = 10
+x = torch.randn(64, 256)   # batch=64, features=256
+
+print("Layer | mean  |  std  | dead%")
+print("------|-------|-------|------")
+for i in range(n_layers):
+    # Zero init (bad) vs He init
+    W_bad  = torch.zeros(256, 256)                  # all zeros — all neurons dead
+    W_good = torch.randn(256, 256) * (2/256)**0.5   # He init
+
+    x = torch.relu(x @ W_good.T)
+    dead_pct = (x == 0).float().mean().item() * 100
+    print(f"  {i+1:2d}  | {x.mean().item():+.3f} | {x.std().item():.3f} | {dead_pct:.1f}%")
+
+# ── Batch Normalisation ───────────────────────────────────
+bn = nn.BatchNorm1d(256)
+# During training: normalises over batch dimension
+# During eval (bn.eval()): uses running statistics (exponential moving avg)
+# IMPORTANT: must call model.eval() for inference to use running stats!
+
+# ── Layer Normalisation (for transformers) ────────────────
+ln = nn.LayerNorm(256)
+# Normalises over feature dimension for EACH sample independently
+# Works on sequence length 1 (single tokens) — no batch size dependence
+
+# ── Pre-norm vs Post-norm (transformer architecture) ──────
+class PreNormResidual(nn.Module):
+    def __init__(self, dim, fn):
+        super().__init__()
+        self.norm, self.fn = nn.LayerNorm(dim), fn
+    def forward(self, x):
+        return x + self.fn(self.norm(x))   # Pre-norm: more stable training
+
+class PostNormResidual(nn.Module):
+    def __init__(self, dim, fn):
+        super().__init__()
+        self.norm, self.fn = nn.LayerNorm(dim), fn
+    def forward(self, x):
+        return self.norm(x + self.fn(x))   # Post-norm: original transformer`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Not calling model.eval() before inference when BatchNorm is present',
+                  context: 'BatchNorm behaves differently in train and eval modes. In train mode it normalises using the current mini-batch statistics. In eval mode it uses running statistics accumulated during training. Forgetting model.eval() causes inconsistent predictions on single samples or small batches (batch statistics are unreliable for batch size 1).',
+                  fix: 'Always call model.eval() and torch.no_grad() before inference. Use model.train() to return to training mode. If serving single samples, use LayerNorm instead of BatchNorm — its statistics are computed per-sample and work correctly at batch_size=1.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Why does Batch Normalisation accelerate training?',
+                  a: 'BatchNorm addresses internal covariate shift — the change in input distribution to each layer as parameters update. By normalising activations to zero mean and unit variance at each layer, it (1) allows higher learning rates without divergence, (2) reduces sensitivity to initialisation, (3) acts as regularisation via the randomness of batch statistics, and (4) prevents the gradient from vanishing or exploding through normalised layers. The γ and β parameters allow the network to undo the normalisation when needed. In practice, BatchNorm reduces the number of epochs needed to converge by 2–5×, enabling much faster experimentation.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      {
+        num: '08',
+        title: 'CNNs & Transfer Learning',
+        intro: 'Convolutional networks are the canonical example of inductive bias solving a learning problem: translational invariance is hard-coded into the architecture, slashing the parameter count and sample complexity for image tasks by orders of magnitude.',
+        insight: 'For most vision tasks, a pre-trained ResNet-50 fine-tuned for 10 epochs outperforms a CNN trained from scratch for 200 epochs. Start with transfer learning.',
+        points: [
+          {
+            term: 'Convolution, Pooling & the Receptive Field',
+            desc: 'Sliding filter mechanics, stride/padding, feature maps, receptive field growth with depth',
+            detail: {
+              overview: `A 2D convolution slides a kernel K of shape (k_h, k_w) over an input feature map, computing a dot product at each position: output[i,j] = Σ_{p,q} K[p,q] · input[i+p, j+q]. Key design choices: kernel_size (3×3 is standard — efficient and stackable), stride (controls output size — stride 2 downsamples), padding (SAME keeps spatial dimensions; VALID shrinks them).\n\nThe receptive field of a neuron is the input region that influences it. Two stacked 3×3 convolutions have receptive field 5×5 but half the parameters of one 5×5 conv (2×9 vs 25 params per input channel). Deeper networks have larger receptive fields, enabling the detection of larger-scale patterns. Pooling (max, average) reduces spatial dimensions and adds translational invariance.`,
+              code: {
+                label: 'PyTorch — CNN forward pass, receptive field calculation, conv arithmetic',
+                lines: `import torch
+import torch.nn as nn
+import numpy as np
+
+# ── Basic Conv block ──────────────────────────────────────
+class ConvBlock(nn.Module):
+    def __init__(self, in_c: int, out_c: int, k=3, stride=1, padding=1):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_c, out_c, kernel_size=k, stride=stride, padding=padding,
+                      bias=False),          # bias=False when followed by BN
+            nn.BatchNorm2d(out_c),
+            nn.ReLU(inplace=True),
+        )
+    def forward(self, x): return self.block(x)
+
+# ── Simple CNN for CIFAR-10 ────────────────────────────────
+class SimpleCNN(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        self.features = nn.Sequential(
+            ConvBlock(3, 32),              # 32×32 → 32×32 (padding=1)
+            ConvBlock(32, 64, stride=2),   # 32×32 → 16×16 (stride=2)
+            ConvBlock(64, 128, stride=2),  # 16×16 → 8×8
+            ConvBlock(128, 256, stride=2), # 8×8   → 4×4
+        )
+        self.pool = nn.AdaptiveAvgPool2d(1)   # → (B, 256, 1, 1)
+        self.head = nn.Linear(256, num_classes)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.pool(x).flatten(1)
+        return self.head(x)
+
+model = SimpleCNN()
+x = torch.randn(4, 3, 32, 32)   # batch=4, RGB, 32×32
+out = model(x)
+print(f"Output shape: {out.shape}")   # (4, 10)
+params = sum(p.numel() for p in model.parameters())
+print(f"Parameters: {params:,}")
+
+# ── Receptive field calculation ────────────────────────────
+# Each 3×3 conv with stride 1: RF grows by 2 per layer
+# stride-2 conv: RF at that layer covers 2× the input region
+# Layer 1 RF: 3, Layer 2 RF: 7 (3 + 2*2), Layer 3 RF: 15, Layer 4 RF: 31
+# Formula: RF_l = RF_{l-1} + (k-1) * prod(strides_1..l-1)
+
+# ── Conv output size formula ─────────────────────────────
+def conv_out_size(in_size, kernel, stride, padding):
+    return (in_size + 2*padding - kernel) // stride + 1
+
+print(conv_out_size(32, 3, 1, 1))   # 32 (SAME padding with k=3, s=1)
+print(conv_out_size(32, 3, 2, 1))   # 16 (stride-2 downsampling)`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using bias=True in conv layers followed by BatchNorm',
+                  context: 'BatchNorm shifts the mean of activations to zero using its own learnable parameter β. The bias in the conv layer is redundant — it will be subtracted by the BatchNorm mean anyway. Including it wastes parameters and can cause instability.',
+                  fix: 'Always set bias=False in conv layers that are immediately followed by BatchNorm. This is the standard in ResNet, EfficientNet, and virtually all modern architectures. The final conv layer or a conv layer without BN should have bias=True.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Why are 3×3 convolutions preferred over larger kernels?',
+                  a: 'Two stacked 3×3 convolutions have the same receptive field (5×5) as one 5×5 convolution but use 2×9 = 18 vs 25 parameters per channel pair, and apply two non-linearities instead of one. This introduces more non-linearity at lower computational cost, leading to more expressive representations for the same parameter budget. The VGG paper (2014) made this argument and 3×3 convolutions became the standard building block. Exceptions: 1×1 convolutions for channel mixing (used in bottleneck blocks and depthwise separable convolutions) and 7×7 or 11×11 in the first layer to downsample the raw image aggressively.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Transfer Learning & Fine-Tuning',
+            desc: 'Frozen feature extraction vs full fine-tuning, layer-wise learning rates, domain shift',
+            detail: {
+              overview: `Transfer learning leverages representations learned on large datasets (ImageNet, JFT-3B, LAION) for target tasks with limited labelled data. The standard workflow: (1) load a pre-trained backbone; (2) replace the classification head with a task-specific head; (3) decide what to freeze.\n\nFeature extraction: freeze all backbone layers, train only the head. Fast, low compute, works when the source domain is close to the target. Fine-tuning: unfreeze some or all backbone layers and train with a small learning rate. More powerful but requires more data and risks catastrophic forgetting. Layer-wise learning rate decay (lower LR for earlier layers) is standard — earlier layers encode generic features that should change little; later layers encode task-specific features that need more adaptation.`,
+              code: {
+                label: 'PyTorch — transfer learning with ResNet-50, frozen backbone, layer-wise LR, fine-tuning schedule',
+                lines: `import torch
+import torch.nn as nn
+from torchvision import models
+
+# ── Load pre-trained ResNet-50 ─────────────────────────────
+backbone = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
+in_features = backbone.fc.in_features   # 2048
+
+# ── Replace classification head ───────────────────────────
+n_classes = 5  # target task: 5-class flower classification
+backbone.fc = nn.Sequential(
+    nn.Dropout(0.3),
+    nn.Linear(in_features, n_classes),
+)
+
+# ── Strategy 1: Feature extraction (freeze backbone) ──────
+for param in backbone.parameters():
+    param.requires_grad = False
+for param in backbone.fc.parameters():
+    param.requires_grad = True   # only head is trainable
+
+trainable = sum(p.numel() for p in backbone.parameters() if p.requires_grad)
+total = sum(p.numel() for p in backbone.parameters())
+print(f"Trainable: {trainable:,} / {total:,} ({100*trainable/total:.1f}%)")
+
+# ── Strategy 2: Fine-tuning with layer-wise LR decay ──────
+for param in backbone.parameters():
+    param.requires_grad = True
+
+# Earlier layers get lower LR (preserve generic features)
+layer_lrs = [
+    {'params': backbone.layer1.parameters(), 'lr': 1e-5},
+    {'params': backbone.layer2.parameters(), 'lr': 2e-5},
+    {'params': backbone.layer3.parameters(), 'lr': 5e-5},
+    {'params': backbone.layer4.parameters(), 'lr': 1e-4},
+    {'params': backbone.fc.parameters(),     'lr': 1e-3},
+]
+optimizer = torch.optim.AdamW(layer_lrs, weight_decay=1e-4)
+
+# ── Recommended fine-tuning schedule ─────────────────────
+# Phase 1 (5 epochs): Train head only (backbone frozen)
+# Phase 2 (10 epochs): Unfreeze layer4 + head, lr/10
+# Phase 3 (5 epochs): Unfreeze all layers, lr/100
+# This prevents catastrophic forgetting of ImageNet features
+
+# ── Domain shift consideration ────────────────────────────
+# ImageNet → natural photos: very close domain → freeze all but last 2 layers
+# ImageNet → medical X-rays: different domain → fine-tune more layers
+# ImageNet → satellite imagery: intermediate → fine-tune layer3+4
+# Rule: closer domain = less fine-tuning needed`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Fine-tuning with the same learning rate for all layers',
+                  context: 'Using lr=1e-3 uniformly on a pre-trained ResNet rapidly corrupts the early-layer representations that encode generic edges and textures, which took millions of ImageNet examples to learn. The model forgets useful features (catastrophic forgetting) and may converge slower or to a worse solution than feature extraction alone.',
+                  fix: 'Apply layer-wise learning rate decay: lr_head = base_lr, lr_last_block = base_lr/10, lr_earlier = base_lr/100. Or use the two-phase approach: freeze backbone for N epochs to train the head, then unfreeze with a 10× lower learning rate.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'When should you fine-tune a model vs use it as a fixed feature extractor?',
+                  a: 'Use feature extraction (frozen backbone) when: (1) your dataset is small (<1000 samples) and the source domain is similar — fine-tuning will overfit. (2) You have strict compute/latency constraints. (3) The source domain is very close to target (ImageNet → natural photos). Fine-tune when: (1) Dataset is large enough (>5000 samples). (2) Source and target domains differ significantly (ImageNet → medical images). (3) Maximum accuracy is required. (4) You have compute for the longer training. A practical heuristic: start with feature extraction, check validation performance, then progressively unfreeze layers until returns diminish.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ═══════════════════════════════════════════════════════
+     LAYER 5 · Optimization & Training  —  Stages 09–10
+  ═══════════════════════════════════════════════════════ */
+  {
+    id: 'optimization',
+    label: 'Optimization & Training',
+    range: '09–10',
+    stages: [
+      {
+        num: '09',
+        title: 'Optimisers, Regularisation & Training Dynamics',
+        intro: 'The choice of optimiser and regularisation strategy is as important as the architecture. AdamW on most tasks, gradient clipping for stability, weight decay for generalisation — these are the defaults to start from.',
+        insight: 'Most training instabilities trace to three causes: learning rate too high, missing gradient clipping, or batch size mismatch with learning rate. Fix these before touching architecture.',
+        points: [
+          {
+            term: 'SGD, Momentum, Adam, AdamW',
+            desc: 'Update rules, adaptive learning rates, weight decay as L2 decoupled from gradient, Adam vs AdamW',
+            detail: {
+              overview: `Stochastic Gradient Descent (SGD): θ ← θ - η·∇L. Unmodified SGD is noisy and slow to converge through flat regions. Momentum: accumulates gradient history v ← βv + ∇L, then θ ← θ - ηv. Builds up speed in consistent directions, dampens oscillations. Adam: per-parameter adaptive learning rates using first moment m and second moment v of the gradient. Effective lr for parameter i is η/√(v_i). Works well on sparse gradients and ill-conditioned problems.\n\nAdamW decouples weight decay from the gradient update — a critical fix. Adam with L2 regularisation (Adam + weight_decay) conflates L2 regularisation into the gradient normalisation, making the effective decay scale-dependent. AdamW applies weight decay directly to the parameters: θ ← θ(1-λ) - η·m/√v. This is the correct generalisation of weight decay for adaptive optimisers and is now the standard default.`,
+              code: {
+                label: 'PyTorch — optimiser comparison, AdamW with warmup, gradient accumulation',
+                lines: `import torch
+import torch.nn as nn
+from torch.optim import SGD, Adam, AdamW
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR, LinearLR, SequentialLR
+)
+
+model = nn.Sequential(nn.Linear(128, 256), nn.GELU(), nn.Linear(256, 10))
+x = torch.randn(32, 128)
+y = torch.randint(0, 10, (32,))
+loss_fn = nn.CrossEntropyLoss()
+
+# ── SGD with Nesterov momentum ────────────────────────────
+opt_sgd = SGD(model.parameters(), lr=0.01, momentum=0.9,
+              nesterov=True, weight_decay=5e-4)
+
+# ── Adam (baseline) ───────────────────────────────────────
+opt_adam = Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999),
+                weight_decay=1e-4)   # L2 conflated with gradient — avoid
+
+# ── AdamW (recommended default) ──────────────────────────
+opt_adamw = AdamW(model.parameters(), lr=1e-3, betas=(0.9, 0.999),
+                  eps=1e-8, weight_decay=1e-2)   # weight_decay decoupled
+
+# ── Cosine Annealing with Linear Warmup (standard for transformers) ──
+warmup_epochs, total_epochs = 5, 100
+warmup_scheduler = LinearLR(opt_adamw, start_factor=0.1, end_factor=1.0,
+                              total_iters=warmup_epochs)
+cosine_scheduler = CosineAnnealingLR(opt_adamw, T_max=total_epochs - warmup_epochs,
+                                      eta_min=1e-6)
+scheduler = SequentialLR(opt_adamw,
+                          schedulers=[warmup_scheduler, cosine_scheduler],
+                          milestones=[warmup_epochs])
+
+# ── Gradient Accumulation (simulate large batch on small GPU) ──
+ACCUMULATION_STEPS = 4   # effective_batch = 32 * 4 = 128
+opt_adamw.zero_grad()
+for step, (x_batch, y_batch) in enumerate([(x, y)] * 8):   # dummy loop
+    loss = loss_fn(model(x_batch), y_batch) / ACCUMULATION_STEPS
+    loss.backward()
+    if (step + 1) % ACCUMULATION_STEPS == 0:
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        opt_adamw.step()
+        opt_adamw.zero_grad()`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using Adam with weight_decay instead of AdamW',
+                  context: 'In Adam, adding weight_decay adds λθ to the gradient before the adaptive scaling. This means θ_i with a small gradient (small v_i) gets disproportionately large effective decay, while θ_i with a large gradient (large v_i) is barely decayed. The L2 penalty is not applied uniformly — AdamW fixes this.',
+                  fix: 'Use torch.optim.AdamW in all PyTorch projects. It correctly decouples weight decay: θ ← θ(1-λη) - η·m̂/√v̂. The weight_decay parameter controls the per-step shrinkage fraction independently of the gradient magnitude.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Why does Adam sometimes generalise worse than SGD with momentum?',
+                  a: 'Several factors: (1) Adam\'s per-parameter adaptive rates navigate sharp minima efficiently but these sharp minima often generalise worse than the flatter minima that SGD finds (the "sharp vs flat" minima generalisation hypothesis). (2) Adam\'s weight decay in Adam (not AdamW) is entangled with gradient scaling, reducing regularisation effectiveness. (3) Adam\'s β₂=0.999 means the second moment is a very slow-decaying exponential average — the effective learning rate in early training is very small. In practice: use AdamW for transformers and fine-tuning (works reliably across learning rates). Use SGD+momentum for ResNet-scale vision training from scratch where the LR schedule is well-tuned. AdamW is more robust to learning rate choice.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Dropout, Weight Decay & Label Smoothing',
+            desc: 'How each regulariser prevents overfitting, interaction effects, when to use which',
+            detail: {
+              overview: `Dropout randomly zeros activations with probability p during training, preventing co-adaptation of neurons. At test time, all neurons are active and activations are scaled by (1-p) — or equivalently, training activations are scaled by 1/(1-p) (inverted dropout, used by PyTorch). Dropout is a form of ensemble averaging: each forward pass trains a different sub-network.\n\nWeight decay (L2 regularisation) penalises large weights, smoothing the loss landscape. Label smoothing replaces hard one-hot targets y_i = 1 with y_i = 1-ε + ε/K, discouraging the model from becoming overconfident. It is particularly effective for classification tasks where near-duplicate examples can have different labels.`,
+              code: {
+                label: 'PyTorch — Dropout placement, inverted dropout mechanics, label smoothing, mixup',
+                lines: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+
+# ── Dropout: correct placement ────────────────────────────
+class ClassifierWithDropout(nn.Module):
+    def __init__(self, in_dim, hidden, n_classes, p=0.3):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden),
+            nn.GELU(),
+            nn.Dropout(p),             # after activation, before next linear
+            nn.Linear(hidden, hidden),
+            nn.GELU(),
+            nn.Dropout(p),
+            nn.Linear(hidden, n_classes),
+            # NO dropout on final layer — would randomly zero logits
+        )
+    def forward(self, x):
+        return self.net(x)
+
+model = ClassifierWithDropout(128, 256, 10, p=0.3)
+model.train()
+x = torch.randn(32, 128)
+out_train = model(x)   # ~30% of units zeroed + scaled by 1/0.7
+
+model.eval()           # CRITICAL: disables dropout for inference
+out_eval  = model(x)  # all units active, no scaling needed
+
+# ── Label Smoothing ───────────────────────────────────────
+# PyTorch 1.10+: label_smoothing in CrossEntropyLoss
+loss_smooth = nn.CrossEntropyLoss(label_smoothing=0.1)
+# Target y=3 becomes [0.01, 0.01, 0.01, 0.91, 0.01, ...] for 10 classes
+# Model cannot output arbitrarily large logits for the correct class
+# ε=0.1: 10% of probability mass spread uniformly, 90% on true class
+
+# ── MixUp augmentation (implicit regularisation) ─────────
+def mixup_data(x, y, alpha=0.2):
+    """Linearly interpolates pairs of training examples and labels"""
+    lam = np.random.beta(alpha, alpha)
+    idx = torch.randperm(x.size(0))
+    mixed_x = lam * x + (1 - lam) * x[idx]
+    y_a, y_b = y, y[idx]
+    return mixed_x, y_a, y_b, lam
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
+# ── Dropout rate guidelines ───────────────────────────────
+# p=0.1–0.2: after embedding layers, or large transformer models
+# p=0.3–0.5: before classification head in MLP
+# p=0.5: original Hinton recommendation for fully-connected layers
+# Do NOT apply to convolutional feature maps in ResNets (use stochastic depth)`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Forgetting model.eval() during inference when dropout is present',
+                  context: 'In train mode, dropout randomly zeroes activations. If model.eval() is not called during evaluation or serving, the model produces different (random) outputs on every forward pass for the same input — non-deterministic serving. The average output over many samples is correct, but a single prediction is wrong.',
+                  fix: 'Always call model.eval() before any evaluation loop or inference. Pair with torch.no_grad() to disable gradient computation for efficiency. In a test loop: model.eval(); with torch.no_grad(): y_hat = model(x). Only revert to model.train() at the start of each training epoch.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'What is label smoothing and when does it help?',
+                  a: 'Label smoothing replaces hard target y=1 with y=1-ε and distributes ε/(K-1) to all other classes. It prevents the model from becoming overconfident by penalising maximum-entropy (uniform) probability distributions less than hard labels do. Benefits: (1) Improved calibration — model probabilities better reflect actual accuracy. (2) Regularisation — cannot assign infinite log-odds to the correct class. (3) Better generalisation on noisy labels — less punishment for slight uncertainty. Typical ε=0.1. Downsides: slightly harder to interpret logits; threshold for binary decisions may shift. Particularly effective for image classification, NMT, and when training labels may have some noise.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      {
+        num: '10',
+        title: 'Practical Training: Scheduling, Monitoring & Debugging',
+        intro: 'The gap between a model that trains and one that trains well is usually found in the learning rate schedule, the monitoring setup, and the discipline to interpret loss curves before adding complexity.',
+        insight: 'The most common cause of "why is my model not learning" is not the architecture — it is an incorrect data pipeline: wrong normalisation, class imbalance in batches, or a label preprocessing bug. Sanity-check your data first.',
+        points: [
+          {
+            term: 'Learning Rate Scheduling: Warmup, Cosine, Plateau',
+            desc: 'Why warmup prevents early divergence, cosine annealing mechanics, ReduceLROnPlateau',
+            detail: {
+              overview: `The learning rate schedule controls how η changes over training. Linear warmup: start with a very small lr, linearly increase to the target lr over the first N steps. Prevents divergence from large gradient steps when the model is randomly initialised and loss is high. Without warmup, Adam with lr=1e-3 often diverges in the first 100 steps.\n\nCosine annealing decays lr following a cosine curve from η_max to η_min: η_t = η_min + (η_max - η_min)/2 · (1 + cos(πt/T)). It produces smooth convergence to a flat minimum. ReduceLROnPlateau monitors a validation metric and reduces lr by a factor when it stagnates — useful when you don't know the optimal schedule in advance.`,
+              code: {
+                label: 'PyTorch — warmup + cosine schedule, one-cycle policy, ReduceLROnPlateau',
+                lines: `import torch
+import torch.nn as nn
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR, ReduceLROnPlateau, OneCycleLR,
+    LinearLR, SequentialLR,
+)
+import math
+
+model = nn.Linear(64, 10)
+opt   = AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
+
+# ── Warmup + Cosine (standard for transformers) ──────────
+T_warmup = 500     # steps
+T_total  = 10_000  # total training steps
+
+warmup   = LinearLR(opt, start_factor=1e-3, end_factor=1.0,
+                    total_iters=T_warmup)
+cosine   = CosineAnnealingLR(opt, T_max=T_total - T_warmup, eta_min=1e-6)
+scheduler = SequentialLR(opt, schedulers=[warmup, cosine],
+                          milestones=[T_warmup])
+
+# After each step (not epoch for transformer training):
+# scheduler.step()
+
+# ── One-Cycle LR (faster training for CNNs) ───────────────
+# Increases lr from base to max, then decreases to min in one cycle
+steps_per_epoch, n_epochs = 100, 20
+onecycle = OneCycleLR(
+    opt, max_lr=1e-2,
+    steps_per_epoch=steps_per_epoch,
+    epochs=n_epochs,
+    pct_start=0.3,        # 30% of training increasing lr
+    anneal_strategy='cos',
+    div_factor=25,        # initial_lr = max_lr / 25
+    final_div_factor=1e4, # final_lr = max_lr / 1e4
+)
+
+# ── ReduceLROnPlateau (validation-based, no schedule needed) ──
+plateau_sched = ReduceLROnPlateau(
+    opt, mode='min',    # monitor validation loss (minimise)
+    factor=0.5,         # lr *= 0.5 when plateau detected
+    patience=5,         # epochs to wait before reducing
+    min_lr=1e-7,
+    verbose=True,
+)
+# Call after validation: plateau_sched.step(val_loss)
+
+# ── LR Finder (find the right base lr empirically) ────────
+# Sweep lr from 1e-7 to 10 over 100 batches
+# Plot loss vs log(lr)
+# Pick lr just before the loss starts rising
+# This is the "LR range test" from the fastai / 1cycle paper`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Calling scheduler.step() before optimizer.step()',
+                  context: 'In PyTorch < 1.1, calling scheduler.step() before optimizer.step() was the common pattern but is now deprecated and can lead to the first lr update being skipped. The scheduler would update lr but the optimiser would then use the old lr for that step.',
+                  fix: 'Always call optimizer.step() then scheduler.step(). Use the per-step (not per-epoch) scheduler call pattern for warmup schedulers. For epoch-based schedulers (ReduceLROnPlateau), call after the validation loop at the end of each epoch.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'Why does linear warmup prevent training instability?',
+                  a: 'At the start of training, model parameters are randomly initialised and the loss surface is steep and unpredictable. Adam\'s second moment estimate v (the gradient variance) is initialised at zero and takes many steps to reflect true gradient curvature — early AdamW steps use an unreliable normalisation factor. With a high initial lr, these unreliable large steps can push parameters into a bad region of the loss surface that is hard to recover from. Warmup starts with a very small lr (e.g., 1e-6), giving the second moment estimate time to accumulate before making large updates. After warmup, the estimate is reliable and a larger lr is safe.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'Training Monitoring: Loss Curves, Gradient Norms, Debugging',
+            desc: 'Reading training/val curves, NaN diagnosis, overfit vs underfit, common silent bugs',
+            detail: {
+              overview: `A well-monitored training run logs: (1) train and validation loss per epoch, (2) primary metric per epoch, (3) gradient norms per step, (4) learning rate per step, (5) batch-level loss for early instability detection. The training loss curve shape diagnoses the training dynamics: smooth decline → healthy; oscillating → lr too high; stuck → lr too low or wrong architecture; NaN → exploding gradients or bad data.\n\nSilent bugs are more dangerous than crashes. The loss decreases but the model learns something wrong — common causes: wrong normalisation in preprocessing, label indexing off-by-one, shuffling before splitting (leakage), wrong loss function for the task.`,
+              code: {
+                label: 'Python — training loop with monitoring, gradient norm logging, NaN detection, sanity checks',
+                lines: `import torch
+import torch.nn as nn
+from torch.optim import AdamW
+import numpy as np
+
+# ── Training loop with full monitoring ────────────────────
+def train_epoch(model, loader, optimizer, loss_fn, clip_norm=1.0,
+                log_every=50):
+    model.train()
+    total_loss, n_batches = 0.0, 0
+    for step, (x, y) in enumerate(loader):
+        optimizer.zero_grad()
+        logits = model(x)
+        loss   = loss_fn(logits, y)
+
+        # ── NaN detection ─────────────────────────────────
+        if torch.isnan(loss):
+            print(f"[Step {step}] Loss is NaN!")
+            print(f"  logits range: [{logits.min():.3f}, {logits.max():.3f}]")
+            print(f"  input range:  [{x.min():.3f}, {x.max():.3f}]")
+            raise RuntimeError("NaN loss — check input normalisation and init")
+
+        loss.backward()
+
+        # ── Gradient norm ─────────────────────────────────
+        grad_norm = torch.nn.utils.clip_grad_norm_(
+            model.parameters(), max_norm=clip_norm
+        )
+        optimizer.step()
+
+        total_loss += loss.item()
+        n_batches  += 1
+
+        if (step + 1) % log_every == 0:
+            print(f"  step {step+1:4d} | loss={loss.item():.4f} "
+                  f"| grad_norm={grad_norm:.4f}")
+
+    return total_loss / n_batches
+
+# ── Pre-training sanity checks ────────────────────────────
+def sanity_check(model, loader, loss_fn, n_classes):
+    model.eval()
+    with torch.no_grad():
+        x, y = next(iter(loader))
+        logits = model(x)
+        loss   = loss_fn(logits, y)
+
+    # 1. Initial loss should be ≈ -log(1/n_classes) = log(n_classes)
+    expected_loss = np.log(n_classes)
+    print(f"Initial loss: {loss.item():.4f} | Expected: {expected_loss:.4f}")
+    assert abs(loss.item() - expected_loss) < 1.0, "Unexpected initial loss"
+
+    # 2. Model can overfit a tiny batch
+    small_x, small_y = x[:4], y[:4]
+    model.train()
+    opt_check = AdamW(model.parameters(), lr=1e-2)
+    for _ in range(200):
+        opt_check.zero_grad()
+        l = loss_fn(model(small_x), small_y)
+        l.backward()
+        opt_check.step()
+    print(f"Overfit check loss: {l.item():.6f}")   # should approach 0
+    assert l.item() < 0.01, "Model cannot overfit 4 examples — architecture bug"`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Not performing initial loss sanity check',
+                  context: 'For a random model on n_classes balanced classes, the initial cross-entropy loss should be ln(n_classes). If it is significantly higher or lower, something is wrong: weights not initialised to near-zero logits, wrong loss function, or data preprocessing error. Catching this in minute 1 prevents hours of wasted training.',
+                  fix: 'Add a sanity_check() function before the main training loop: verify initial loss ≈ ln(n_classes). Then verify the model can overfit 4–8 training examples within 100 steps — if it cannot, there is an architecture or data bug, not a hyperparameter issue.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How do you diagnose a training run where the loss stagnates early?',
+                  a: 'Systematic diagnosis: (1) Check initial loss — is it ln(n_classes)? If not, data or label issue. (2) Try overfitting 4 examples — if the model cannot fit 4 examples, there is an architecture bug. (3) Check gradient norms — are they near zero from the start? Vanishing gradient or dead ReLUs. (4) Check the learning rate — try 10×. (5) Check data normalisation — inputs should be zero mean, unit variance for deep nets. (6) Check BatchNorm is in train mode (not eval). (7) Check for constant or near-constant features in your input (zero variance → zero gradient for linear layers). Work through these in order — do not randomly try architectural changes until you\'ve ruled out data and optimiser issues.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ═══════════════════════════════════════════════════════
+     LAYER 6 · Advanced ML & Workflows  —  Stages 11–12
+  ═══════════════════════════════════════════════════════ */
+  {
+    id: 'advanced',
+    label: 'Advanced ML & Workflows',
+    range: '11–12',
+    stages: [
+      {
+        num: '11',
+        title: 'Unsupervised Learning: Clustering & Dimensionality Reduction',
+        intro: 'Unsupervised methods extract structure from data without labels — for EDA, feature engineering, anomaly detection, and representation learning. They are also the basis for self-supervised pre-training.',
+        insight: 'PCA, t-SNE, and UMAP are visualisation tools. Never use t-SNE or UMAP cluster positions as features — the axes are not interpretable and the distances are not preserved globally.',
+        points: [
+          {
+            term: 'K-Means, DBSCAN & Gaussian Mixture Models',
+            desc: 'Algorithm mechanics, choosing K, density-based vs probabilistic clustering, evaluation without labels',
+            detail: {
+              overview: `K-Means partitions data into K clusters by iterating: (1) assign each point to the nearest centroid, (2) recompute centroids as the mean of assigned points. It minimises within-cluster sum of squares (inertia) and converges to a local optimum — multiple restarts (n_init) are needed. Assumes spherical clusters of similar size. \n\nDBSCAN (Density-Based Spatial Clustering) groups points reachable within ε radius with min_samples neighbours — handles arbitrary shapes and marks outliers as noise (-1). Gaussian Mixture Models (GMM) extend K-Means with soft cluster assignments and ellipsoidal cluster shapes, fit by Expectation-Maximisation.`,
+              code: {
+                label: 'Python — KMeans with elbow/silhouette, DBSCAN, GMM, cluster evaluation',
+                lines: `import numpy as np
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import make_blobs, make_moons
+
+np.random.seed(42)
+
+# ── Dataset 1: well-separated blobs ──────────────────────
+X_blobs, y_true = make_blobs(n_samples=1000, centers=4,
+                              cluster_std=0.5, random_state=42)
+scaler = StandardScaler()
+X_sc   = scaler.fit_transform(X_blobs)
+
+# ── Choosing K: elbow method + silhouette score ───────────
+inertias, sil_scores = [], []
+k_range = range(2, 10)
+for k in k_range:
+    km = KMeans(n_clusters=k, n_init=10, random_state=42)
+    labels = km.fit_predict(X_sc)
+    inertias.append(km.inertia_)
+    sil_scores.append(silhouette_score(X_sc, labels))
+
+print("Silhouette scores:", [f"{s:.3f}" for s in sil_scores])
+# Silhouette in [-1, 1]; higher = better separation
+
+# ── KMeans with optimal K ─────────────────────────────────
+km4 = KMeans(n_clusters=4, n_init=20, random_state=42)
+km4_labels = km4.fit_predict(X_sc)
+print(f"K=4 silhouette: {silhouette_score(X_sc, km4_labels):.4f}")
+print(f"K=4 Davies-Bouldin: {davies_bouldin_score(X_sc, km4_labels):.4f}")
+# DBI: lower = better (0 = perfect separation)
+
+# ── DBSCAN: non-spherical clusters ────────────────────────
+X_moons, _ = make_moons(n_samples=500, noise=0.05, random_state=42)
+db = DBSCAN(eps=0.15, min_samples=10)
+db_labels = db.fit_predict(X_moons)
+n_clusters = len(set(db_labels)) - (1 if -1 in db_labels else 0)
+n_noise    = (db_labels == -1).sum()
+print(f"DBSCAN: {n_clusters} clusters, {n_noise} noise points")
+# -1 labels are outliers — useful for anomaly detection
+
+# ── Gaussian Mixture Model: soft assignments ──────────────
+gmm = GaussianMixture(n_components=4, covariance_type='full',
+                       n_init=5, random_state=42)
+gmm.fit(X_sc)
+proba = gmm.predict_proba(X_sc)   # (n, K) soft membership probabilities
+hard  = gmm.predict(X_sc)
+print(f"GMM AIC: {gmm.aic(X_sc):.1f} | BIC: {gmm.bic(X_sc):.1f}")
+# Use BIC to select number of components (lower = better)`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using KMeans on non-standardised features',
+                  context: 'K-Means uses Euclidean distance — a feature with values in [0, 10000] (income) dominates the distance calculation over a feature in [0, 1] (binary flag). The clustering is effectively performed only on the high-scale feature. The low-scale features are irrelevant to the resulting clusters.',
+                  fix: 'Always StandardScale before clustering. For mixed-type data (continuous + categorical), use Gower distance with k-medoids, or DBSCAN with a custom distance metric. For very high-dimensional data, apply PCA first to reduce noise and compress the feature space.',
+                },
+                {
+                  issue: 'Using inertia (elbow method) as the only criterion for choosing K',
+                  context: 'Inertia always decreases as K increases — at K=n, inertia=0. The elbow is often ambiguous or absent. Inertia favours more clusters and does not measure cluster separation quality.',
+                  fix: 'Combine multiple criteria: Silhouette score (higher is better), Davies-Bouldin index (lower is better), BIC for GMM, and domain knowledge about the expected number of segments. Visualise clusters with t-SNE or UMAP — a visual sanity check often reveals issues that metrics miss.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'When would you use DBSCAN instead of KMeans?',
+                  a: 'DBSCAN advantages: (1) Does not require specifying K in advance. (2) Handles arbitrary cluster shapes (not just spherical). (3) Marks outliers explicitly as -1 — useful for anomaly detection. (4) Robust to noise. Use DBSCAN when: clusters have non-convex shapes (moons, rings), you expect outliers that should not be assigned to any cluster, or you do not know the number of clusters. Limitations: sensitive to eps and min_samples hyperparameters. Struggles with varying density clusters. Does not scale as well as KMeans for very large datasets (use HDBSCAN for large-scale density-based clustering).',
+                },
+              ],
+            },
+          },
+          {
+            term: 'PCA, t-SNE & UMAP for Dimensionality Reduction',
+            desc: 'Linear vs non-linear projection, variance explained, when to use each for EDA vs features',
+            detail: {
+              overview: `PCA finds the orthogonal directions of maximum variance in the data and projects it onto a lower-dimensional subspace. It is linear, deterministic, and preserves global structure. The explained variance ratio tells you how much information each component captures.\n\nt-SNE (t-Distributed Stochastic Neighbor Embedding) and UMAP are non-linear methods optimised for visualisation. t-SNE preserves local structure (nearby points stay nearby) but destroys global structure (distances between clusters are not meaningful). UMAP is faster, better preserves global structure, and supports embedding new points — but its results depend strongly on hyperparameters (n_neighbors, min_dist).`,
+              code: {
+                label: 'Python — PCA with explained variance, incremental PCA, t-SNE and UMAP for EDA',
+                lines: `import numpy as np
+from sklearn.decomposition import PCA, IncrementalPCA
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import load_digits
+
+# Load 8x8 digit images: 1797 samples, 64 features
+digits = load_digits()
+X = digits.data.astype(float)   # (1797, 64)
+y = digits.target
+scaler = StandardScaler()
+X_sc   = scaler.fit_transform(X)
+
+# ── PCA: variance explained ───────────────────────────────
+pca = PCA()
+pca.fit(X_sc)
+explained = pca.explained_variance_ratio_
+cumulative = explained.cumsum()
+
+n_95 = (cumulative < 0.95).sum() + 1   # components needed for 95% variance
+print(f"Components for 95% variance: {n_95} / {X_sc.shape[1]}")
+
+# ── PCA for dimensionality reduction (then model) ─────────
+pca_n = PCA(n_components=n_95, random_state=42)
+X_pca = pca_n.fit_transform(X_sc)
+print(f"PCA output shape: {X_pca.shape}")   # (1797, ~20)
+
+# PCA is a linear transformation — can be deployed in production
+# pca_n.transform(X_new) at serving time (same scaler must be applied first)
+
+# ── Incremental PCA for large datasets ───────────────────
+# When data does not fit in memory
+ipca = IncrementalPCA(n_components=20, batch_size=200)
+for batch_start in range(0, len(X_sc), 200):
+    ipca.partial_fit(X_sc[batch_start:batch_start+200])
+X_ipca = ipca.transform(X_sc)
+
+# ── t-SNE for visualisation (2D) ─────────────────────────
+# ALWAYS PCA first to speed up t-SNE and reduce noise
+X_pca50 = PCA(n_components=50, random_state=42).fit_transform(X_sc)
+tsne = TSNE(n_components=2, perplexity=30, max_iter=1000,
+            learning_rate='auto', random_state=42)
+X_tsne = tsne.fit_transform(X_pca50)
+print(f"t-SNE output: {X_tsne.shape}")
+
+# ── UMAP (faster than t-SNE, supports transform) ──────────
+# pip install umap-learn
+# import umap
+# reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2,
+#                     random_state=42)
+# X_umap = reducer.fit_transform(X_pca50)
+# NEW POINTS: reducer.transform(X_new_pca)  # t-SNE cannot do this`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Using t-SNE cluster positions as features for downstream models',
+                  context: 't-SNE optimises local structure preservation and is stochastic — the same data with different seeds produces different spatial layouts. The 2D coordinates do not correspond to any interpretable axes, distances between clusters are not meaningful, and the transformation cannot be applied to new data points. Using t-SNE features in a model produces irreproducible results.',
+                  fix: 'Use PCA components as features — the transformation is deterministic, linear, and can be applied to new data consistently. For non-linear dimensionality reduction in a pipeline, use UMAP which supports transform() on new points and is more reproducible.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How many PCA components should you keep?',
+                  a: 'The standard rule: keep enough components to explain 90–95% of the total variance. Check the cumulative explained variance plot and find the "elbow" or the point where adding components gives diminishing returns. For downstream supervised learning: use cross-validation with different component counts inside a Pipeline to pick the number that maximises val metric, not just explains 95% variance. Variance explained ≠ downstream performance — some low-variance components may contain discriminative signal. For visualisation: 2–3 components. For denoising: 10–50 components typically sufficient.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      {
+        num: '12',
+        title: 'ML Workflows, Experiment Tracking & A/B Testing',
+        intro: 'Production ML is not one model — it is a system of experiments, versioned artefacts, monitoring, and controlled rollouts. The engineers who ship reliably are not those who build the best models in notebooks — they are those who instrument everything.',
+        insight: 'An experiment with no tracking is a lost experiment. Log hypotheses, parameters, artefacts, and results from day one. Reproducibility is not optional — it is what lets you debug a model that is silently degrading in production three months later.',
+        points: [
+          {
+            term: 'Experiment Tracking with MLflow & Weights & Biases',
+            desc: 'Run logging, artefact versioning, model registry, comparing runs programmatically',
+            detail: {
+              overview: `Experiment tracking records everything needed to reproduce a run: hyperparameters, metrics at each step, code version, data version, environment, and trained model artefacts. Without tracking, experiments are lost knowledge — you cannot reproduce the best model, identify what changed between runs, or debug a regression.\n\nMLflow is open-source and self-hostable: mlflow.set_experiment(), mlflow.log_param(), mlflow.log_metric(), mlflow.log_artifact(). Weights & Biases (W&B) is cloud-based with richer visualisation: wandb.init(), wandb.log(). Both support model registries — the promotion workflow from experimental run → staging → production.`,
+              code: {
+                label: 'Python — MLflow run logging, artifact versioning, model registry, W&B comparison',
+                lines: `import mlflow
+import mlflow.sklearn
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score, f1_score
+import numpy as np
+
+X, y = make_classification(n_samples=5000, n_features=20, random_state=42)
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2,
+                                           stratify=y, random_state=42)
+
+# ── MLflow: full run logging ──────────────────────────────
+mlflow.set_experiment("rf-classification-v2")
+
+with mlflow.start_run(run_name="rf-100-depth5") as run:
+    # Log hyperparameters
+    params = {'n_estimators': 100, 'max_depth': 5,
+              'min_samples_leaf': 10, 'max_features': 'sqrt'}
+    mlflow.log_params(params)
+
+    # Train
+    clf = RandomForestClassifier(**params, n_jobs=-1, random_state=42,
+                                  oob_score=True)
+    clf.fit(X_tr, y_tr)
+
+    # Log metrics
+    auc  = roc_auc_score(y_te, clf.predict_proba(X_te)[:, 1])
+    f1   = f1_score(y_te, clf.predict(X_te))
+    mlflow.log_metric("auc_roc",  auc)
+    mlflow.log_metric("f1_score", f1)
+    mlflow.log_metric("oob_score", clf.oob_score_)
+
+    # Log model (auto-inferred signature)
+    mlflow.sklearn.log_model(
+        clf, "rf-model",
+        registered_model_name="rf-churn-classifier",
+        input_example=X_te[:5],
+    )
+    print(f"Run ID: {run.info.run_id} | AUC: {auc:.4f}")
+
+# ── Load and compare runs programmatically ────────────────
+client = mlflow.MlflowClient()
+runs = client.search_runs(
+    experiment_ids=[mlflow.get_experiment_by_name(
+        "rf-classification-v2").experiment_id],
+    order_by=["metrics.auc_roc DESC"],
+    max_results=10,
+)
+for r in runs[:3]:
+    print(f"Run {r.info.run_id[:8]} | AUC: {r.data.metrics.get('auc_roc', 0):.4f}"
+          f" | params: {r.data.params}")
+
+# ── W&B equivalent ────────────────────────────────────────
+# import wandb
+# wandb.init(project="rf-classification", name="rf-100-depth5", config=params)
+# ... train ...
+# wandb.log({"auc_roc": auc, "f1_score": f1})
+# wandb.sklearn.plot_classifier(clf, X_tr, X_te, y_tr, y_te, ...)
+# wandb.finish()`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Logging metrics only at the end of training, not per epoch',
+                  context: 'If you log only the final metric, you cannot diagnose when the model started to diverge, where overfitting began, or whether the training was healthy. A run that produced AUC=0.82 may have peaked at 0.87 in epoch 30 and degraded — without per-epoch logging you cannot see this.',
+                  fix: 'Log train loss, val loss, and primary metric at every epoch. Log gradient norm every N batches. Log learning rate at every scheduler step. This is cheap storage and enables post-hoc debugging of any training run. In MLflow: call mlflow.log_metric(key, value, step=epoch) inside the training loop.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'What should you version in an ML experiment?',
+                  a: 'Five things to version: (1) Code — git commit SHA logged with the run. (2) Data — dataset version/hash, split definition, preprocessing version. (3) Hyperparameters — all parameters that affect the model. (4) Environment — Python version, library versions (requirements.txt or conda.yaml). (5) Artefacts — trained model weights, feature engineering pipeline, evaluation reports, confusion matrices. Without versioning all five, you cannot reproduce the run. Most production failures trace to "we cannot reproduce the model that was in production six months ago" — versioning prevents this.',
+                },
+              ],
+            },
+          },
+          {
+            term: 'A/B Testing for ML: Sample Sizes, Metrics & Pitfalls',
+            desc: 'Power analysis, novelty effect, multiple comparisons, Bayesian vs frequentist testing',
+            detail: {
+              overview: `A/B testing is the gold standard for validating that an ML model change produces a real business improvement. Offline metrics (AUC, NDCG) estimate model quality but cannot predict how users will respond. An A/B test randomises users to control (model A) and treatment (model B) and measures the causal effect on a business metric.\n\nKey decisions: (1) Metric — primary (revenue per user), guardrail (session length must not drop), and not-impacted (support tickets). (2) Sample size — pre-specified via power analysis, not "stop when significant." (3) Test duration — at least 1–2 weeks to capture weekly cycles. (4) Multiple comparisons correction — Bonferroni or FDR if testing many metrics.`,
+              code: {
+                label: 'Python — power analysis, experiment design, statistical test, novelty effect detection',
+                lines: `import numpy as np
+from scipy import stats
+from statsmodels.stats.power import TTestIndPower, NormalIndPower
+from statsmodels.stats.proportion import proportions_ztest
+
+np.random.seed(42)
+
+# ── Pre-experiment: compute required sample size ──────────
+# Parameters: baseline conversion=12%, minimum detectable effect=10% relative
+# → absolute effect = 0.12 * 0.10 = 0.012 → treatment = 0.132
+p_control   = 0.12
+p_treatment = p_control * 1.10   # 10% relative lift
+effect_size = (p_treatment - p_control) / np.sqrt(
+    (p_control*(1-p_control) + p_treatment*(1-p_treatment)) / 2)
+
+pwr = NormalIndPower()
+n_per_group = pwr.solve_power(
+    effect_size=effect_size, alpha=0.05, power=0.80, ratio=1.0
+)
+print(f"Required n per group: {int(np.ceil(n_per_group))}")
+
+# ── Simulate experiment results ───────────────────────────
+n = int(np.ceil(n_per_group))
+control   = np.random.binomial(1, p_control,   n)
+treatment = np.random.binomial(1, p_treatment, n)
+
+# ── Frequentist two-proportion z-test ────────────────────
+n_success = np.array([treatment.sum(), control.sum()])
+n_obs     = np.array([n, n])
+z_stat, p_value = proportions_ztest(n_success, n_obs, alternative='larger')
+print(f"z={z_stat:.3f}, p={p_value:.4f}")
+print(f"Control CTR: {control.mean():.4f}, Treatment CTR: {treatment.mean():.4f}")
+print(f"Observed lift: {(treatment.mean()-control.mean())/control.mean()*100:.1f}%")
+
+# ── Novelty effect check ──────────────────────────────────
+# Run the experiment for 2+ weeks and segment by user tenure
+# New users: no novelty effect (they have no prior experience with old model)
+# Returning users: may show transient lift from novelty, returning to baseline
+# If new users and returning users show same lift → genuine effect
+# If only returning users show lift in week 1, not week 2 → novelty effect
+
+# ── Multiple comparisons: Bonferroni correction ────────────
+n_metrics = 10   # testing 10 metrics
+alpha_corrected = 0.05 / n_metrics   # Bonferroni: α / m
+print(f"Bonferroni-corrected α: {alpha_corrected:.4f}")
+
+# ── Bayesian alternative: Beta-Binomial model ─────────────
+from scipy.stats import beta as beta_dist
+# Prior: Beta(1, 1) = uniform
+a_ctrl = 1 + control.sum();  b_ctrl = 1 + (n - control.sum())
+a_trt  = 1 + treatment.sum(); b_trt  = 1 + (n - treatment.sum())
+samples_ctrl = beta_dist.rvs(a_ctrl, b_ctrl, size=100_000)
+samples_trt  = beta_dist.rvs(a_trt,  b_trt,  size=100_000)
+prob_lift = (samples_trt > samples_ctrl).mean()
+print(f"P(treatment > control): {prob_lift:.4f}")`,
+              },
+              pitfalls: [
+                {
+                  issue: 'Peeking at results and stopping early when significance is reached',
+                  context: 'If you check p-value daily and stop when p < 0.05, the false positive rate is much higher than 5% — sequential testing without correction inflates type I error. Running until "it looks good" and stopping is equivalent to p-hacking.',
+                  fix: 'Pre-register the sample size and test duration before the experiment runs. Analyse only at the pre-specified end date. If you need interim analyses, use sequential testing methods (O\'Brien-Fleming, alpha spending functions) that control the overall false positive rate. Tools: scipy.stats or the statsmodels package with proper sequential test corrections.',
+                },
+                {
+                  issue: 'Not accounting for the novelty effect in user-facing ML experiments',
+                  context: 'Users often respond differently to new recommendation models simply because they are new — they explore more, click differently. This transient novelty effect inflates short-term metrics and disappears in 1–2 weeks. A naive A/B test run for 3 days may show a 20% lift that is entirely novelty.',
+                  fix: 'Run experiments for at least 2 weeks (one full weekly cycle). Segment results by user tenure in the experiment: new users (no novelty effect) vs returning users. Compare week 1 vs week 2 performance for the treatment group. If lift is genuine, both should show consistent improvement. If it decays: novelty effect.',
+                },
+              ],
+              qa: [
+                {
+                  q: 'How do you determine the minimum detectable effect for an A/B test?',
+                  a: 'The minimum detectable effect (MDE) is the smallest business-meaningful improvement you want to be able to detect reliably. It is a business decision, not a statistical one: "a 5% lift in conversion is worth implementing; anything smaller is not." Once you have the MDE, the base rate (current conversion), and the desired power (0.80) and significance level (0.05), you can compute the required sample size. Smaller MDE → larger required sample size. The MDE should be determined before the experiment runs, not retrospectively adjusted to make a non-significant result appear significant.',
+                },
+                {
+                  q: 'What is the difference between a guardrail metric and a primary metric in A/B testing?',
+                  a: 'The primary metric is the one you are trying to improve — e.g., revenue per visit, click-through rate, task completion rate. The guardrail metrics are those that must not degrade — e.g., "session length should not drop more than 2%, support tickets should not increase, page load time should not increase." A treatment that improves the primary metric but degrades a guardrail should be rejected. Guardrail metrics protect against cases where the model optimises a narrow proxy while causing harm elsewhere. A typical experiment has 1–2 primary metrics and 3–5 guardrail metrics.',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title="AI & Machine Learning Foundations — Sudheesh Knowledge Base"
+  description="Deep, industry-standard AI/ML knowledge: problem framing, classical algorithms, evaluation, neural networks, optimization, and production workflows — with code, pitfalls, and interview Q&A at every stage."
+  active="foundations"
+>
+  <main class="page active rm-page">
+
+    <!-- ══ HERO ══════════════════════════════════════════════ -->
+    <section class="rm-hero">
+      <div class="rm-hero-inner">
+        <div class="rm-hero-left">
+          <div class="rm-eyebrow">
+            <span class="rm-badge">Foundations</span>
+            <span class="rm-badge-sep">·</span>
+            <span class="rm-badge-count">12 Stages</span>
+          </div>
+          <h1 class="rm-hero-title">
+            <span class="rm-ht-sans">AI &</span>
+            <span class="rm-ht-serif">Machine Learning.</span>
+          </h1>
+          <p class="rm-hero-desc">
+            From problem framing to neural networks, optimization, and production workflows — every stage built for Data Scientists and AI Engineers, with production pitfalls and interview Q&A throughout.
+          </p>
+          <div class="rm-hero-tools">
+            <span class="rm-tool-pill">scikit-learn</span><span class="rm-tool-pill">XGBoost</span><span class="rm-tool-pill">LightGBM</span><span class="rm-tool-pill">PyTorch</span><span class="rm-tool-pill">SHAP</span><span class="rm-tool-pill">MLflow</span><span class="rm-tool-pill">NumPy</span><span class="rm-tool-pill">imbalanced-learn</span>
+          </div>
+        </div>
+
+        <nav class="rm-hero-index" aria-label="Stage index">
+          {layers.map(layer => (
+            <div class="rm-idx-layer">
+              <div class="rm-idx-layer-label" data-layer={layer.id}>
+                {layer.label} <span class="rm-idx-range">{layer.range}</span>
+              </div>
+              {layer.stages.map(stage => (
+                <a class="rm-idx-item" href={`#stage-${stage.num}`}>
+                  <span class="rm-idx-num">{stage.num}</span>
+                  <span class="rm-idx-title">{stage.title}</span>
+                </a>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </div>
+    </section>
+
+    <!-- ══ BODY ══════════════════════════════════════════════ -->
+    <div class="rm-body">
+
+      {layers.map(layer => (
+        <section class="rm-layer" data-layer={layer.id}>
+          <div class="rm-layer-head">
+            <div class="rm-lh-line"></div>
+            <div class="rm-lh-label">
+              <span class="rm-lh-name">{layer.label}</span>
+              <span class="rm-lh-range">{layer.range}</span>
+            </div>
+            <div class="rm-lh-line"></div>
+          </div>
+
+          <div class="rm-track">
+            {layer.stages.map(stage => (
+              <article class="rm-stage" id={`stage-${stage.num}`}>
+                <div class="rm-stage-gutter">
+                  <div class="rm-stage-dot"></div>
+                  <div class="rm-stage-num">{stage.num}</div>
+                </div>
+                <div class="rm-stage-content">
+                  <h2 class="rm-stage-title">{stage.title}</h2>
+                  <p class="rm-stage-intro">{stage.intro}</p>
+
+                  <div class="rm-spec">
+                    {stage.points.map(p => (
+                      <div class="rm-spec-item">
+                        <div class="rm-spec-row rm-spec-row--has-detail" onclick="rmToggle(this)">
+                          <div class="rm-spec-term">{p.term}</div>
+                          <div class="rm-spec-desc">{p.desc}</div>
+                          {p.detail && (
+                            <div class="rm-spec-chevron" aria-hidden="true">
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        {p.detail && (
+                          <div class="rm-det">
+                            <nav class="rm-det-tabs">
+                              <button class="rm-det-tab rm-det-tab--active" onclick="rmTab(this,'overview')" type="button">Overview</button>
+                              <button class="rm-det-tab" onclick="rmTab(this,'code')" type="button">Code</button>
+                              <button class="rm-det-tab" onclick="rmTab(this,'production')" type="button">In Production</button>
+                              <button class="rm-det-tab" onclick="rmTab(this,'qa')" type="button">Interview Q&amp;A</button>
+                            </nav>
+                            <div class="rm-det-body">
+                              <div class="rm-det-pane rm-det-pane--active" data-pane="overview">
+                                <p class="rm-det-overview">{p.detail.overview}</p>
+                              </div>
+                              <div class="rm-det-pane" data-pane="code">
+                                <div class="rm-code">
+                                  <div class="rm-code-bar">
+                                    <span class="rm-code-lang">{p.detail.code.label}</span>
+                                    <div class="rm-code-dots">
+                                      <span class="rm-dot rm-dot--r"></span>
+                                      <span class="rm-dot rm-dot--y"></span>
+                                      <span class="rm-dot rm-dot--g"></span>
+                                    </div>
+                                  </div>
+                                  <pre class="rm-code-pre"><code>{p.detail.code.lines}</code></pre>
+                                </div>
+                              </div>
+                              <div class="rm-det-pane" data-pane="production">
+                                <div class="rm-pitfalls">
+                                  {p.detail.pitfalls.map(pit => (
+                                    <div class="rm-pitfall">
+                                      <div class="rm-pitfall-head">
+                                        <span class="rm-pit-badge">Pitfall</span>
+                                        <strong class="rm-pit-issue">{pit.issue}</strong>
+                                      </div>
+                                      <p class="rm-pit-context">{pit.context}</p>
+                                      <div class="rm-pit-fix">
+                                        <span class="rm-pit-fix-badge">Fix</span>
+                                        <span class="rm-pit-fix-text">{pit.fix}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div class="rm-det-pane" data-pane="qa">
+                                <div class="rm-qa-list">
+                                  {p.detail.qa.map(qi => (
+                                    <div class="rm-qa-item">
+                                      <button class="rm-qa-q" onclick="rmQA(this)" type="button">
+                                        <span>{qi.q}</span>
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                          <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                      </button>
+                                      <div class="rm-qa-a">
+                                        <p>{qi.a}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <blockquote class="rm-insight">{stage.insight}</blockquote>
+                </div>
+              </article>
+            ))}
+          </div>
+
+        </section>
+      ))}
+
+      <!-- ══ LAYERS 3–6 PLACEHOLDER (appended by next tasks) ══ -->
+      <div id="rm-layers-rest"></div>
+
+      <div class="rm-end">
+        <p class="rm-end-eyebrow">End of AI/ML Foundations</p>
+        <h2 class="rm-end-title">Now apply it to real systems.</h2>
+        <p class="rm-end-sub">Theory compounds only when it meets production constraints.</p>
+        <div class="rm-end-actions">
+          <a href="/foundations" class="btn btn-primary">All Foundations</a>
+          <a href="/ai-engineering/ai-engineer-roadmap" class="btn btn-secondary">AI Engineer Roadmap</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</BaseLayout>
+
+<style is:global>
+[data-layer="framing"]      .rm-insight { border-left-color: var(--sage); }
+[data-layer="classical"]    .rm-insight { border-left-color: var(--terra); }
+[data-layer="evaluation"]   .rm-insight { border-left-color: var(--amber); }
+[data-layer="neural"]       .rm-insight { border-left-color: var(--ink3); }
+[data-layer="optimization"] .rm-insight { border-left-color: var(--sage); }
+[data-layer="advanced"]     .rm-insight { border-left-color: var(--terra); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 11px 22px; border-radius: 7px;
+  font-family: var(--sans); font-size: 0.84rem; font-weight: 700;
+  text-decoration: none; transition: background 0.18s, transform 0.18s;
+}
+.btn-primary  { background: var(--ink); color: var(--linen); }
+.btn-primary:hover  { background: var(--ink2); transform: translateY(-1px); }
+.btn-secondary { background: transparent; color: var(--ink); border: 1px solid var(--linen3); }
+.btn-secondary:hover { background: var(--linen2); }
+</style>
+
+<script is:inline>
+function rmToggle(row) {
+  var item = row.closest('.rm-spec-item');
+  var isOpen = item.classList.contains('rm-spec-item--open');
+  var spec = row.closest('.rm-spec');
+  spec.querySelectorAll('.rm-spec-item--open').forEach(function(el) {
+    el.classList.remove('rm-spec-item--open');
+  });
+  if (!isOpen) item.classList.add('rm-spec-item--open');
+}
+
+function rmTab(btn, pane) {
+  var det = btn.closest('.rm-det');
+  det.querySelectorAll('.rm-det-tab').forEach(function(t) {
+    t.classList.remove('rm-det-tab--active');
+  });
+  det.querySelectorAll('.rm-det-pane').forEach(function(p) {
+    p.classList.remove('rm-det-pane--active');
+  });
+  btn.classList.add('rm-det-tab--active');
+  var target = det.querySelector('[data-pane="' + pane + '"]');
+  if (target) target.classList.add('rm-det-pane--active');
+}
+
+function rmQA(btn) {
+  var item = btn.closest('.rm-qa-item');
+  var isOpen = item.classList.contains('rm-qa-item--open');
+  var list = btn.closest('.rm-qa-list');
+  list.querySelectorAll('.rm-qa-item--open').forEach(function(el) {
+    el.classList.remove('rm-qa-item--open');
+  });
+  if (!isOpen) item.classList.add('rm-qa-item--open');
+}
+
+(function() {
+  var stages = Array.from(document.querySelectorAll('.rm-stage'));
+  if (!stages.length) return;
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) { e.target.classList.add('rm-visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  stages.forEach(function(s) { io.observe(s); });
+})();
+</script>

@@ -1,5 +1,27 @@
+# Vercel local project metadata
 .vercel
+
+# Dependencies
 node_modules
+
+# Build output — Vercel builds from source, never commit dist/
+dist/
+
+# Astro internal build cache
+.astro/
+
+# Environment variables — store secrets in Vercel dashboard only
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Debug artifacts
+debug/
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs
 *.log

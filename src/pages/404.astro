@@ -1,0 +1,73 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Page Not Found — Sudheesh K. Reddy"
+  description="The page you're looking for doesn't exist or has been moved."
+>
+  <main style="
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(48px, 10vw, 120px) clamp(20px, 5vw, 72px);
+    background: var(--linen);
+  ">
+    <div style="text-align: center; max-width: 480px;">
+      <p style="
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        color: var(--terra);
+        text-transform: uppercase;
+        margin-bottom: 20px;
+      ">404</p>
+
+      <h1 style="
+        font-family: var(--serif);
+        font-size: clamp(2rem, 5vw, 3rem);
+        color: var(--ink);
+        margin-bottom: 16px;
+        line-height: 1.15;
+      ">Page not found.</h1>
+
+      <p style="
+        font-size: 1rem;
+        color: var(--muted);
+        line-height: 1.65;
+        margin-bottom: 40px;
+      ">
+        The page you're looking for doesn't exist or has been moved.
+        Try the foundations or navigate home.
+      </p>
+
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="/" style="
+          display: inline-block;
+          padding: 11px 24px;
+          background: var(--ink);
+          color: var(--cream);
+          font-family: var(--sans);
+          font-size: 0.875rem;
+          font-weight: 600;
+          text-decoration: none;
+          border-radius: 6px;
+        ">Go home</a>
+
+        <a href="/foundations" style="
+          display: inline-block;
+          padding: 11px 24px;
+          background: transparent;
+          color: var(--ink);
+          font-family: var(--sans);
+          font-size: 0.875rem;
+          font-weight: 600;
+          text-decoration: none;
+          border-radius: 6px;
+          border: 1.5px solid var(--linen3);
+        ">Foundations</a>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

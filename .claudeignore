@@ -1,0 +1,21 @@
+# Build output — never useful for code context
+dist/
+
+# Third-party packages
+node_modules/
+
+# Package lock — massive, no source insight
+package-lock.json
+
+# Astro internal build cache
+.astro/
+
+# Git internals
+.git/
+
+# Debug artifacts
+debug/
+
+# OS metadata
+.DS_Store
+Thumbs.db
