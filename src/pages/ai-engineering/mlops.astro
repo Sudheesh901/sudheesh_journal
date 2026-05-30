@@ -1,0 +1,1909 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const tools = ['MLflow','DVC','Airflow','Docker','Kubernetes','GitHub Actions','Prometheus','Grafana','Feast','BentoML'];
+
+const layers = [
+  {
+    id: 'tracking',
+    label: 'Experiment Tracking & Reproducibility',
+    range: 'Stages 01–02',
+    stages: [
+      {
+        num: '01',
+        title: 'MLflow — Experiment Tracking & Model Registry',
+        intro: 'A team promotes a model to production with no record of which dataset version, hyperparameters, or code commit produced it. MLflow solves this by logging every run\'s full context and linking it to a versioned model registry entry.',
+        insight: 'Every production model should trace back to a single MLflow run_id — that run_id is the anchor for data provenance, code version, and metric history.',
+        points: [
+          {
+            term: 'Run Logging & Autologging',
+            desc: 'Capture params, metrics, artifacts and tags per training run with full lineage',
+            detail: {
+              overview: 'mlflow.start_run() creates an isolated experiment context. Log scalars with log_metric(step=epoch) for time-series tracking, hyperparameters with log_param, and files with log_artifact. mlflow.autolog() integrates natively with sklearn, PyTorch, and XGBoost to capture standard metrics automatically. Nested runs (parent = sweep, child = trial) structure hyperparameter searches hierarchically. Programmatic comparison via MlflowClient.search_runs(filter_string="metrics.val_auc > 0.85") enables automated champion-challenger selection without touching the UI.',
+              code: {
+                label: 'mlflow_run.py',
+                lines: `import mlflow, mlflow.sklearn
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import roc_auc_score
+
+mlflow.set_tracking_uri("http://mlflow-server:5000")
+mlflow.set_experiment("churn-prediction-v2")
+
+with mlflow.start_run(run_name="gbm-lr0.05") as run:
+    mlflow.log_params({"n_estimators": 300, "learning_rate": 0.05, "max_depth": 5})
+    model = GradientBoostingClassifier(n_estimators=300, learning_rate=0.05, max_depth=5)
+    model.fit(X_train, y_train)
+    auc = roc_auc_score(y_val, model.predict_proba(X_val)[:, 1])
+    mlflow.log_metric("val_auc", auc)
+    mlflow.sklearn.log_model(model, "model", registered_model_name="churn-gbm")
+    print(f"Run {run.info.run_id} | AUC {auc:.4f}")`
+              },
+              pitfalls: [
+                { issue: 'Nested runs left open after exception', context: 'mlflow.start_run() inside a loop without a context manager leaves orphan RUNNING runs that pollute the experiment view and break automated searches.', fix: 'Always use with mlflow.start_run() so MLflow closes the run on any exception.' },
+                { issue: 'autolog() logs too many artifacts per epoch', context: 'On large PyTorch models, autolog logs full model checkpoints every epoch — 500MB+ per run, storage costs spiral in days.', fix: 'Use mlflow.autolog(log_models=False, every_n_iter=10) and log only the final best checkpoint explicitly.' }
+              ],
+              qa: [
+                { q: 'What is the difference between log_metric and log_metrics in MLflow?', a: 'log_metric logs a single key-value at an optional step (for epoch-level tracking in loops); log_metrics logs a dictionary at once for batch efficiency. Use log_metric(step=epoch) inside training loops, log_metrics({}) for final summary metrics at the end of a run.' },
+                { q: 'Your team has 2,000 stale experiments cluttering the MLflow UI — how do you clean up safely?', a: 'Tag runs at creation with mlflow.set_tag("status","active"). Filter actives with MlflowClient.search_runs(filter_string="tags.status = \'active\'"). Soft-delete stales via MlflowClient.delete_run() — it moves runs to Deleted state (recoverable for 30 days), not permanent erasure. Never hard-delete without confirming no Model Registry versions reference the run_id.' }
+              ]
+            }
+          },
+          {
+            term: 'Model Registry & Staging Workflow',
+            desc: 'Versioned lifecycle: None → Staging → Production → Archived with full audit trail',
+            detail: {
+              overview: 'The MLflow Model Registry decouples training (run artifacts) from deployment (versioned model). Transition stages programmatically via MlflowClient.transition_model_version_stage(). Every Production model links back to the run that created it — full provenance. Webhooks on stage transitions trigger downstream CI (integration tests when entering Staging, canary deploy when entering Production). Aliases (client.set_registered_model_alias("churn-gbm","champion","12")) let serving code reference a stable name rather than a stage string.',
+              code: {
+                label: 'model_registry.py',
+                lines: `from mlflow.tracking import MlflowClient
+
+client = MlflowClient(tracking_uri="http://mlflow-server:5000")
+
+# Promote challenger to Staging
+client.transition_model_version_stage(
+    name="churn-gbm", version="14", stage="Staging",
+    archive_existing_versions=False
+)
+
+# Champion-challenger comparison
+prod = client.get_latest_versions("churn-gbm", stages=["Production"])[0]
+champ_auc = float(client.get_run(prod.run_id).data.metrics["val_auc"])
+chall_auc = float(client.get_run(
+    client.get_model_version("churn-gbm","14").run_id).data.metrics["val_auc"])
+
+if chall_auc - champ_auc > 0.005:
+    client.transition_model_version_stage(
+        "churn-gbm","14","Production", archive_existing_versions=True)
+    print(f"Promoted: AUC delta {chall_auc - champ_auc:.4f}")`
+              },
+              pitfalls: [
+                { issue: 'Deploying directly from artifact store, bypassing the registry', context: 'Teams load models from a raw S3 path — no version history, no rollback path, no audit trail. A regression requires manual S3 archaeology to find the previous artifact.', fix: 'Enforce registry-only deploys: serving code calls mlflow.pyfunc.load_model("models:/churn-gbm/Production"), never a raw S3 URI.' },
+                { issue: 'No run_id propagated to the deployed container', context: 'Model registry version 14 is in Production, but the serving pod has no way to identify which MLflow run produced it — debugging a prod regression requires manual UI searching.', fix: 'Inject RUN_ID as a container env variable in the K8s Deployment manifest. Log it in every inference response header (X-Model-Run-Id) for traceability.' }
+              ],
+              qa: [
+                { q: 'How does the MLflow Model Registry differ from the artifact store?', a: 'The artifact store is a raw file store (S3/GCS) for anything logged during a run. The registry is a higher-level abstraction adding versioning, lifecycle stages, aliases, and lineage on top of specific model artifacts. A model can exist in the artifact store without being registered; registration is an explicit promotion step that signals deployment-readiness.' },
+                { q: 'The registry has 3 versions simultaneously in "Production" — how do you handle it?', a: 'MLflow allows this intentionally for canary/A/B deployments. Set aliases explicitly (client.set_registered_model_alias("churn-gbm","champion","12"), "challenger","14") and load by alias in serving code. Archive the older version once the newer one is fully validated and traffic has been fully cut over.' }
+              ]
+            }
+          },
+          {
+            term: 'MLflow Projects & Reproducible Training',
+            desc: 'MLproject YAML + pinned env for one-command reproducibility from any Git ref',
+            detail: {
+              overview: 'An MLflow Project is a directory with MLproject YAML defining entry points, parameters, and an execution environment (conda.yaml or Docker image). mlflow run . -P lr=0.01 runs training in an isolated environment. Projects are runnable from Git URIs: mlflow run git@github.com:org/repo#v1.2 -P lr=0.01, enabling any engineer to reproduce any historical training run with a single command. Combine with DVC for data: checkout the git tag, dvc pull, then mlflow run.',
+              code: {
+                label: 'MLproject',
+                lines: `name: churn-prediction
+conda_env: conda.yaml
+
+entry_points:
+  train:
+    parameters:
+      learning_rate: {type: float, default: 0.05}
+      n_estimators:  {type: int,   default: 300}
+      data_version:  {type: str,   default: "v3"}
+    command: >
+      python src/train.py
+        --lr {learning_rate}
+        --n-estimators {n_estimators}
+        --data-version {data_version}
+  evaluate:
+    parameters:
+      run_id: {type: str}
+    command: "python src/evaluate.py --run-id {run_id}"`
+              },
+              pitfalls: [
+                { issue: 'conda.yaml pinned only to major versions', context: 'scikit-learn>=1.0 installs different patch versions across runs, causing metric variance that looks like model regression but is just library drift.', fix: 'Pin exact versions in conda.yaml (scikit-learn==1.3.2). Bump the project version and re-validate whenever you upgrade a pinned dependency.' },
+                { issue: 'Data path hardcoded in train.py', context: 'Hardcoded /data/train.parquet breaks when the team moves to S3 storage, and the MLproject entry point offers no way to parameterize it.', fix: 'Parameterize all external resource paths in MLproject. Log the resolved data URI as an MLflow tag (mlflow.set_tag("data_uri", ...)) for traceability.' }
+              ],
+              qa: [
+                { q: 'How do you reproduce a model trained 6 months ago exactly?', a: 'Retrieve the MLflow run by run_id, read tags for git_commit and dvc_data_hash. git checkout that commit, dvc pull to restore the exact dataset, then mlflow run . with the logged parameters. The Model Registry version links to run_id which links to Git and DVC — full three-way provenance chain.' },
+                { q: 'What is the minimal reproducibility stack for a 3-person ML team?', a: 'Git + DVC (S3 remote) + MLflow (SQLite backend to start). Enforce: always commit .dvc files alongside code changes; log git_commit tag in every run; use dvc.yaml pipelines so retraining is one command. This covers experiment reproducibility and data lineage with zero Kubernetes overhead.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '02',
+        title: 'DVC — Data Versioning & Pipeline Reproducibility',
+        intro: 'A model trained on "last week\'s data" outperforms the current production model, but no one can reproduce it — the training dataset was overwritten. DVC prevents this by versioning data alongside code, linking every model version to an exact dataset snapshot.',
+        insight: 'DVC + Git gives data the same provenance guarantees that Git gives code. The combination makes full pipeline reproducibility tractable without a dedicated data warehouse.',
+        points: [
+          {
+            term: 'Data Versioning with .dvc Files',
+            desc: 'Lightweight pointer files track large datasets without bloating the Git repo',
+            detail: {
+              overview: 'dvc add data/train.parquet creates a .dvc pointer file (MD5 hash of the file) that gets committed to Git, while the actual data lives in a DVC remote (S3, GCS, Azure Blob). dvc push uploads; dvc pull restores. Every team member gets the exact same dataset by checking out the same Git commit and running dvc pull. Data versions are immutable — a new dataset is a new Git commit with an updated .dvc file, never an overwrite.',
+              code: {
+                label: 'dvc_versioning.sh',
+                lines: `# Track a large training dataset
+dvc add data/train.parquet
+git add data/train.parquet.dvc data/.gitignore
+git commit -m "data: training set v3 — 2M rows, Jan-Mar 2024"
+dvc push                      # upload to configured S3 remote
+
+# Configure remote storage
+dvc remote add -d prod s3://ml-artifacts/dvc-store
+dvc remote modify prod region us-east-1
+
+# Restore a prior dataset version
+git checkout v2.1.0 -- data/train.parquet.dvc
+dvc pull                      # downloads v2.1.0 data from S3`
+              },
+              pitfalls: [
+                { issue: 'git add data/ commits the actual large file instead of the .dvc pointer', context: 'Without a .gitignore, a 2GB parquet file lands in the Git history. git filter-repo is the only recovery path — a multi-hour operation on a large repo.', fix: 'dvc add automatically writes a .gitignore in the data directory. Always run git status before committing to confirm only .dvc pointer files are staged.' },
+                { issue: 'DVC remote credentials missing in CI', context: 'CI dvc pull silently falls back to a stale local cache and trains on the wrong dataset without any error — a silent correctness failure.', fix: 'Set AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY as CI secrets. Add dvc status --cloud to the CI step and fail if the remote is out of sync.' }
+              ],
+              qa: [
+                { q: 'How does DVC differ from Git LFS for ML data versioning?', a: 'Git LFS stores files via a Git-native protocol and downloads all LFS objects on clone by default — expensive for large datasets. DVC decouples storage (any cloud provider), supports partial downloads (dvc pull specific/file.dvc), and adds pipeline tracking that LFS lacks entirely. DVC also uses content-addressable storage, deduplicating identical file versions across branches.' },
+                { q: 'You need to reproduce a model trained 6 months ago — what are the exact steps?', a: 'git checkout the commit or tag, then dvc pull to restore all .dvc-tracked files to that commit\'s exact versions. Check the MLflow run linked to that tag for hyperparameters and the entry point, then run mlflow run . with those parameters. Git commit + DVC data + MLflow params = complete reproducibility.' }
+              ]
+            }
+          },
+          {
+            term: 'DVC Pipelines (dvc.yaml)',
+            desc: 'Declarative DAG of pipeline stages with dependency tracking and smart caching',
+            detail: {
+              overview: 'dvc.yaml defines a DAG of stages (featurize → train → evaluate), each with deps (inputs), outs (outputs), and params (values read from params.yaml). dvc repro re-runs only stages where deps or params have changed — like Makefile for ML. Stage outputs are content-addressed in the cache; unchanged stages hit the cache and complete instantly. dvc diff shows which stages would re-run before committing.',
+              code: {
+                label: 'dvc.yaml',
+                lines: `stages:
+  featurize:
+    cmd: python src/featurize.py --input data/raw --output data/features
+    deps: [src/featurize.py, data/raw]
+    outs: [data/features]
+    params: [featurize.window_days, featurize.lag_features]
+
+  train:
+    cmd: python src/train.py
+    deps: [src/train.py, data/features]
+    outs: [models/model.pkl]
+    params: [train.learning_rate, train.n_estimators]
+    metrics: [metrics/train_metrics.json]
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps: [src/evaluate.py, models/model.pkl, data/test]
+    metrics: [metrics/eval_metrics.json]`
+              },
+              pitfalls: [
+                { issue: 'Non-deterministic output files trigger unnecessary re-runs', context: 'A featurize stage writes a timestamp into the output CSV header — DVC sees a changed hash every run and re-runs all downstream stages, defeating the cache entirely.', fix: 'Strip non-deterministic metadata from outputs. Use cache: false in dvc.yaml only for log files that should never trigger re-runs.' },
+                { issue: 'params.yaml not listed in stage deps', context: 'Changing a hyperparameter in params.yaml does not trigger dvc repro because the stage has no declared dependency on it — the stale model silently persists.', fix: 'Always declare params: [train.learning_rate] in dvc.yaml for every key the stage reads from params.yaml.' }
+              ],
+              qa: [
+                { q: 'What happens when dvc repro detects a changed upstream stage?', a: 'DVC marks the changed stage and all downstream stages as "changed" (their deps hash differs from the cached state). It re-runs them in topological order, using cached outputs for any unchanged branches. The result is minimal re-computation — only what is actually affected by the change propagates forward.' },
+                { q: 'How do you handle a pipeline stage that calls an external API (non-deterministic)?', a: 'Mark that stage\'s outputs with cache: false to disable DVC caching. Set always_changed: true on the stage so it always re-runs. Wrap the API call with retry logic and store a checksum of the response alongside the output — a changed checksum is the canonical signal that the data actually changed, not just that the stage ran.' }
+              ]
+            }
+          },
+          {
+            term: 'DVC + MLflow Integration',
+            desc: 'Full reproducibility: data provenance via DVC, experiment provenance via MLflow',
+            detail: {
+              overview: 'DVC and MLflow are complementary: DVC tracks what data was used; MLflow tracks what the model achieved. The integration anchor is the Git commit hash — log git rev-parse HEAD as an MLflow tag at run start. A production model in the registry links to its run_id → Git commit → DVC data hash. This three-way chain makes any production model fully auditable and reproducible from a single registry entry.',
+              code: {
+                label: 'train_with_lineage.py',
+                lines: `import subprocess, yaml, mlflow
+
+def git_hash():
+    return subprocess.check_output(["git","rev-parse","HEAD"]).decode().strip()
+
+def dvc_md5(path="data/train.parquet.dvc"):
+    with open(path) as f:
+        return yaml.safe_load(f)["outs"][0]["md5"]
+
+with mlflow.start_run():
+    mlflow.set_tag("git_commit",   git_hash())
+    mlflow.set_tag("train_data_md5", dvc_md5())
+    # ... training code ...
+    mlflow.log_metric("val_auc", auc)
+    mlflow.sklearn.log_model(
+        model, "model", registered_model_name="churn-gbm")`
+              },
+              pitfalls: [
+                { issue: 'DVC and MLflow versions diverge across branches', context: 'Branch A trains on dataset v3 (run #50), branch B on dataset v4 (run #51). Both register as "churn-gbm v14" — the data difference is invisible in the registry, making A/B comparison meaningless.', fix: 'Tag every MLflow model version with the DVC data hash as a registry tag. CI fails promotion if the tag is absent.' },
+                { issue: 'dvc pull fails in CI silently', context: 'Wrong IAM role causes dvc pull to fail but CI continues, training on default/empty data and registering a broken model with a passing AUC.', fix: 'Check dvc pull exit code explicitly. Log the resolved data hash to MLflow before training — if the tag is missing or mismatched, fail the CI step immediately.' }
+              ],
+              qa: [
+                { q: 'How do you tie a specific dataset version to an MLflow run for a compliance audit?', a: 'At run start, call mlflow.set_tag("dvc_data_hash", dvc_md5()) and mlflow.set_tag("git_commit", git_hash()). Store the DVC remote URL as a tag too. These three tags make any run fully reproducible: checkout the git commit, dvc pull the hash, run with the logged parameters — one command each.' },
+                { q: 'What is the minimum reproducibility stack for a 2-person ML team?', a: 'Git + DVC (S3 remote) + MLflow (SQLite backend). Enforce: commit .dvc files alongside every code change; log git_commit tag in every run; use dvc.yaml so retraining is dvc repro. This costs nothing beyond an S3 bucket and covers data lineage + experiment history for the full model lifecycle.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'cicd',
+    label: 'CI/CD for ML',
+    range: 'Stages 03–04',
+    stages: [
+      {
+        num: '03',
+        title: 'ML Pipeline Gates & GitHub Actions',
+        intro: 'A model was promoted to production without a golden-set regression check. Within 10 minutes, p99 latency breached the SLA and error rate hit 3%. Automated CI gates — data validation, metric comparison, promotion threshold — would have caught it before a single user was affected.',
+        insight: 'ML CI is not unit tests. It is a sequential quality gate: validate data → train → evaluate on a frozen golden set → compare to champion → promote only if AUC delta exceeds threshold.',
+        points: [
+          {
+            term: 'ML Pipeline Gates in GitHub Actions',
+            desc: 'Sequential workflow: validate → train → evaluate → compare champion → promote',
+            detail: {
+              overview: 'An ML CI pipeline runs on push to main or on schedule. Each step is a strict pass/fail gate: (1) data schema validation, (2) training run logged to MLflow, (3) evaluation on a frozen golden test set (not the validation set), (4) metric comparison to the current Production model (AUC delta threshold 0.005), (5) registry promotion only on pass. Rollback trigger: if error rate > 2% within 15 minutes post-deploy, transition the previous version back to Production.',
+              code: {
+                label: '.github/workflows/ml-ci.yml',
+                lines: `name: ML CI Pipeline
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "params.yaml", "data/*.dvc"]
+jobs:
+  train-evaluate-promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull data
+        run: dvc pull data/train.parquet.dvc data/golden.parquet.dvc
+        env:
+          AWS_ACCESS_KEY_ID: \${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: \${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Validate schema
+        run: python scripts/validate_data.py --fail-on-error
+      - name: Train & log to MLflow
+        run: python src/train.py
+        env: {MLFLOW_TRACKING_URI: "\${{ secrets.MLFLOW_URI }}"}
+      - name: Evaluate vs champion
+        run: python scripts/promote.py --min-auc-delta 0.005`
+              },
+              pitfalls: [
+                { issue: 'Evaluating CI gate on the validation set instead of a frozen golden set', context: 'The validation set influences hyperparameter tuning — a model overfit to it still passes the gate but regresses on true production distribution.', fix: 'Keep a separate immutable golden test set (200+ samples, human-verified labels) versioned in DVC. CI evaluates only on this set — it never touches training decisions.' },
+                { issue: 'AUC delta threshold too conservative → automation never fires', context: 'A threshold of 0.01 on a stable problem (AUC 0.92) means the CI gate never auto-promotes — the team reverts to manual deploys, defeating the automation entirely.', fix: 'Calibrate the threshold to 1σ of your golden set AUC variance. For 500 samples, variance ≈ ±0.003, so use 0.003–0.005 as the minimum delta.' }
+              ],
+              qa: [
+                { q: 'Why evaluate on a golden test set rather than the validation set in CI?', a: 'The validation set influences model selection (early stopping, hyperparameter choices), making it an optimistic estimator of generalization. A golden test set is held completely out of all training decisions, giving an unbiased estimate of production performance. Evaluating on validation in CI means your gate is blind to overfitting.' },
+                { q: 'How do you prevent a 3-hour training job from blocking every CI run?', a: 'Split into two workflows: a fast gate (schema validation + lint + unit tests, < 5 min) on every PR, and a slow gate (full train + evaluate + promote) triggered only on merge to main or on schedule. Use actions/cache to persist the trained model artifact between CI steps. For nightly retraining, use workflow_dispatch or a cron trigger separate from the merge pipeline.' }
+              ]
+            }
+          },
+          {
+            term: 'Automated Regression on Golden Test Sets',
+            desc: 'Frozen, human-verified dataset as the single source of truth for promotion gates',
+            detail: {
+              overview: 'A golden test set is 200–500 production-representative samples with human-verified labels. It never changes between quarterly refreshes. pytest loads it from DVC as a fixture; the CI step computes metrics and compares to the champion\'s metrics stored in MLflow. Regression fires if any metric drops beyond 2 standard deviations of historical variance on that set. Larger golden sets reduce variance and tighten the detection threshold.',
+              code: {
+                label: 'tests/test_golden_regression.py',
+                lines: `import pytest, mlflow
+from sklearn.metrics import roc_auc_score
+import pandas as pd
+
+@pytest.fixture
+def golden():
+    df = pd.read_parquet("data/golden/test_v3.parquet")
+    return df.drop("label", axis=1), df["label"]
+
+def test_no_auc_regression(golden):
+    X, y = golden
+    client = mlflow.tracking.MlflowClient()
+    prod = client.get_latest_versions("churn-gbm", stages=["Production"])[0]
+    model  = mlflow.pyfunc.load_model(f"runs:/{prod.run_id}/model")
+    champ_auc  = float(client.get_run(prod.run_id).data.metrics["val_auc"])
+    new_auc    = roc_auc_score(y, model.predict(X))
+    assert new_auc >= champ_auc - 0.005, \
+        f"Regression: {new_auc:.4f} vs champion {champ_auc:.4f}"`
+              },
+              pitfalls: [
+                { issue: 'Golden set becomes stale as production distribution shifts', context: 'A golden set labeled in Q1 no longer represents the Q4 distribution — the CI gate passes models that will fail on new traffic patterns.', fix: 'Refresh golden labels quarterly. Track distribution stats (mean, std, class balance) as DVC metadata. Alert when live feature distribution diverges > 0.2 PSI from the golden set.' },
+                { issue: 'Golden set too small — AUC variance swamps the signal', context: 'With 50 samples, AUC std ≈ 0.04 — a real 0.02 regression is invisible in the noise and the gate never fires.', fix: 'Minimum 200 samples per class for binary classification. Bootstrap 100x and set the failure threshold at mean − 2σ to account for measurement variance.' }
+              ],
+              qa: [
+                { q: 'What size should a golden test set be for a binary classifier?', a: 'Minimum 200 samples per class (400 total) for AUC standard error < 0.02. For high-stakes models (fraud, medical), target 1,000+. Prioritize distribution coverage over raw count — ensure all important subgroups and edge cases are represented, even if oversampled.' },
+                { q: 'How do you update golden set labels without invalidating historical comparisons?', a: 'Version the golden set in DVC (golden/test_v1, v2, v3). When switching to v3, run the current champion on v3 and store that AUC as the new baseline in the MLflow model version tag. Never compare v3 results to v2 baselines — the sets have different distributions. Document the version boundary in the registry changelog.' }
+              ]
+            }
+          },
+          {
+            term: 'Rollback Triggers & Promotion Criteria',
+            desc: 'Automated rollback on error rate spike; AUC delta and latency SLO as promotion gates',
+            detail: {
+              overview: 'Promotion requires: challenger AUC ≥ champion AUC + 0.005 on golden set AND p99 latency ≤ 200ms on a 100-request load test. Automated rollback fires when error_rate > 2% OR p99 > 500ms, sustained 5 minutes post-deploy. Rollback is a registry stage transition — set the previous version back to Production and redeploy. The rollback pipeline itself must be tested monthly in staging; a broken rollback pipeline discovered during a P0 incident is a catastrophe.',
+              code: {
+                label: 'scripts/promote.py',
+                lines: `import mlflow, sys
+from mlflow.tracking import MlflowClient
+
+client = MlflowClient()
+new_run_id = sys.argv[1]
+min_delta  = float(sys.argv[2])
+
+new_auc  = client.get_run(new_run_id).data.metrics["val_auc"]
+prod_vers = client.get_latest_versions("churn-gbm", stages=["Production"])
+if prod_vers:
+    champ_auc = float(client.get_run(prod_vers[0].run_id).data.metrics["val_auc"])
+    delta = new_auc - champ_auc
+    if delta < min_delta:
+        print(f"SKIP: delta {delta:.4f} < threshold {min_delta}")
+        sys.exit(0)
+
+new_ver = client.get_model_version_by_run_id("churn-gbm", new_run_id).version
+client.transition_model_version_stage(
+    "churn-gbm", new_ver, "Production", archive_existing_versions=True)
+print(f"PROMOTED version {new_ver} | AUC {new_auc:.4f}")`
+              },
+              pitfalls: [
+                { issue: 'Rollback pipeline never tested until a real incident', context: 'The rollback script has a wrong model name hardcoded — discovered during a P0. Manual rollback takes 45 minutes instead of 90 seconds.', fix: 'Run a monthly rollback drill in staging: promote a dummy model, verify it serves, then rollback and verify the original is restored. Treat rollback as a first-class production operation.' },
+                { issue: 'Alert fires on warmup traffic spike, triggering a spurious rollback', context: 'A cold-start burst of errors in the first 60 seconds of deploy triggers the 2% error rate alert before the model has warmed up — rolling back a perfectly good model.', fix: 'Add a 3–5 minute burn-in exclusion window before rollback alerts activate. Use a separate "deployment health" dashboard during warmup, and only arm the rollback alert after warmup completes.' }
+              ],
+              qa: [
+                { q: 'What production metrics should trigger automatic model rollback?', a: 'Tier 1 (auto-rollback): HTTP error rate > 5% for 2 minutes OR p99 latency > 1s for 5 minutes. Tier 2 (alert, manual review): model score distribution shift (KS p < 0.01), business metric drop > 3%. Tier 3 (scheduled review): gradual AUC decay < 0.005/week on labeled holdout. Automate only Tier 1 — Tier 2/3 require human judgment about tradeoffs.' },
+                { q: 'Challenger AUC is 0.003 below champion — do you promote?', a: 'Not automatically, but investigate before dismissing. If the challenger has 40% lower p99 latency, better calibration, or higher AUC on a critical user segment, manual promotion may be justified. Always log the reasoning as a model registry comment — this decision history is invaluable for calibrating future thresholds.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '04',
+        title: 'Docker & Kubernetes for ML',
+        intro: 'A data scientist hands engineering a model with 14 pip packages and "it works on my machine." Three days of environment debugging later, the model still isn\'t in production. Docker eliminates environment drift; Kubernetes handles operational complexity at scale.',
+        insight: 'Multi-stage builds cut ML image sizes from 8GB to under 500MB. GPU node taints plus resource limits prevent 90% of production ML infrastructure incidents.',
+        points: [
+          {
+            term: 'Docker Multi-Stage Builds for ML',
+            desc: 'Separate build-time compilation from slim runtime to minimize image size and attack surface',
+            detail: {
+              overview: 'Stage 1 (builder) installs all build deps, compiles C extensions, downloads wheel artifacts. Stage 2 (runtime) copies only compiled artifacts onto a slim base (python:3.11-slim or distroless). Model weights must NOT be baked into the image — load from S3 or the model registry at container startup. Pin base image SHA to prevent supply-chain drift. Target: < 500MB for CPU inference, < 2GB for GPU. Every code change rebuilds only the last layer; base and dependencies are cached.',
+              code: {
+                label: 'Dockerfile',
+                lines: `# Stage 1: build
+FROM python:3.11 AS builder
+WORKDIR /build
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Stage 2: slim runtime
+FROM python:3.11-slim AS runtime
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY src/ ./src/
+ENV PATH=/root/.local/bin:\$PATH
+ENV PYTHONUNBUFFERED=1
+ENV MODEL_URI=s3://ml-artifacts/models/churn-gbm/production
+EXPOSE 8080
+CMD ["uvicorn","src.serve:app","--host","0.0.0.0","--port","8080"]`
+              },
+              pitfalls: [
+                { issue: 'Model weights baked into the Docker image', context: 'A 2GB model baked in means every code change triggers a 2GB push and pull across all K8s nodes — 15-minute rolling deploys become the norm.', fix: 'Pass MODEL_URI as an env variable and load at startup with mlflow.pyfunc.load_model(os.environ["MODEL_URI"]). Use a K8s init container or PVC for pre-warming on cold nodes.' },
+                { issue: 'Using :latest tag in production K8s manifests', context: ':latest means different nodes can pull different image versions after a push — you get a mixed-version deployment that is nearly impossible to debug.', fix: 'Tag images with git commit SHA and pin in K8s manifests (image: org/ml-serve@sha256:abc123). CI updates the manifest tag in the same step that builds the image.' }
+              ],
+              qa: [
+                { q: 'Why use multi-stage Docker builds for ML serving containers?', a: 'Single-stage builds include all build-time tools (gcc, cmake, dev headers) in the final image — adding attack surface and bloating size. Multi-stage builds produce an image containing only runtime artifacts. For ML specifically, packages like torch include large compiled extensions that separate cleanly from source files, yielding dramatic size reductions.' },
+                { q: 'How do you handle CUDA version compatibility between your Docker image and the host GPU driver?', a: 'The CUDA toolkit version inside the container must be ≤ the maximum CUDA version supported by the host driver (check with nvidia-smi). Use official CUDA base images (nvidia/cuda:12.1-runtime-ubuntu22.04) and document the minimum host driver version. In K8s, use the NVIDIA device plugin and taint GPU nodes so only pods with matching tolerations and explicit nvidia.com/gpu resource requests can schedule there.' }
+              ]
+            }
+          },
+          {
+            term: 'Kubernetes Jobs & CronJobs for ML Training',
+            desc: 'K8s Jobs for event-driven training runs; CronJobs for scheduled periodic retraining',
+            detail: {
+              overview: 'A K8s Job runs a training container to completion — pod failures retry up to backoffLimit times. CronJobs schedule periodic retraining (weekly refresh, nightly batch scoring). GPU resource requests (nvidia.com/gpu: 1) with matching NoSchedule node taints ensure training pods land on GPU nodes. Set resource limits identical to requests for GPU to prevent contention. Use activeDeadlineSeconds to auto-kill hung training jobs — a hung job with no deadline burns GPU billing indefinitely.',
+              code: {
+                label: 'k8s-training-job.yaml',
+                lines: `apiVersion: batch/v1
+kind: Job
+metadata:
+  name: churn-train-weekly
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 14400   # 4-hour hard timeout
+  template:
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - {key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}
+      containers:
+        - name: trainer
+          image: org/ml-train:abc123sha
+          resources:
+            requests: {nvidia.com/gpu: "1", memory: "16Gi", cpu: "4"}
+            limits:   {nvidia.com/gpu: "1", memory: "16Gi", cpu: "4"}
+          env:
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                secretKeyRef: {name: mlops-secrets, key: mlflow-uri}`
+              },
+              pitfalls: [
+                { issue: 'GPU nodes not tainted — CPU pods fill GPU capacity', context: 'Without a NoSchedule taint, the K8s scheduler fills GPU nodes with CPU-only pods. Training jobs pend indefinitely while expensive GPU hours burn idle.', fix: 'Taint GPU nodes: kubectl taint nodes gpu-node nvidia.com/gpu=present:NoSchedule. Only pods with matching tolerations can schedule there. Verify with kubectl describe node gpu-node.' },
+                { issue: 'No resource limits — OOM kills entire node', context: 'A training job with only requests (no limits) can balloon memory and trigger node-level OOM, evicting all pods on the node including production serving pods.', fix: 'Set requests = limits for GPU and memory. Enable LimitRange in the training namespace to enforce defaults. Use ResourceQuota to cap total GPU usage per namespace.' }
+              ],
+              qa: [
+                { q: 'When would you use a K8s Job vs CronJob for ML training?', a: 'Job: event-driven training triggered by data arrival, a CI pipeline, or a drift alert — single execution to completion. CronJob: time-based scheduled retraining (weekly model refresh, nightly batch scoring) when the trigger is calendar-based. For complex dependencies like "wait for feature store refresh before training," use Airflow with KubernetesPodOperator to trigger a Job rather than a raw CronJob.' },
+                { q: 'A training pod is OOMKilled repeatedly — how do you debug it?', a: 'kubectl describe pod <pod> confirms exit code 137 (OOM). Check memory requests — if set too low (8Gi for a model needing 24Gi), increase. Profile peak memory with torch.cuda.memory_summary() or memory_profiler to find the spike. Common causes: full dataset loaded into RAM (use streaming DataLoader), gradient accumulation buffers not cleared, model weights not offloaded after the forward pass.' }
+              ]
+            }
+          },
+          {
+            term: 'HPA vs KEDA for Inference Autoscaling',
+            desc: 'Scale inference pods on queue depth or GPU utilization, not CPU',
+            detail: {
+              overview: 'HPA scales on CPU/memory — useless for GPU inference where CPU stays near zero regardless of load. KEDA (Kubernetes Event-Driven Autoscaling) scales on custom metrics: request queue depth (Redis/Kafka), GPU utilization (DCGM), or Prometheus query results. KEDA supports scale-to-zero for cost savings on low-traffic models. Configure stabilizationWindowSeconds (120s for scale-down, 30s for scale-up) to prevent oscillation between replicas.',
+              code: {
+                label: 'keda-scaledobject.yaml',
+                lines: `apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: churn-inference-scaler
+spec:
+  scaleTargetRef:
+    name: churn-inference-deploy
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  cooldownPeriod: 120
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 120
+        scaleUp:
+          stabilizationWindowSeconds: 30
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus:9090
+        metricName: inference_queue_depth
+        threshold: "5"
+        query: sum(inference_queue_depth{service="churn-model"})`
+              },
+              pitfalls: [
+                { issue: 'HPA thrashing — scaling up and down every 90 seconds', context: 'HPA default stabilizationWindowSeconds is 0 for scale-up. A 10-request burst triggers scale-up; as soon as the burst clears, scale-down fires — new pods die just as they finish model warmup.', fix: 'Set behavior.scaleDown.stabilizationWindowSeconds: 120. Scale up fast (low latency cost), scale down slow (avoid cold-start thrashing). Monitor scale events in Grafana to tune.' },
+                { issue: 'KEDA cooldown too short during bursty traffic', context: 'cooldownPeriod: 30 starts scale-down 30 seconds after queue drains, but the next burst arrives at 35 seconds — now serving from 1 replica with a saturated queue.', fix: 'Set cooldownPeriod to at least 2× your p99 request inter-arrival time. For bursty traffic, 120–180 seconds is typically safe.' }
+              ],
+              qa: [
+                { q: 'Why is HPA insufficient for GPU inference autoscaling?', a: 'HPA was designed for CPU-bound services. GPU inference has near-zero CPU utilization regardless of load — the GPU does all the work — so HPA never triggers scale-up. The correct signal is queue depth (how many requests are waiting) or GPU utilization. KEDA supports both via its Prometheus scaler, directly targeting the metric that indicates actual saturation.' },
+                { q: 'How do you handle cold-start latency when KEDA scales from 0 to 1 replica?', a: 'Strategy 1: minReplicaCount: 1 — keep one warm replica always; eliminates cold start but costs one idle pod. Strategy 2: K8s init container pre-loads model weights, readinessProbe passes only after warmup — KEDA routes traffic only when the pod is ready. Strategy 3: queue incoming requests in Redis during scale-up and drain once ready. If TTFT < 500ms is an SLO, minReplicas=1 is the only safe option.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+  ,
+  {
+    id: 'deployment',
+    label: 'Deployment Patterns',
+    range: 'Stages 05–06',
+    stages: [
+      {
+        num: '05',
+        title: 'Deployment Strategies — Shadow, Canary, Blue-Green',
+        intro: 'A team deploys a new recommendation model directly to 100% of production traffic. Within 20 minutes, CTR drops 8% and they must roll back manually — a 90-minute outage. Shadow mode and canary deployments exist to make this impossible.',
+        insight: 'Never go from 0% to 100% traffic on a new model. Shadow → Canary → Full is the canonical safe path, with automated metric gates at each step.',
+        points: [
+          {
+            term: 'Shadow Mode & Canary Deployments',
+            desc: 'Shadow mirrors traffic with no user impact; canary shifts traffic gradually with metric gates',
+            detail: {
+              overview: 'Shadow mode runs the new model on every request alongside the current model — responses go to users from the current model only, but shadow outputs are logged for comparison. Zero user impact, full production-traffic evaluation. Canary shifts 5% of traffic to the new model, waits for statistical significance on key metrics (CTR, latency, error rate), then moves to 20% → 100%. Automated gates stop progression if any metric breaches threshold. Sticky sessions (route same user to same model via cookie) prevent the A/B contamination problem.',
+              code: {
+                label: 'nginx_canary.conf',
+                lines: `upstream churn_stable {
+  server churn-v12:8080 weight=95;
+}
+upstream churn_canary {
+  server churn-v14:8080 weight=5;
+}
+
+# Route 5% to canary based on hash of user_id header
+split_clients "\${http_x_user_id}" $model_upstream {
+  5%  churn_canary;
+  *   churn_stable;
+}
+
+server {
+  listen 80;
+  location /predict {
+    proxy_pass http://$model_upstream;
+    add_header X-Model-Version \${upstream_addr} always;
+  }
+}`
+              },
+              pitfalls: [
+                { issue: 'Shadow mode doubles inference cost silently', context: 'Running shadow traffic on a large LLM or GPU model doubles GPU spend — at $10K/month, that is $20K with no user benefit if shadow runs indefinitely.', fix: 'Set a maximum shadow duration (48–72 hours). If shadow evaluation is inconclusive after that window, treat it as a blocking signal and investigate before proceeding to canary.' },
+                { issue: 'Canary traffic not sticky — users see different model responses per request', context: 'Without session affinity, a user might get churn-v12 for one request and churn-v14 for the next, creating inconsistent UX and polluting the A/B signal.', fix: 'Use consistent hashing on user_id to route the same user always to the same model variant. Implement via Nginx split_clients on a stable identifier.' }
+              ],
+              qa: [
+                { q: 'When would you use shadow mode vs a canary deployment?', a: 'Shadow mode when the new model\'s output cannot be compared to the current model in real-time (e.g., personalized recommendations with no single ground truth), or when any user exposure to errors is unacceptable (medical/financial). Canary when you need real user signal (clicks, purchases) to evaluate the model, and you can accept 5% of users receiving the new experience.' },
+                { q: 'Canary shows 5% worse CTR at 20% traffic — what exactly do you do?', a: 'Immediately halt progression (do not move to 30%). Run statistical significance check — if p < 0.05 and the confidence interval for the CTR difference excludes zero, the regression is real. Rollback to 0% canary, tag the MLflow model version as "failed-canary-20pct", and open an investigation. Never promote a model with a statistically significant regression, even if it has better offline AUC.' }
+              ]
+            }
+          },
+          {
+            term: 'Blue-Green Deployments & Feature Flags',
+            desc: 'Instant rollback via environment swap; feature flags decouple deploy from release',
+            detail: {
+              overview: 'Blue-green maintains two identical production environments (blue = current, green = new). Traffic switches from blue to green by updating the load balancer target — instant rollback by switching back. The old blue environment stays live for 15–30 minutes post-switch in case rollback is needed. Feature flags (LaunchDarkly, Unleash) separate code deploy from user exposure — deploy model code at any time, enable for 1% of users when ready, roll back the flag in seconds without a redeploy.',
+              code: {
+                label: 'k8s_bluegreen.yaml',
+                lines: `# Switch service selector from blue to green — instant traffic swap
+apiVersion: v1
+kind: Service
+metadata:
+  name: churn-inference
+spec:
+  selector:
+    app: churn-inference
+    slot: green          # was: blue — change this line to switch traffic
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# Both blue and green Deployments remain running during switchover
+# kubectl patch svc churn-inference -p '{"spec":{"selector":{"slot":"green"}}}'
+# kubectl patch svc churn-inference -p '{"spec":{"selector":{"slot":"blue"}}}' # rollback`
+              },
+              pitfalls: [
+                { issue: 'Database schema differences between blue and green break rollback', context: 'If the green deployment runs a migration that renames a column, switching back to blue breaks because blue\'s code expects the old column name — rollback is now impossible without data recovery.', fix: 'Use expand-contract migrations: never remove or rename columns until both blue and green are off the old schema. Deploy schema changes as purely additive first.' },
+                { issue: 'Feature flags not cleaned up — flag debt accumulates', context: 'After full rollout, feature flags are left in code and config. 6 months later, nobody knows which flags are safe to remove — toggling the wrong one disables a live feature.', fix: 'Set a TTL on every flag at creation. Add a CI lint step that fails if flags older than 30 days remain in code. Treat flag removal as a mandatory part of the feature\'s definition of done.' }
+              ],
+              qa: [
+                { q: 'How does blue-green handle a database migration that is required by the new model version?', a: 'Apply the migration before switching traffic (expand phase): add new columns, keep old columns. Switch to green. Once green is stable and old blue is decommissioned, run the contract phase: remove old columns. The two-phase approach ensures both blue and green are compatible with the database at all times, making rollback safe at any point.' },
+                { q: 'When would you combine blue-green with a feature flag rather than just doing blue-green alone?', a: 'When you need both instant rollback (blue-green gives this) and user-segment targeting (feature flags give this). Example: deploy the new model to green for all users via blue-green, but enable it via feature flag only for premium users initially. If a bug appears in the premium cohort, toggle the flag off — no redeploy needed. Combine for maximum control.' }
+              ]
+            }
+          },
+          {
+            term: 'Automated Rollback on Error Rate Spike',
+            desc: 'Prometheus AlertManager triggers registry rollback when SLO is breached',
+            detail: {
+              overview: 'Automated rollback fires when error_rate > 2% OR p99 latency > 500ms, sustained for 5 minutes post-deploy. The trigger is a PrometheusRule that fires an alert → AlertManager webhook → GitHub Actions workflow that calls MLflow to transition the previous registry version back to Production and updates the K8s Deployment image tag. Total rollback time target: < 3 minutes end-to-end. Rollback must be tested monthly — a rollback pipeline that fails during an incident makes a P1 into a P0.',
+              code: {
+                label: 'prometheus_alert.yaml',
+                lines: `apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ml-rollback-triggers
+spec:
+  groups:
+    - name: model.slo
+      rules:
+        - alert: ModelErrorRateHigh
+          expr: |
+            rate(http_requests_total{service="churn-model",status=~"5.."}[5m])
+            / rate(http_requests_total{service="churn-model"}[5m]) > 0.02
+          for: 5m
+          labels:
+            severity: critical
+            action: rollback
+          annotations:
+            summary: "Error rate > 2% for 5m — trigger model rollback"
+            runbook: "https://wiki/mlops/rollback-runbook"`
+              },
+              pitfalls: [
+                { issue: 'Rollback fires on cold-start burst during warmup', context: 'The first 60 seconds of a deploy generate elevated errors as the model loads weights — the 2% error rate alert fires and rolls back a perfectly healthy deployment.', fix: 'Add a 3–5 minute burn-in window: suppress rollback alerts for the first 5 minutes post-deploy. Use a separate "deployment health" alert without a rollback action for the warmup window.' },
+                { issue: 'Rollback pipeline fails silently — no one knows it did not execute', context: 'The AlertManager webhook fires, but the GitHub Actions workflow fails due to an expired secret — the rollback never runs, but the alert resolves and the incident appears closed.', fix: 'Instrument the rollback workflow: post a Slack message on start AND on completion (or failure). Alert separately on rollback pipeline failure. Treat a failed rollback attempt as a P0 incident in itself.' }
+              ],
+              qa: [
+                { q: 'What production metrics should trigger automatic model rollback vs. a manual review alert?', a: 'Auto-rollback: HTTP error rate > 5% for 2 min, or p99 > 1s for 5 min — these are unambiguously user-impacting. Manual review alert: score distribution shift (KS p < 0.01), business metric drop > 3%, gradual AUC decay. Automate only when the signal is sharp and unambiguous; anything requiring business context belongs in a human review queue.' },
+                { q: 'How do you distinguish a genuine model regression from a temporary traffic spike in the rollback trigger?', a: 'Use a rate() window of at least 5 minutes and the for: 5m clause to require sustained breach, not a single spike. Combine error rate with p99 latency — a traffic spike raises both, while a model regression raises error rate without a corresponding spike in successful-request latency. Also check upstream service health in the runbook before treating the alert as a model issue.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '06',
+        title: 'Inference Serving — Triton, BentoML, Ray Serve',
+        intro: 'A model wrapped in a basic FastAPI endpoint handles 50 RPS before saturating a single CPU core. Moving to Triton Inference Server with dynamic batching increases throughput 8× on the same hardware. Serving architecture is a first-class engineering decision, not an afterthought.',
+        insight: 'Dynamic batching, model ensembles, and gRPC are Triton\'s three production-defining features. Use FastAPI only for prototypes; switch to Triton or Ray Serve when throughput or multi-model pipelines matter.',
+        points: [
+          {
+            term: 'Triton Inference Server — Dynamic Batching & Model Ensembles',
+            desc: 'NVIDIA Triton accumulates concurrent requests into GPU-efficient batches automatically',
+            detail: {
+              overview: 'Triton\'s dynamic batching groups concurrent requests up to max_batch_size within max_queue_delay_microseconds, then executes them as a single GPU forward pass — dramatically improving GPU utilization. Model ensembles chain multiple model steps (preprocess → inference → postprocess) within Triton itself, eliminating network round-trips between steps. gRPC protocol reduces serialization overhead by 30–40% vs REST for high-throughput endpoints. Supports ONNX, TensorRT, PyTorch TorchScript, and Python backends in a single server.',
+              code: {
+                label: 'triton_config.pbtxt',
+                lines: `name: "churn-model"
+platform: "pytorch_libtorch"
+max_batch_size: 64
+
+dynamic_batching {
+  preferred_batch_size: [8, 16, 32]
+  max_queue_delay_microseconds: 5000    # 5ms batching window
+}
+
+input  [{ name: "features" dims: [-1, 128] data_type: TYPE_FP32 }]
+output [{ name: "probability" dims: [-1, 1] data_type: TYPE_FP32 }]
+
+instance_group [{ kind: KIND_GPU count: 2 }]`
+              },
+              pitfalls: [
+                { issue: 'max_queue_delay_microseconds too high — latency SLO breached', context: 'Setting a 50ms batching window means every request waits up to 50ms for the batch to fill — fine for batch jobs but catastrophic for a p99 < 100ms SLO.', fix: 'Set max_queue_delay to 20–30% of your latency budget. For p99 < 100ms SLO, use max_queue_delay_microseconds: 20000 (20ms). Profile actual batch fill rates to find the optimal tradeoff.' },
+                { issue: 'Ensemble pipeline missing a backend version — outputs silently wrong', context: 'A model ensemble with a missing or mismatched backend version returns HTTP 200 but outputs zero-filled tensors — no error, silent model failure in production.', fix: 'Add model health checks via Triton\'s /v2/models/{name}/ready endpoint in the readinessProbe. Validate output tensor shapes and value ranges in a thin wrapper before returning to the client.' }
+              ],
+              qa: [
+                { q: 'How does Triton\'s dynamic batching differ from offline batching?', a: 'Offline batching collects requests over a time window in application code and sends them together — adding application-layer latency and complexity. Triton\'s dynamic batching happens at the inference server level, transparently to the client: each client sends one request, Triton coalesces concurrent arrivals internally within a microsecond-level delay window. The client sees normal synchronous latency; the GPU sees efficient batched execution.' },
+                { q: 'When would you choose Triton over a FastAPI model wrapper?', a: 'Triton when: throughput > 100 RPS, you have multi-model pipelines (ensemble), you need hardware-optimized backends (TensorRT), or you need multiple model versions concurrently. FastAPI when: throughput < 50 RPS, the model is a simple sklearn pipeline with no GPU, or you need rapid iteration on pre/postprocessing logic. The crossover point is usually when GPU utilization on FastAPI exceeds 60%.' }
+              ]
+            }
+          },
+          {
+            term: 'BentoML & Ray Serve',
+            desc: 'BentoML packages model + pipeline into a deployable artifact; Ray Serve enables actor-based autoscaling',
+            detail: {
+              overview: 'BentoML packages a model with its pre/postprocessing logic, dependencies, and runner configuration into a "Bento" — a versioned, containerizable artifact. bentoml serve produces a production-ready API from a single Python decorator. Ray Serve deploys Python code as scalable actors (replicas) with configurable autoscaling policies, fractional GPU allocation, and deployment graphs for multi-step pipelines. Ray Serve excels when models need shared state between replicas or when orchestrating heterogeneous model pipelines.',
+              code: {
+                label: 'bentoml_service.py',
+                lines: `import bentoml
+from bentoml.io import NumpyNdarray, JSON
+import numpy as np
+
+runner = bentoml.sklearn.get("churn-gbm:latest").to_runner()
+
+svc = bentoml.Service("churn-prediction", runners=[runner])
+
+@svc.api(input=NumpyNdarray(shape=(-1, 128), dtype=np.float32),
+         output=JSON())
+async def predict(features: np.ndarray):
+    proba = await runner.predict_proba.async_run(features)
+    return {"churn_probability": proba[:, 1].tolist()}
+
+# Build and serve:
+# bentoml build
+# bentoml serve churn-prediction:latest --port 8080`
+              },
+              pitfalls: [
+                { issue: 'BentoML runner resource allocation misconfigured — all replicas on one CPU core', context: 'Default runner config without explicit cpu or gpu allocation creates runners that compete for resources, saturating one core while others sit idle.', fix: 'Explicitly configure runner resources: runner = model.to_runner(max_batch_size=32, max_latency_ms=50). Set BENTOML_NUM_RUNNERS to match available CPU cores for CPU models.' },
+                { issue: 'Ray Serve cold-start after idle scale-down to zero replicas', context: 'With min_replicas=0 for cost savings, the first request after an idle period triggers a 15–30 second cold start including model weight loading — visible latency spike to users.', fix: 'Set min_replicas=1 for latency-sensitive deployments. For background scoring jobs, scale-to-zero is acceptable. Use a /health warmup endpoint and liveness probe to confirm the replica is ready before routing user traffic.' }
+              ],
+              qa: [
+                { q: 'How does BentoML simplify model deployment compared to a raw FastAPI wrapper?', a: 'BentoML handles dependency packaging (bento includes exact pip requirements), model versioning (models are stored in a local store and referenced by tag), runner abstraction (async batching across replicas without custom code), and containerization (bentoml containerize produces a Docker image). A raw FastAPI wrapper requires you to implement all of this manually. BentoML is FastAPI with ML-specific batteries included.' },
+                { q: 'When would Ray Serve outperform BentoML for inference serving?', a: 'Ray Serve excels at: multi-model pipelines where models call each other (deployment graphs), shared GPU memory across replicas (actor model), fractional GPU allocation (0.5 GPU per replica for small models), and heterogeneous pipelines mixing Python, ONNX, and PyTorch models. BentoML is simpler for single-model REST APIs. Choose Ray Serve when the serving topology is a graph, not a single endpoint.' }
+              ]
+            }
+          },
+          {
+            term: 'Streaming Inference & Cold-Start Mitigation',
+            desc: 'SSE streams tokens as generated; warm replica strategies eliminate cold-start latency',
+            detail: {
+              overview: 'Server-Sent Events (SSE) streams inference output incrementally — critical for LLMs where Time To First Token (TTFT) matters more than total latency. FastAPI\'s StreamingResponse with an async generator yields tokens as the model generates them. Cold-start mitigation: keep minReplicas=1 in HPA/KEDA for latency-sensitive endpoints, or use a K8s init container that pre-loads model weights before the readinessProbe passes. Backpressure: if the inference queue exceeds depth 20, return HTTP 429 to the client rather than accumulating unbounded queue depth.',
+              code: {
+                label: 'streaming_endpoint.py',
+                lines: `from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import asyncio, json
+
+app = FastAPI()
+
+async def stream_tokens(prompt: str):
+    # model.stream() yields tokens as generated
+    async for token in model.stream(prompt):
+        data = json.dumps({"token": token})
+        yield f"data: {data}\\n\\n"
+    yield "data: [DONE]\\n\\n"
+
+@app.post("/generate")
+async def generate(request: PromptRequest):
+    return StreamingResponse(
+        stream_tokens(request.prompt),
+        media_type="text/event-stream",
+        headers={"X-Accel-Buffering": "no",   # disable nginx buffering
+                 "Cache-Control": "no-cache"}
+    )`
+              },
+              pitfalls: [
+                { issue: 'Client disconnect not detected — GPU continues generating wasted tokens', context: 'If a client closes the connection mid-stream, FastAPI\'s StreamingResponse generator keeps running, consuming GPU time and memory for tokens no one will receive.', fix: 'Wrap the generator in a try/finally that cancels the model generation task on GeneratorExit. Use request.is_disconnected() polling or an asyncio.CancelledError handler to stop generation early.' },
+                { issue: 'Nginx proxy buffers SSE stream — user sees no tokens until buffer fills', context: 'Nginx\'s default proxy_buffering on accumulates the entire SSE stream before forwarding, breaking the streaming UX completely.', fix: 'Set X-Accel-Buffering: no in the response header (shown above) or configure proxy_buffering off in the Nginx location block for streaming endpoints.' }
+              ],
+              qa: [
+                { q: 'What is TTFT (Time to First Token) and why does it matter for LLM serving?', a: 'TTFT is the latency from request submission to the first token appearing in the response. For chat interfaces, users perceive TTFT as responsiveness — a TTFT of 500ms feels instant even if total generation takes 10 seconds. TTFT is determined by prompt prefill time (grows with context length). Optimize TTFT with speculative decoding (draft model generates a candidate, the main model verifies in parallel) and efficient KV-cache reuse for shared system prompts.' },
+                { q: 'How do you handle backpressure when the inference queue fills up?', a: 'Implement a bounded queue (depth 50–100) in front of the inference service. When the queue is full, return HTTP 429 with Retry-After header immediately — fail fast rather than accumulating unbounded latency. Expose queue depth as a KEDA metric to trigger scale-up before the queue saturates. Implement circuit breaker in the client to stop sending requests when 429 rate exceeds 10%.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'monitoring',
+    label: 'Monitoring, Observability & Drift',
+    range: 'Stages 07–08',
+    stages: [
+      {
+        num: '07',
+        title: 'Monitoring Stack — Metrics, Tracing & SLOs',
+        intro: 'A model\'s accuracy silently degrades 12% over 6 weeks — no alert fires because the team only monitors infrastructure (CPU, memory). By the time a product team notices the CTR drop, thousands of users have received poor recommendations. Four-layer monitoring catches this in days, not weeks.',
+        insight: 'Infrastructure monitoring tells you the server is alive. Model and product layer monitoring tells you whether the ML system is working. Both are required.',
+        points: [
+          {
+            term: '4-Layer Monitoring Stack',
+            desc: 'Infrastructure → Data → Model → Product: each layer catches different failure modes',
+            detail: {
+              overview: 'Layer 1 — Infrastructure: GPU utilization, CPU, memory, disk I/O, pod restarts. Layer 2 — Data: schema drift (missing features, type changes), null rate per feature, request volume anomalies. Layer 3 — Model: prediction score distribution (mean, std, histogram), confidence calibration, AUC on a labeled holdout sample updated weekly. Layer 4 — Product: CTR, conversion rate, revenue-per-user for model-driven surfaces. Infrastructure failures are immediate; product failures are lagging — you need all four layers to catch regressions at different timescales.',
+              code: {
+                label: 'metrics_export.py',
+                lines: `from prometheus_client import Histogram, Gauge, Counter
+import numpy as np
+
+SCORE_DIST = Histogram("model_score", "Prediction score distribution",
+                        buckets=[0.1*i for i in range(11)])
+NULL_RATE   = Gauge("feature_null_rate", "Fraction of null values", ["feature"])
+PRED_COUNT  = Counter("model_predictions_total", "Total predictions", ["status"])
+
+def predict_and_instrument(features: dict):
+    null_rate = sum(v is None for v in features.values()) / len(features)
+    NULL_RATE.labels(feature="all").set(null_rate)
+    score = model.predict_proba(features)[1]
+    SCORE_DIST.observe(score)
+    PRED_COUNT.labels(status="success").inc()
+    return score`
+              },
+              pitfalls: [
+                { issue: 'Monitoring model accuracy without real-time ground truth labels', context: 'In most production settings, ground truth (did the user churn?) arrives days or weeks later. Teams skip model-layer monitoring entirely, leaving the model\'s quality completely invisible.', fix: 'Maintain a rolling labeled holdout sample (500–1000 samples, refreshed weekly with delayed ground truth). Compute AUC weekly on this sample and alert on > 0.005 drop. This is your leading indicator of model degradation.' },
+                { issue: 'Alert fatigue from too many low-severity alerts', context: 'Teams create alerts for every metric with arbitrary thresholds — 50 alerts firing simultaneously during any traffic event means everyone ignores them.', fix: 'Follow the SLO-based alerting approach: alert only on error budget burn rate, not individual symptoms. Create 3 alert tiers: page (P1), ticket (P2), dashboard (no alert). Fewer, higher-signal alerts with clear runbooks.' }
+              ],
+              qa: [
+                { q: 'How do you monitor model quality in production without real-time labels?', a: 'Three approaches: (1) Proxy metrics — track upstream signals correlated with model quality (CTR, add-to-cart rate for a recommendation model) that arrive in minutes. (2) Delayed ground truth — collect actual outcomes (churn, fraud) with a time lag and compute AUC on a rolling window. (3) Model-based signals — track prediction score distribution, calibration, and confidence entropy; significant shifts indicate drift even before labels arrive.' },
+                { q: 'What is the difference between an SLI, SLO, and SLA?', a: 'SLI (Service Level Indicator): a specific measurable metric — e.g., fraction of requests with latency < 200ms. SLO (Service Level Objective): a target for the SLI — e.g., 99.5% of requests < 200ms over a 30-day window. SLA (Service Level Agreement): a contractual commitment to the customer — e.g., 99% uptime with financial penalties for breach. SLOs drive engineering decisions; SLAs drive business consequences. Set SLOs 1–2% tighter than SLAs to give an engineering buffer.' }
+              ]
+            }
+          },
+          {
+            term: 'OpenTelemetry & Distributed Tracing',
+            desc: 'End-to-end trace from API gateway through inference to postprocessing with span-level latency',
+            detail: {
+              overview: 'OTel traces each inference request as a tree of spans: gateway → model server → postprocessor. Each span records start time, duration, and custom attributes (model_version, input_token_count, batch_size). This makes it possible to isolate which step of a multi-model pipeline is responsible for p99 latency spikes. Sampling rate: 1% of requests in steady state, 100% during incidents. Context propagation through Kafka or Redis queues requires manual span header injection.',
+              code: {
+                label: 'otel_middleware.py',
+                lines: `from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+provider = TracerProvider()
+provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint="http://collector:4317")))
+trace.set_tracer_provider(provider)
+tracer = trace.get_tracer("mlops.inference")
+
+async def predict(request):
+    with tracer.start_as_current_span("model.inference") as span:
+        span.set_attribute("model.version", MODEL_VERSION)
+        span.set_attribute("input.feature_count", len(request.features))
+        result = model.predict(request.features)
+        span.set_attribute("output.score", float(result))
+        return result`
+              },
+              pitfalls: [
+                { issue: 'Trace sampling rate too low — misses tail-latency incidents', context: '1% sampling at 1000 RPS means only 10 requests/second are traced. A p99 latency spike that affects 1% of requests is nearly invisible — you collect < 0.1 traces/second from the slow tail.', fix: 'Use head-based sampling with a tail override: sample 1% normally, but always sample requests with latency > 500ms or error status. OpenTelemetry\'s TraceIdRatioBased sampler plus a custom TailSampler achieves this.' },
+                { issue: 'Trace context not propagated through async message queues', context: 'Requests that pass through Kafka or Redis lose their trace context — the downstream span appears as a new root trace, making it impossible to correlate the full request path.', fix: 'Inject the W3C traceparent header into Kafka message headers when producing. Extract it in the consumer before starting the child span. OpenTelemetry\'s Kafka instrumentation library handles this automatically.' }
+              ],
+              qa: [
+                { q: 'How do you sample traces efficiently without missing tail-latency incidents?', a: 'Use a two-stage strategy: probabilistic head sampling (1% of requests) to control volume in steady state, combined with tail-based sampling that captures 100% of requests exceeding your latency SLO or returning errors. The tail sampler buffers spans in memory and makes the keep/drop decision after the full trace completes. OpenTelemetry Collector supports tail sampling via the tailsampling processor.' },
+                { q: 'Your p99 latency is 2× your p50 — how do you trace the cause?', a: 'Pull traces for the slowest 1% of requests from your trace store (Jaeger, Tempo). Compare span durations across the trace tree — the widest span in the slow requests reveals the bottleneck. Common ML-specific causes: dynamic batching waiting for a full batch (add batch_wait_time span attribute), model cold start (first-request weight loading), garbage collection pause (track GC metrics separately), or network serialization for large feature vectors.' }
+              ]
+            }
+          },
+          {
+            term: 'SLO/SLI Definitions & Error Budgets',
+            desc: 'Define measurable reliability targets; track error budget burn rate for proactive action',
+            detail: {
+              overview: 'SLI: fraction of inference requests with latency < 200ms, measured at the model server (not the load balancer). SLO: 99.5% of requests < 200ms over a rolling 30-day window. Error budget: 0.5% = 3.6 hours/month of allowable bad requests. Budget burn rate: if the burn rate is 10× over 1 hour, the full monthly budget will be consumed in 3 days — page immediately. If 3× over 6 hours — page. If 1× sustained — alert to ticket. This multi-window approach prevents both false positives (short spikes) and silent budget drain.',
+              code: {
+                label: 'slo_alerts.yaml',
+                lines: `# Prometheus recording rule for SLI
+- record: job:inference_request_success_rate:rate5m
+  expr: |
+    rate(inference_requests_total{status="success"}[5m])
+    / rate(inference_requests_total[5m])
+
+# Fast burn: 10x rate, 1-hour window → page
+- alert: SLOFastBurn
+  expr: |
+    job:inference_request_success_rate:rate5m < (1 - 10 * 0.005)
+  for: 5m
+  labels: {severity: page}
+
+# Slow burn: 3x rate, 6-hour window → ticket
+- alert: SLOSlowBurn
+  expr: |
+    job:inference_request_success_rate:rate5m < (1 - 3 * 0.005)
+  for: 30m
+  labels: {severity: ticket}`
+              },
+              pitfalls: [
+                { issue: 'SLO set too tight immediately after launch', context: 'A new service with 99.9% SLO burns through its 43-minute monthly error budget in the first 2 hours of launch traffic — the team is in permanent firefighting mode with no budget for planned maintenance.', fix: 'Start with a loose SLO (99% or 99.5%) for the first 30 days. Tighten based on observed baseline reliability, not aspirational targets. SLOs should represent "good enough," not "perfect."' },
+                { issue: 'Measuring latency at the load balancer, not at the model server', context: 'Load balancer latency includes connection overhead, TLS handshake, and routing time — masking actual model inference time and making it harder to attribute latency to model vs infrastructure.', fix: 'Instrument latency at both the load balancer (user-facing SLI) and the model server (engineering SLI). The difference reveals infrastructure overhead and helps attribute latency spikes correctly.' }
+              ],
+              qa: [
+                { q: 'Your error budget is 80% consumed by week 2 of the month — what actions do you take?', a: 'Immediately: (1) Stop all non-critical deployments for the rest of the month — no features, only bug fixes. (2) Review what consumed the 80% (incident audit). (3) Identify and fix the top error-budget burner (usually one or two recurring issues). Proactively: present the budget status in the weekly engineering review with a burn-rate projection. If you hit 100%, the SLO is breached — notify stakeholders and trigger a formal incident review.' },
+                { q: 'How do you set an initial SLO for a brand-new model service with no historical data?', a: 'Baseline from load testing: run realistic traffic against staging, measure p99 latency and error rate under peak load, then set SLO at 5–10% above the load-test baseline (leave room for production surprises). If no load test data exists, use industry benchmarks (99% for internal ML APIs, 99.5% for customer-facing). Commit to revisiting the SLO after 30 days of production traffic once you have real baseline data.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '08',
+        title: 'Drift Detection & Automated Retraining',
+        intro: 'Six weeks after deployment, a recommendation model\'s CTR drops 15%. Root cause: the input feature distribution shifted due to a new user onboarding flow — the model was never retrained. PSI monitoring on input features would have flagged this in week 2.',
+        insight: 'PSI > 0.2 is the canonical production threshold for "this feature has shifted enough to require investigation." Pair it with AUC decay monitoring on a labeled holdout for confirmation.',
+        points: [
+          {
+            term: 'Data Drift Detection (PSI, KS Test, Chi-Square)',
+            desc: 'Statistical tests on feature distributions to detect covariate shift before model performance degrades',
+            detail: {
+              overview: 'Population Stability Index (PSI) compares training distribution to live distribution across feature buckets. PSI < 0.1: no significant shift. PSI 0.1–0.2: monitor closely. PSI > 0.2: significant shift — investigate and likely retrain. KS test (p < 0.05) detects distribution shift for continuous features. Chi-square for categorical features. Run drift checks nightly on a rolling 7-day window of production traffic. Alert on PSI > 0.2 for any top-20 feature by importance.',
+              code: {
+                label: 'drift_detection.py',
+                lines: `import numpy as np
+from scipy import stats
+
+def psi(expected: np.ndarray, actual: np.ndarray, buckets: int = 10) -> float:
+    """PSI > 0.2 = significant shift."""
+    eps = 1e-8
+    breaks = np.percentile(expected, np.linspace(0, 100, buckets + 1))
+    exp_pct = np.histogram(expected, bins=breaks)[0] / len(expected) + eps
+    act_pct = np.histogram(actual,   bins=breaks)[0] / len(actual)   + eps
+    return float(np.sum((act_pct - exp_pct) * np.log(act_pct / exp_pct)))
+
+def ks_drift(expected: np.ndarray, actual: np.ndarray) -> tuple:
+    stat, p_value = stats.ks_2samp(expected, actual)
+    return stat, p_value  # drift if p_value < 0.05
+
+# Example usage
+psi_score = psi(train_feature, live_feature)
+print(f"PSI: {psi_score:.3f} — {'DRIFT' if psi_score > 0.2 else 'stable'}")`
+              },
+              pitfalls: [
+                { issue: 'Computing drift on raw input features, not model input features', context: 'The raw features look stable, but a preprocessing bug introduced 6 weeks ago is silently changing what the model actually receives — drift check on raw data misses it entirely.', fix: 'Log model-input features (post-preprocessing) to a feature drift store. Compute PSI on the features the model actually sees, not the raw API payload.' },
+                { issue: 'PSI on high-cardinality features always shows drift', context: 'A user_id feature with 10M unique values has PSI > 0.5 every day — the drift alert fires constantly and the team starts ignoring all drift alerts.', fix: 'Exclude ID features and low-importance features from drift monitoring. Compute PSI only on the top-N features by model importance. Use chi-square on binned or bucketed versions of high-cardinality features.' }
+              ],
+              qa: [
+                { q: 'What PSI threshold indicates actionable drift vs. measurement noise?', a: 'PSI < 0.1: no action needed. PSI 0.1–0.2: increased monitoring cadence, investigate if accompanied by business metric drop. PSI > 0.2: page the ML team — this almost always requires investigation and likely retraining. The thresholds are industry-standard (originated in credit scoring) but calibrate them to your feature distributions. Some low-variance features warrant alerts at PSI > 0.05.' },
+                { q: 'How do you detect concept drift (label distribution shift) without real-time labels?', a: 'Three proxy approaches: (1) Track upstream features correlated with the label — if "days since last purchase" distribution shifts, churn probability likely changes. (2) Monitor prediction score distribution (mean, std) — a shift in the score histogram indicates the model is making systematically different predictions, which may reflect concept drift. (3) Use a small labeled monitoring set updated weekly with delayed ground truth — compute AUC weekly and alert on decline.' }
+              ]
+            }
+          },
+          {
+            term: 'Embedding Drift & Model Performance Decay',
+            desc: 'Track embedding centroid distance and rolling AUC on labeled holdout to detect semantic and performance drift',
+            detail: {
+              overview: 'For embedding-based models (semantic search, RecSys), track cosine distance between the centroid of current embeddings and the training baseline centroid. Distance > 0.15 indicates semantic drift. For all models, maintain a rolling labeled holdout sample (500 samples, refreshed weekly with delayed ground truth) and compute AUC weekly. AUC drop > 0.005 on two consecutive weeks triggers retraining. Combine both signals for confirmation before firing an expensive retraining job.',
+              code: {
+                label: 'drift_monitor.py',
+                lines: `import numpy as np
+from sklearn.metrics import roc_auc_score
+
+def cosine_centroid_drift(baseline_embs: np.ndarray,
+                          current_embs: np.ndarray) -> float:
+    base_c = baseline_embs.mean(axis=0)
+    curr_c = current_embs.mean(axis=0)
+    similarity = np.dot(base_c, curr_c) / (
+        np.linalg.norm(base_c) * np.linalg.norm(curr_c) + 1e-8)
+    return float(1 - similarity)   # distance; > 0.15 = drift
+
+def rolling_auc(model, holdout_X, holdout_y) -> float:
+    scores = model.predict_proba(holdout_X)[:, 1]
+    return roc_auc_score(holdout_y, scores)
+
+# Weekly job: compute both metrics and log to MLflow
+drift = cosine_centroid_drift(baseline_embeddings, current_week_embeddings)
+auc   = rolling_auc(prod_model, holdout_X, holdout_y)
+print(f"Embedding drift: {drift:.3f} | Rolling AUC: {auc:.4f}")`
+              },
+              pitfalls: [
+                { issue: 'Embedding model updated — centroid jumps without real semantic drift', context: 'An embedding model upgrade (e.g., all-MiniLM-L6-v2 → all-mpnet-base-v2) causes the centroid distance to spike to 0.8, firing a drift alert that has nothing to do with the data changing.', fix: 'Reset the baseline centroid whenever the embedding model changes. Versioning the embedding model and the baseline separately prevents false drift alerts on planned upgrades.' },
+                { issue: 'Labeled holdout sample too small — AUC variance masks true decay', context: 'A 50-sample holdout has AUC standard deviation ≈ 0.04. A real 0.02 AUC drop is invisible in the noise — the alert never fires until the drop reaches 0.08, which is catastrophic.', fix: 'Minimum 200 samples per class (400 total). Bootstrap the holdout AUC 100 times and alert only when the bootstrapped confidence interval for the drop excludes zero.' }
+              ],
+              qa: [
+                { q: 'How do you distinguish model drift from a data pipeline bug in production?', a: 'Pipeline bug signatures: sudden PSI spike (> 0.5) in a previously stable feature, null rate jump, feature value range outside training bounds, specific feature goes to zero or constant. Drift signatures: gradual PSI increase over days/weeks, score distribution shift, AUC decay correlated with known real-world events. Check data pipeline logs and feature value statistics first — a bug fix is faster than a retrain, and misattributing a bug as drift leads to retraining on corrupted data.' },
+                { q: 'Your model\'s AUC drops 0.02 over 2 weeks — is that drift or noise?', a: 'Run a statistical significance test on the AUC comparison: bootstrap both time periods\' holdout AUC distributions and check if their confidence intervals overlap. If the drop is consistent across two consecutive weeks and p < 0.05, treat it as real drift. 0.02 absolute drop is borderline — check if it corresponds to a business metric drop (CTR, conversion). If business metrics are also degrading, retrain. If business metrics are stable, increase monitoring frequency but defer retraining.' }
+              ]
+            }
+          },
+          {
+            term: 'Automated Retraining Triggers',
+            desc: 'Threshold-based and scheduled triggers that kick off retraining without human intervention',
+            detail: {
+              overview: 'Retraining triggers: PSI > 0.2 on any top-20 feature AND AUC drop > 0.005 on two consecutive weekly checks. Either condition alone may be a false positive; both together is a high-confidence signal. Trigger mechanisms: Airflow sensor task polling the drift metric store, or Prometheus AlertManager webhook that dispatches a K8s Job. The retrained model must pass the same CI gate (golden set + latency) before promotion — automated retraining does not bypass quality gates.',
+              code: {
+                label: 'retraining_dag.py',
+                lines: `from airflow import DAG
+from airflow.operators.python import PythonOperator, BranchPythonOperator
+from datetime import datetime
+
+def check_drift_trigger(**ctx):
+    psi = get_max_psi_from_store()
+    auc_drop = get_auc_drop_from_store()
+    if psi > 0.2 and auc_drop > 0.005:
+        return "trigger_retraining"
+    return "skip_retraining"
+
+with DAG("drift_triggered_retraining", schedule_interval="@daily",
+         start_date=datetime(2024,1,1), catchup=False) as dag:
+    check = BranchPythonOperator(task_id="check_drift", python_callable=check_drift_trigger)
+    train = PythonOperator(task_id="trigger_retraining", python_callable=run_training_pipeline)
+    skip  = PythonOperator(task_id="skip_retraining",    python_callable=lambda **k: None)
+    check >> [train, skip]`
+              },
+              pitfalls: [
+                { issue: 'Continuous retraining on drifted data amplifies the distribution shift', context: 'A model retrained daily on live data without a clean baseline gradually encodes the drift into its weights. 3 months later, the model behaves very differently from the original without any single retraining triggering an alert.', fix: 'Always evaluate against a frozen baseline dataset (not just the current production data) when deciding whether to retrain. Periodic full retraining from a curated dataset (quarterly) prevents slow drift accumulation.' },
+                { issue: 'Retraining triggered by drift, but training data not cleaned of drifted samples', context: 'The retrained model learns from 3 months of data including the drifted period — it gets better at the new distribution but also inherits artifacts from the transition period.', fix: 'When drift is detected, backfill only high-quality recent data (last 4–6 weeks post-drift stabilization). Exclude the drift transition window from the training set. Log the training data date range as an MLflow tag.' }
+              ],
+              qa: [
+                { q: 'Continuous retraining vs. scheduled retraining — when would you use each?', a: 'Continuous training (online learning): when the target distribution changes rapidly and the model can learn incrementally (click prediction, fraud detection with streaming labels). Scheduled retraining: when ground truth is delayed (churn prediction with 30-day lag), retraining is expensive, or model evaluation requires a held-out validation cycle. Most production ML systems use scheduled retraining (weekly/monthly) over continuous — it is simpler to validate and audit.' },
+                { q: 'How do you prevent automated retraining from encoding a distribution shift into the new model?', a: 'Date-window the training data: use only data from before the detected shift onset, plus recent post-stabilization data (if the shift is permanent and understood). Never include data from the drift transition period. Cross-validate the new model on both pre-drift and post-drift holdout sets — if performance is acceptable on both, the model generalizes to the new distribution without memorizing the transition artifacts.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+  ,
+  {
+    id: 'features',
+    label: 'Feature Stores & Training Pipelines',
+    range: 'Stages 09–10',
+    stages: [
+      {
+        num: '09',
+        title: 'Feature Stores — Feast, Online/Offline Split',
+        intro: 'A model scores 0.91 AUC in offline evaluation but only 0.84 in production. Root cause: the offline training pipeline computes features over a 30-day window, but the online serving store uses a 7-day Redis TTL — a classic training-serving skew. Feature stores exist to prevent this.',
+        insight: 'Point-in-time correctness is the hardest concept in feature stores. Entity DataFrames with event_timestamp are the mechanism — get it wrong and your training set contains future information.',
+        points: [
+          {
+            term: 'Feast Architecture — Offline & Online Stores',
+            desc: 'Offline store (S3/BigQuery) for training; online store (Redis) for serving — materialized from the same FeatureView',
+            detail: {
+              overview: 'Feast separates the offline store (historical features for training, stored in S3 or BigQuery) from the online store (low-latency features for serving, stored in Redis). A FeatureView defines the feature logic once; materialization jobs sync offline to online on a schedule. Training retrieves features via get_historical_features(entity_df) with point-in-time correctness. Serving retrieves via get_online_features(entity_rows) with p99 latency < 10ms. The shared FeatureView definition ensures training and serving use identical feature logic.',
+              code: {
+                label: 'feast_setup.py',
+                lines: `from feast import FeatureStore, FeatureView, Entity, Field
+from feast.types import Float32, Int64
+from datetime import timedelta
+
+store = FeatureStore(repo_path="feature_repo/")
+
+# Retrieve historical features for training (point-in-time correct)
+entity_df = pd.DataFrame({
+    "user_id": [1001, 1002, 1003],
+    "event_timestamp": pd.to_datetime(["2024-01-15","2024-01-15","2024-01-16"])
+})
+training_df = store.get_historical_features(
+    entity_df=entity_df,
+    features=["user_stats:days_since_purchase",
+              "user_stats:total_spend_30d"]
+).to_df()
+
+# Retrieve online features for serving (< 10ms)
+online_features = store.get_online_features(
+    features=["user_stats:days_since_purchase"],
+    entity_rows=[{"user_id": 1001}]
+).to_dict()`
+              },
+              pitfalls: [
+                { issue: 'Materialization lag causes stale online features', context: 'Materialization runs every 6 hours, but a user\'s purchase events arrive every few minutes. The online store serves features that are up to 6 hours stale — a churn model makes predictions on outdated data.', fix: 'Choose materialization frequency based on feature freshness SLO. For sub-hour freshness, use streaming materialization (Feast + Kafka) rather than batch jobs. Set feature TTL in Redis to match the materialization interval + buffer.' },
+                { issue: 'entity_df missing event_timestamp — future information leak', context: 'Without event_timestamp in entity_df, Feast uses the current time for all lookups — including historical training rows — allowing the model to see feature values from after the training label was generated. Offline AUC looks great; production performance is far lower.', fix: 'Always include event_timestamp in entity_df set to the label event time. Audit historical feature retrieval with a time-travel sanity check: verify that no feature value post-dates its corresponding label timestamp.' }
+              ],
+              qa: [
+                { q: 'What is point-in-time correctness and why does it matter?', a: 'Point-in-time correctness means that when retrieving historical features for a training label at time T, only feature values available before T are returned. Without it, the model learns from future feature values it cannot have at serving time (data leakage), producing inflated offline metrics and poor production performance. Feast implements this via entity_df with event_timestamp — the most important parameter to get right.' },
+                { q: 'Feast online store latency spiked to 80ms — how do you debug?', a: 'Check Redis memory usage first — if Redis is near capacity, eviction policies (LRU) are dropping keys and causing cache misses that fall through to the offline store. Then check the materialization job — if it failed or ran late, keys may have expired without refresh. Finally, check Redis connection pool exhaustion in the Feast serving SDK — too few connections under load cause queuing delays. Instrument get_online_features() with explicit timing spans.' }
+              ]
+            }
+          },
+          {
+            term: 'Training-Serving Skew — Root Cause & Prevention',
+            desc: 'Identify and eliminate feature computation differences between training and serving pipelines',
+            detail: {
+              overview: 'Training-serving skew occurs when training features differ from serving features due to: different code paths (Spark in training, Python in serving), different time windows (30-day training vs 7-day Redis TTL), different data sources (data warehouse in training, operational DB in serving), or preprocessing bugs introduced at one layer only. Detection: log model-input features in production and compare their distribution weekly to training set distributions using PSI.',
+              code: {
+                label: 'skew_validation.py',
+                lines: `import pandas as pd, numpy as np
+
+def validate_feature_consistency(
+    training_stats: dict,   # {feature: {mean, std}} from training set
+    serving_sample: pd.DataFrame,   # 1000 live serving requests logged
+    threshold_z: float = 3.0
+) -> list:
+    """Alert when serving feature mean deviates > threshold_z std from training."""
+    alerts = []
+    for feature, stats in training_stats.items():
+        if feature not in serving_sample.columns:
+            alerts.append(f"MISSING: {feature} absent from serving")
+            continue
+        serving_mean = serving_sample[feature].mean()
+        z_score = abs(serving_mean - stats["mean"]) / (stats["std"] + 1e-8)
+        if z_score > threshold_z:
+            alerts.append(
+                f"SKEW: {feature} | train_mean={stats['mean']:.3f} "
+                f"serve_mean={serving_mean:.3f} z={z_score:.1f}")
+    return alerts`
+              },
+              pitfalls: [
+                { issue: 'Feature computed differently in Spark (training) vs Python (serving)', context: 'Spark\'s rolling window function includes the current row; a Python pandas rolling() with min_periods=1 does not. A "days since last purchase" feature differs by 1 day between training and serving — invisible but consistently wrong.', fix: 'Define all feature transformations in a single shared library (not in the pipeline code). Call the same function from both the Feast FeatureView and the serving API. Unit-test each feature function with the same input/output pairs in both contexts.' },
+                { issue: 'TTL mismatch — training uses 30-day window, serving uses 7-day Redis TTL', context: 'Spend_30d feature in training uses a 30-day look-back; the Redis key expires after 7 days (serving TTL), so users inactive for 7–30 days get a stale or missing feature at serving time.', fix: 'Set Redis TTL = feature look-back window + materialization interval buffer. For a 30-day feature, Redis TTL should be at least 31 days. Test by simulating a 25-day inactive user and verifying the online feature returns the correct non-null value.' }
+              ],
+              qa: [
+                { q: 'How do you detect training-serving skew in production?', a: 'Log model input features (post all preprocessing) for a random 1% sample of serving requests. Weekly, compare their mean and std to the training set statistics using a z-score test (alert at > 3σ) and PSI (alert at > 0.1). Any significant difference is either a preprocessing bug or a genuine distribution shift. Skew appears immediately after deployment (bug) or gradually over weeks (drift) — the timing tells you which it is.' },
+                { q: 'Your model performs worse in prod than in eval — what is the first thing you check?', a: 'Training-serving skew. Pull 500 live serving requests\' input features and compare their statistics to the training set. If any feature has mean > 3σ from training, you have skew. Common culprits in order: (1) feature TTL mismatch in the online store, (2) preprocessing step that exists in training but not serving, (3) different time zone handling between pipeline and serving code, (4) null imputation using training-set statistics not available at serving time.' }
+              ]
+            }
+          },
+          {
+            term: 'Feature TTL, Backfilling & Validation',
+            desc: 'Set correct TTLs for feature freshness; backfill historical features for training without time-travel leakage',
+            detail: {
+              overview: 'TTL determines how long an online store feature is considered fresh before it must be refreshed. Set TTL = feature_update_frequency × 3 (to handle materialization failures). Backfilling computes historical feature values for training data using point-in-time logic — critical for time-series features where using current values would leak future information. Validate backfilled features by comparing their aggregate statistics to known ground truth and checking for temporal anomalies (features that predict the label too perfectly often indicate leakage).',
+              code: {
+                label: 'feast_backfill.py',
+                lines: `from feast import FeatureStore
+import pandas as pd
+
+store = FeatureStore(repo_path="feature_repo/")
+
+# Backfill: retrieve features at exact historical timestamps (point-in-time correct)
+entity_df = pd.DataFrame({
+    "user_id":         training_labels["user_id"],
+    "event_timestamp": training_labels["churn_event_date"]
+})
+
+# This returns features as they existed at each event_timestamp — no future leakage
+training_features = store.get_historical_features(
+    entity_df=entity_df,
+    features=[
+        "user_stats:days_since_purchase",
+        "user_stats:total_orders_90d",
+        "user_stats:avg_session_duration_7d"
+    ]
+).to_df()
+
+# Validate: check for temporal leakage
+assert training_features["days_since_purchase"].min() >= 0, "Negative values indicate leakage"`
+              },
+              pitfalls: [
+                { issue: 'Backfill job fails mid-run — partial dataset used for training', context: 'A 10-hour backfill job completes 60% before an OOM kill. The training dataset contains features for some users but not others. The ML pipeline continues with a silently incomplete dataset — model trained on biased sample.', fix: 'Write backfill output to a staging location. Only move to the final training path after verifying row count matches entity_df length exactly. Log entity count before and after backfill to MLflow as a data validation tag.' },
+                { issue: 'TTL too short — Redis cache misses cascade to offline store', context: 'A 1-hour TTL on a daily-updated feature causes cache misses for 23 hours/day. Each miss falls back to a BigQuery query — adding 200ms to p99 serving latency and generating 10× the expected BigQuery costs.', fix: 'Set TTL = 2 × materialization interval + 30-minute buffer. Monitor Redis hit rate with INFO stats. Alert when hit rate drops below 95% — that indicates TTL is too short for the materialization frequency.' }
+              ],
+              qa: [
+                { q: 'How do you choose TTL for a feature that updates daily vs. one that updates hourly?', a: 'Daily-updating feature: TTL = 2 days (handles one missed materialization cycle + buffer). Hourly-updating feature: TTL = 3 hours (2 cycles + buffer). The formula is TTL = 2 × update_interval + 30min buffer. For features where staleness causes a material model quality drop (real-time fraud signals), monitor TTL freshness separately and alert at 1.5× update_interval, not just on cache miss rate.' },
+                { q: 'How do you validate a backfilled feature dataset before using it for training?', a: 'Four checks: (1) Row count matches entity_df — no missing rows. (2) Null rate per feature is within expected range (some nulls are normal for sparse features). (3) Value range per feature matches training baseline statistics (no impossible values: negative ages, future timestamps). (4) Leakage check: if AUC on a linear model using only engineered features exceeds 0.95 on held-out labels, suspect leakage and audit the highest-coefficient feature first.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '10',
+        title: 'Training Pipelines — Airflow, CDC & Distributed Training',
+        intro: 'A weekly retraining Airflow DAG fails at the evaluation step. The pipeline emits no alert. The ML team discovers 3 weeks later that the production model has not been updated — drift that should have triggered retraining went unnoticed because no one watched the DAG.',
+        insight: 'Every training pipeline step must emit a measurable signal — success metric, row count, or MLflow tag. Silent failures in ML pipelines are the most dangerous kind because they are invisible until the model degrades.',
+        points: [
+          {
+            term: 'Airflow DAGs for ML Training',
+            desc: 'Orchestrate sensor → validate → featurize → train → evaluate → register as a dependency graph with failure alerts',
+            detail: {
+              overview: 'An ML training DAG uses sensors to wait for data availability (S3KeySensor, ExternalTaskSensor), then runs validation (Great Expectations checkpoint as a blocking gate), featurization, training, evaluation, and model registration as downstream tasks. Task dependencies enforce that each step runs only if upstream steps succeeded — Airflow\'s default behavior. Set on_failure_callback to post a Slack alert with the failed task name and DAG run URL. Set SLA on the training task to alert if retraining runs longer than the expected window.',
+              code: {
+                label: 'ml_training_dag.py',
+                lines: `from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.sensors.s3_key_sensor import S3KeySensor
+from datetime import datetime, timedelta
+
+def on_failure(context):
+    send_slack_alert(f"DAG {context['dag'].dag_id} failed at {context['task_instance'].task_id}")
+
+default_args = {"on_failure_callback": on_failure, "retries": 1, "retry_delay": timedelta(minutes=5)}
+
+with DAG("weekly_churn_retrain", schedule_interval="@weekly",
+         start_date=datetime(2024,1,1), default_args=default_args) as dag:
+    wait_data  = S3KeySensor(task_id="wait_for_data", bucket_key="data/train/{{ds}}/*.parquet")
+    validate   = PythonOperator(task_id="validate_schema",   python_callable=run_great_expectations)
+    featurize  = PythonOperator(task_id="featurize",          python_callable=compute_features)
+    train      = PythonOperator(task_id="train",              python_callable=run_training)
+    evaluate   = PythonOperator(task_id="evaluate_and_promote", python_callable=promote_if_better)
+    wait_data >> validate >> featurize >> train >> evaluate`
+              },
+              pitfalls: [
+                { issue: 'Training task failure skips evaluate silently — no alert fires', context: 'Airflow marks downstream tasks as "upstream_failed" and skips them — but if on_failure_callback is not set, the DAG completes in a failed state with no notification. The ML team sees no signal.', fix: 'Set on_failure_callback at both the task level and the DAG level (for global catches). Add a Slack notification task at the end that runs on_failure only, explicitly checking that all upstream tasks succeeded.' },
+                { issue: 'All tasks on the same Airflow worker — training job starves small tasks', context: 'A 4-hour training task running on a shared worker blocks schema validation tasks for other DAGs, delaying all downstream ML pipelines on the cluster.', fix: 'Use Airflow\'s KubernetesPodOperator for training tasks — each training run spawns a dedicated K8s pod with its own resource allocation, isolated from the Airflow worker pool.' }
+              ],
+              qa: [
+                { q: 'How do you handle a training pipeline step that fails with partial outputs?', a: 'Design every step to be idempotent: featurize writes to a staging prefix, then atomically copies to the final prefix only on success. Training writes to a temp MLflow experiment, then calls register_model only on success. This way, a failed step leaves no partial outputs that downstream steps could pick up. Airflow retries the failed task from scratch — idempotency ensures the retry is safe.' },
+                { q: 'Why not use a cron job and shell script instead of Airflow for ML training?', a: 'Cron + shell has no: dependency management (step B must wait for step A), retry logic (step fails → whole pipeline dies), visibility (no UI to see what ran and when), failure alerting, or SLA monitoring. Airflow provides all of these. The breakeven point is roughly 3+ pipeline steps or more than one pipeline that shares data — at that point, the operational overhead of cron-managed pipelines exceeds the cost of running Airflow.' }
+              ]
+            }
+          },
+          {
+            term: 'Idempotent Transforms & Change Data Capture',
+            desc: 'Idempotent feature transforms survive retries safely; CDC enables incremental feature updates',
+            detail: {
+              overview: 'An idempotent transform produces the same output regardless of how many times it runs on the same input. For SQL transforms: use INSERT ... ON CONFLICT DO NOTHING or MERGE with a deterministic key. For file outputs: write to a content-addressed path (s3://features/{date}/{hash}/). CDC (Change Data Capture) captures row-level database changes as an event stream — tools: Debezium (Postgres WAL), Kafka Connect, AWS DMS. Incremental feature updates process only changed rows since the last watermark, reducing featurization time from hours to minutes.',
+              code: {
+                label: 'incremental_features.sql',
+                lines: `-- Idempotent incremental feature computation using watermark
+-- Safe to re-run: MERGE handles duplicates
+MERGE INTO user_features AS target
+USING (
+  SELECT
+    user_id,
+    MAX(event_date)                                    AS last_event_date,
+    SUM(purchase_amount)                               AS total_spend_30d,
+    COUNT(DISTINCT DATE(event_ts))                     AS active_days_30d,
+    CURRENT_TIMESTAMP                                  AS computed_at
+  FROM raw_events
+  WHERE event_ts >= CURRENT_DATE - INTERVAL '30 days'
+    AND event_ts >  (SELECT MAX(computed_at) FROM feature_watermark)
+  GROUP BY user_id
+) AS source ON target.user_id = source.user_id
+WHEN MATCHED     THEN UPDATE SET total_spend_30d = source.total_spend_30d, computed_at = source.computed_at
+WHEN NOT MATCHED THEN INSERT VALUES (source.user_id, source.total_spend_30d, source.computed_at);`
+              },
+              pitfalls: [
+                { issue: 'Non-idempotent transform + Airflow retry = duplicate rows', context: 'A featurize task that does INSERT without MERGE creates duplicate user_id rows on retry. The training dataset contains doubled rows for users whose events arrived during the failed window.', fix: 'Always use MERGE, INSERT ... ON CONFLICT, or Spark\'s DataFrame saveAsTable with mode="overwrite" for bounded partitions. Write integration tests that run the transform twice and assert the output is identical.' },
+                { issue: 'CDC replication lag causes training data to miss recent events', context: 'Debezium replication lag is 15 minutes during peak DB load. Training data queried immediately after CDC ingestion misses the most recent 15 minutes of events — a purchase just before the label event is invisible to the model.', fix: 'Add a buffer window to the training data cutoff: if training labels are generated at T, use CDC-sourced features only up to T - 30min to account for replication lag. Log the actual lag from Debezium metrics to MLflow as a data quality tag.' }
+              ],
+              qa: [
+                { q: 'How do you make a feature computation pipeline idempotent?', a: 'Three patterns: (1) Content-addressed output path: s3://features/{YYYY-MM-DD}/{input_hash}/ — same inputs always produce the same path, safe to re-run. (2) MERGE instead of INSERT: upsert on natural key handles re-runs without duplicates. (3) Atomic writes: write to a temp path, then rename/move to final path only on success — a failed run leaves no partial output for downstream tasks to pick up.' },
+                { q: 'What is the risk of training on CDC data with replication lag?', a: 'If replication lag is 15 minutes and your labels are assigned at event time T, using CDC features computed up to T may miss the final 15 minutes of events — the model trains on incomplete feature states. More dangerously, if the lag is variable (2 minutes normally, 20 minutes during peak), the amount of missing information varies across training rows, creating a noisy and non-reproducible training signal. Always apply a conservative lag buffer and log the assumed lag as a training metadata tag.' }
+              ]
+            }
+          },
+          {
+            term: 'Distributed Training with PyTorch DDP on Kubernetes',
+            desc: 'torchrun across K8s pods for data-parallel training; NCCL for gradient synchronization',
+            detail: {
+              overview: 'PyTorch DDP (DistributedDataParallel) replicates the model across N GPUs/pods, each processing a different data shard. Gradients are synchronized via AllReduce (NCCL backend) after each backward pass. K8s orchestrates DDP via a Job with N pods; the master pod (rank 0) coordinates. Each pod runs torchrun --nproc_per_node=1 --nnodes=N --node_rank=RANK. DDP is linear-scaling efficient up to ~64 GPUs for typical batch sizes; use FSDP (Fully Sharded Data Parallelism) for models that do not fit in a single GPU\'s memory.',
+              code: {
+                label: 'ddp_training_job.yaml',
+                lines: `apiVersion: batch/v1
+kind: Job
+metadata: {name: churn-ddp-train}
+spec:
+  completions: 4
+  parallelism: 4
+  completionMode: Indexed
+  template:
+    spec:
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      containers:
+        - name: trainer
+          image: org/ml-train:abc123
+          resources:
+            requests: {nvidia.com/gpu: "1", memory: "32Gi"}
+            limits:   {nvidia.com/gpu: "1", memory: "32Gi"}
+          command:
+            - torchrun
+            - --nproc_per_node=1
+            - --nnodes=4
+            - --node_rank=\$(JOB_COMPLETION_INDEX)
+            - --master_addr=churn-ddp-train-0.default.svc
+            - --master_port=29500
+            - src/train_ddp.py`
+              },
+              pitfalls: [
+                { issue: 'Pods on the same node — no real distributed benefit', context: 'Without pod anti-affinity rules, K8s may schedule all 4 DDP pods on the same node sharing a single GPU. NCCL uses shared memory instead of network, producing incorrect gradient synchronization for multi-GPU setups.', fix: 'Add pod anti-affinity: requiredDuringSchedulingIgnoredDuringExecution with topologyKey: kubernetes.io/hostname. This forces each DDP pod onto a different node.' },
+                { issue: 'NCCL timeout on slow inter-pod network — training hangs with no error', context: 'NCCL default timeout is 30 minutes. On a congested cluster network, AllReduce operations time out silently — the job hangs until Kubernetes kills it after activeDeadlineSeconds.', fix: 'Set NCCL_TIMEOUT=1800 (seconds) and NCCL_DEBUG=INFO in the container env to surface NCCL errors explicitly. Set activeDeadlineSeconds to 2× expected training time. Use dedicated high-bandwidth networking (InfiniBand, EFA) for large-scale DDP jobs.' }
+              ],
+              qa: [
+                { q: 'When does DDP provide meaningful speedup vs single-GPU training?', a: 'DDP provides near-linear speedup when: the model fits in one GPU (otherwise use FSDP), the dataset is large enough that each GPU sees statistically diverse batches, and data loading is not the bottleneck. Practical threshold: single-GPU epoch > 30 minutes. Below that, DDP setup overhead (cluster provisioning, NCCL init) often exceeds the speedup. Profile single-GPU training first — I/O-bound models benefit from better data loading before DDP.' },
+                { q: 'One of 4 DDP workers crashes mid-epoch — what happens and how do you recover?', a: 'DDP has no built-in fault tolerance — if any rank fails, the AllReduce operation blocks indefinitely until NCCL timeout, then the entire job fails. Recovery: restart the full K8s Job from the last saved checkpoint (save every N steps, not just end-of-epoch). PyTorch\'s torchrun (elastic training) supports fault-tolerant restarts with a dynamic worker count — use --max-restarts=3 to automatically restart failed workers without killing the entire job.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'reliability',
+    label: 'Reliability & Governance',
+    range: 'Stages 11–12',
+    stages: [
+      {
+        num: '11',
+        title: 'Reliability, Resilience & Chaos Engineering',
+        intro: 'A primary recommendation model goes down during peak traffic. The fallback — a popularity-based ranker — was never tested under load. It saturates its single-threaded Python process in 30 seconds. The team had a fallback in design, but not in practice. Reliability requires testing failure paths, not just building them.',
+        insight: 'A fallback that has never been tested under load is not a fallback — it is a second point of failure. Chaos test your fallback paths monthly.',
+        points: [
+          {
+            term: 'Circuit Breakers & Graceful Degradation',
+            desc: 'Trip after consecutive failures; serve rule-based fallback until primary recovers',
+            detail: {
+              overview: 'A circuit breaker has three states: Closed (normal, all requests pass through), Open (tripped after N consecutive failures, all requests routed to fallback), Half-Open (after a reset timeout, one request probes primary — if it succeeds, circuit closes; if it fails, circuit stays open). For ML serving: trip after 5 consecutive HTTP 500s or timeouts. Fallback: return the most popular item, a cached response, or a rule-based score. Log every circuit trip as an incident — a tripped circuit is a signal, not a background event.',
+              code: {
+                label: 'circuit_breaker.py',
+                lines: `import time
+from threading import Lock
+
+class CircuitBreaker:
+    def __init__(self, failure_threshold=5, reset_timeout=30):
+        self.failures = 0
+        self.state = "closed"   # closed | open | half-open
+        self.threshold = failure_threshold
+        self.reset_at = None
+        self._lock = Lock()
+
+    def call(self, fn, fallback, *args, **kwargs):
+        with self._lock:
+            if self.state == "open":
+                if time.time() < self.reset_at:
+                    return fallback(*args, **kwargs)
+                self.state = "half-open"
+        try:
+            result = fn(*args, **kwargs)
+            with self._lock:
+                self.failures = 0; self.state = "closed"
+            return result
+        except Exception:
+            with self._lock:
+                self.failures += 1
+                if self.failures >= self.threshold:
+                    self.state = "open"
+                    self.reset_at = time.time() + self.reset_timeout
+            return fallback(*args, **kwargs)`
+              },
+              pitfalls: [
+                { issue: 'Fallback is also a complex ML model — primary and fallback fail together', context: 'A two-tower recommendation model fails; the fallback is a matrix factorization model from the same GPU pod. Both share the GPU — when the GPU OOMs, both fail simultaneously, providing no actual fallback.', fix: 'Fallback must use a fundamentally different resource path: a CPU-only rule-based ranker, a cached popular-items list from Redis, or a pre-computed static ranking. The fallback cannot share infrastructure with the primary.' },
+                { issue: 'Circuit breaker state not shared across instances', context: 'In a 10-pod deployment, each pod maintains its own circuit breaker state. Pod 1 trips its circuit while pods 2–10 continue sending requests to the failed primary — 90% of traffic still hits the failure.', fix: 'Store circuit breaker state in Redis (shared across all pods). Use a library like redis-py with a distributed lock for state transitions. Alternatively, use a service mesh (Istio) for cluster-wide circuit breaking at the infrastructure layer.' }
+              ],
+              qa: [
+                { q: 'How does a circuit breaker differ from a retry policy?', a: 'A retry policy re-attempts failed requests — useful for transient failures (network blip). A circuit breaker stops attempting after N failures and redirects to a fallback — essential when the primary service is down for minutes or hours. Use retries for sub-second transient errors (max 3 retries with exponential backoff); use circuit breakers when the failure is sustained (> 5 consecutive failures). Combining both: retry within a closed circuit, skip retries when the circuit is open.' },
+                { q: 'Your primary recommendation model is down — what does your fallback serve?', a: 'Tier 1 fallback (< 10ms): serve pre-computed popular items from Redis (updated hourly). Tier 2 fallback (if Redis is also down): serve a static list of 20 globally popular items hardcoded in the service. Tier 3 (complete system outage): return HTTP 200 with an empty recommendations list and let the frontend handle gracefully. Document and test all three tiers — the fallback you have not tested is not a real fallback.' }
+              ]
+            }
+          },
+          {
+            term: 'Bulkhead Pattern & Multi-Region Serving',
+            desc: 'Isolate tenant resource pools; serve from the nearest region with active-active routing',
+            detail: {
+              overview: 'Bulkheads partition inference resources by tenant or priority tier — premium users get a dedicated thread pool/replica count, free-tier users get a separate pool. One pool\'s saturation cannot starve the other. Multi-region active-active: deploy model serving to multiple regions; a global load balancer routes each request to the nearest healthy region (latency-based routing). Each region has an independent model version — deployments are per-region and independently rollbackable.',
+              code: {
+                label: 'k8s_bulkhead.yaml',
+                lines: `# Separate deployments for premium and standard tiers
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: churn-inference-premium}
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels: {app: churn-inference, tier: premium}
+    spec:
+      containers:
+        - name: inference
+          image: org/ml-serve:abc123
+          resources:
+            requests: {cpu: "2", memory: "4Gi"}
+            limits:   {cpu: "2", memory: "4Gi"}
+---
+# Standard tier: separate deployment, smaller resources
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: churn-inference-standard}
+spec:
+  replicas: 2`
+              },
+              pitfalls: [
+                { issue: 'Bulkheads not sized for peak load — premium pool exhausted by burst traffic', context: 'Premium pool has 5 replicas sized for average load. A flash sale causes 10× traffic on premium accounts — the pool saturates and premium users experience the same degradation as standard users.', fix: 'Size bulkheads for peak load (P99 traffic × 1.5), not average. Use KEDA autoscaling on each pool independently so premium can scale to 20 replicas during bursts while standard stays at 2.' },
+                { issue: 'Cross-region model version skew — users see different behavior based on region', context: 'US region deploys churn-v14 on Monday; EU region is still on churn-v12 on Wednesday. Users travelling or using VPNs see inconsistent recommendation quality.', fix: 'Enforce synchronized multi-region deploys: use a deployment pipeline that promotes to all regions in sequence (US → EU → APAC) within a 24-hour window, with automatic rollback if any region shows elevated error rates after promotion.' }
+              ],
+              qa: [
+                { q: 'How do bulkheads prevent a noisy tenant from degrading other users?', a: 'Without bulkheads, one tenant generating 10× normal request volume saturates the shared thread pool — all other tenants queue behind them (the "noisy neighbor" problem). Bulkheads give each tier a dedicated, bounded resource pool. A noisy premium tenant can exhaust the premium pool but cannot affect the standard pool\'s resources. Combine bulkheads with rate limiting (token bucket per tenant) to cap the maximum load any single tenant can generate.' },
+                { q: 'Your EU region model is 2 versions behind the US model — how do you handle it?', a: 'Assess impact first: are EU users receiving materially different quality (AUC diff > 0.005 between versions)? If yes, expedite the EU deploy (fast-track CI gate, skip non-critical validation steps). If no material quality difference, complete the normal EU deploy cycle. Prevent recurrence by enforcing a maximum version lag policy (> 48 hours behind triggers a P2 incident) and automating multi-region promotion in the CI pipeline.' }
+              ]
+            }
+          },
+          {
+            term: 'Chaos Engineering for ML Inference',
+            desc: 'Inject failures — latency, errors, pod kills — to validate resilience before real incidents reveal it',
+            detail: {
+              overview: 'Chaos experiments for ML serving: (1) Latency injection — add 500ms to 20% of inference requests to verify circuit breaker trips and fallback serves correctly. (2) Error injection — return HTTP 500 for 15% of requests to verify error rate alerts fire within 5 minutes. (3) Pod kill — delete a running inference pod to verify K8s restarts it within 30 seconds and KEDA scales up. (4) GPU saturation — pin GPU utilization to 100% for 60 seconds to verify autoscaling triggers. Use Chaos Mesh for K8s-native experiment scheduling.',
+              code: {
+                label: 'chaos_experiment.yaml',
+                lines: `apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kill-inference-pod
+  namespace: ml-serving
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces: [ml-serving]
+    labelSelectors:
+      app: churn-inference
+  scheduler:
+    cron: "@daily"   # run chaos daily in staging
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: inject-inference-latency
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces: [ml-serving]
+  delay: {latency: "500ms", correlation: "100", jitter: "0ms"}
+  duration: "60s"`
+              },
+              pitfalls: [
+                { issue: 'Running chaos experiments in production during business hours', context: 'A pod-kill experiment during peak traffic causes a 2-minute serving degradation — the chaos experiment creates the incident it was designed to test against.', fix: 'Run all chaos experiments in staging. Promote to production only after 2 weeks of successful staging results, and schedule production chaos during off-peak hours (2–5 AM) with on-call engineer awareness.' },
+                { issue: 'Chaos experiment targets wrong pod selector — deletes unrelated services', context: 'A broad label selector (app: ml) matches not just inference pods but also the MLflow tracking server — deleting it corrupts an ongoing training run.', fix: 'Use the most specific pod selector possible (app: churn-inference, version: v14). Run kubectl get pods -l <selector> before activating any chaos experiment. Set dry-run: true and review the target list before first execution.' }
+              ],
+              qa: [
+                { q: 'What chaos experiments are most valuable for ML serving specifically?', a: 'In priority order: (1) Pod kill with HPA/KEDA — validates autoscaling recovery time (should be < 2 minutes). (2) Latency injection on model server — validates that circuit breaker trips and fallback is served correctly. (3) Feature store outage — validates that the model handles null features gracefully rather than throwing unhandled exceptions. (4) GPU OOM simulation (ulimit memory) — validates that the pod restarts cleanly rather than hanging. These four cover the most common real production failure modes for ML systems.' },
+                { q: 'How do you measure blast radius before running a chaos experiment?', a: 'Blast radius = what breaks if this experiment goes wrong. Assess before any experiment: (1) Which downstream services depend on the target? (Use service mesh topology or Jaeger trace fan-out.) (2) How many users are affected if the target is unavailable for 5 minutes? (Check traffic analytics.) (3) Is there a fallback? (Test it separately first.) Run experiments in staging with production-like traffic before moving to production. Define explicit abort criteria (rollback the experiment if error rate > 10%) and have someone monitoring dashboards throughout.' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        num: '12',
+        title: 'Governance, Compliance & Responsible AI',
+        intro: 'A credit scoring model is deployed without a fairness audit. Three months later, a regulatory review finds a disparate impact ratio of 0.68 for a protected demographic group — well below the 0.8 threshold required by the ECOA. The model is pulled from production, costing months of remediation work and significant legal exposure.',
+        insight: 'Fairness audits and model cards are not compliance overhead — they are the last line of defense against shipping a model that causes harm and triggers regulatory action. Build them into the definition of done.',
+        points: [
+          {
+            term: 'Model Cards & Fairness Audits',
+            desc: 'Model cards document intended use and limitations; fairness audits quantify disparity across demographic slices',
+            detail: {
+              overview: 'A model card documents: intended use cases, training data provenance (source, collection period, known biases), evaluation results per demographic slice (not just overall), known limitations, and prohibited use cases. Fairness metrics for classification: disparate impact ratio (DI = min_group_positive_rate / max_group_positive_rate; must be ≥ 0.8 by rule of thumb), demographic parity difference, equalized odds. Run fairness audits at training time, at each registry promotion, and quarterly for deployed models. Alert when DI drops below 0.8.',
+              code: {
+                label: 'fairness_audit.py',
+                lines: `from fairlearn.metrics import MetricFrame, demographic_parity_difference
+from sklearn.metrics import accuracy_score, precision_score
+import pandas as pd
+
+def fairness_audit(y_true, y_pred, sensitive_features: pd.Series) -> dict:
+    mf = MetricFrame(
+        metrics={"accuracy": accuracy_score, "precision": precision_score},
+        y_true=y_true, y_pred=y_pred,
+        sensitive_features=sensitive_features
+    )
+    min_rate = y_pred[sensitive_features == sensitive_features.unique()[0]].mean()
+    max_rate = y_pred.mean()
+    di_ratio = min_rate / max_rate if max_rate > 0 else 0
+
+    results = mf.by_group.to_dict()
+    results["disparate_impact_ratio"] = di_ratio
+    results["demographic_parity_diff"] = demographic_parity_difference(
+        y_true, y_pred, sensitive_feature=sensitive_features)
+
+    if di_ratio < 0.8:
+        raise ValueError(f"Disparate impact {di_ratio:.3f} < 0.8 threshold — FAIL")
+    return results`
+              },
+              pitfalls: [
+                { issue: 'Model card written once at launch and never updated', context: 'The model card documents churn-gbm v12 at launch. By v18 (6 months later), the training data, eval methodology, and known limitations are all different — but stakeholders still reference the original card for compliance evidence.', fix: 'Auto-generate model cards from MLflow metadata at every promotion. Store them as a versioned artifact in the registry. Each Production version must have a corresponding model card generated in the CI pipeline.' },
+                { issue: 'Fairness metrics computed on test set that does not represent production demographics', context: 'Test set is 70% majority group. DI ratio of 0.82 on the test set masks a DI ratio of 0.71 on the actual production user base, which has a very different demographic distribution.', fix: 'Compute fairness metrics on a production-representative stratified sample, not just the test set. If production demographics differ from training data, explicitly document the gap in the model card and set a more conservative DI threshold (> 0.85).' }
+              ],
+              qa: [
+                { q: 'What should a model card include for a loan approval model?', a: 'Minimum: (1) Intended use — automated pre-screening only, not final credit decision. (2) Training data — source, date range, demographic representation, known sampling biases. (3) Evaluation results — AUC, precision, recall overall AND per demographic slice (age group, gender, race). (4) Fairness metrics — disparate impact ratio, equalized odds per group. (5) Limitations — performance degrades for applicants with < 1 year credit history. (6) Prohibited uses — not for employment screening, insurance, or housing.' },
+                { q: 'Disparate impact ratio is 0.75 for a protected demographic group — what actions do you take?', a: 'Immediately: halt promotion to Production — 0.75 < 0.8 threshold is a compliance breach for credit/employment/housing models. Investigate: is the disparity from the training data (biased historical labels), the features (proxy variables for protected attributes), or the model (fitting differently on subgroups)? Remediation options: reweigh training samples (Fairlearn), apply constraint optimization during training (exponentiated gradient), or post-process predictions with a calibrated threshold per group. Re-audit after remediation before any production use.' }
+              ]
+            }
+          },
+          {
+            term: 'GDPR Compliance & Right to Erasure',
+            desc: 'Handle data deletion requests, right to explanation, and audit logs for ML systems',
+            detail: {
+              overview: 'GDPR Article 17 (right to erasure) requires that user data be deleted upon request — but a model trained on that data may have memorized it. Safe response: retrain the model on a dataset with the user\'s data removed AND document the erasure. Right to Explanation (Article 22) requires human-intelligible explanations for automated decisions — implement with SHAP or LIME for predictions that significantly affect individuals. Store a SHAP explanation alongside every high-stakes prediction (loan denial, fraud flag) in an audit-compliant log.',
+              code: {
+                label: 'gdpr_compliance.py',
+                lines: `import shap, mlflow
+import pandas as pd
+
+def generate_explanation(model, features: pd.DataFrame, prediction_id: str) -> dict:
+    """Generate SHAP explanation for a single prediction — store in audit log."""
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(features)
+
+    top_features = pd.Series(
+        shap_values[0], index=features.columns
+    ).abs().sort_values(ascending=False).head(5)
+
+    explanation = {
+        "prediction_id": prediction_id,
+        "top_factors": top_features.index.tolist(),
+        "factor_impacts": top_features.values.tolist(),
+        "model_version": mlflow.active_run().info.run_id if mlflow.active_run() else "unknown"
+    }
+    # Log to immutable audit store (e.g., append-only S3 + CloudTrail)
+    return explanation`
+              },
+              pitfalls: [
+                { issue: 'Deleting user data from the database without retraining the model', context: 'The user\'s data is deleted from the training database, but the model already trained on it retains memorized patterns. For models prone to memorization (large neural networks), this violates the spirit of GDPR erasure.', fix: 'Maintain a deletion request log. Batch retrain monthly with deleted users removed from the training set. For neural networks at scale, document machine unlearning constraints and the residual memorization risk in the model card. Consult legal on whether retraining is required for your risk tier.' },
+                { issue: 'SHAP explanations are inconsistent between requests for the same input', context: 'Non-deterministic model inference (dropout enabled at test time, random seed not fixed) produces different SHAP values for the same user on subsequent requests — a compliance audit comparing stored explanations to live re-computations fails.', fix: 'Fix random seeds for all inference operations. Store SHAP values at prediction time alongside the prediction, not computed retroactively. Use model.eval() and torch.no_grad() for PyTorch models to disable stochastic behavior at inference.' }
+              ],
+              qa: [
+                { q: 'What does GDPR\'s "right to explanation" mean for ML model predictions?', a: 'Article 22 grants individuals the right not to be subject to solely automated decisions that significantly affect them (credit, employment, medical) without a meaningful explanation. In practice: store SHAP/LIME explanations for every high-stakes automated decision at the time it was made. The explanation must be human-intelligible — not "feature 47 had weight 0.3" but "your application was affected by: limited credit history (most important), high existing debt, and recent late payment." Explanations must be delivered within 30 days of a subject access request.' },
+                { q: 'A user requests that their data be deleted — how do you prove the model no longer reflects it?', a: 'For classical ML (gradient boosting, logistic regression): retrain from scratch on the dataset with the user removed, document the retrain in the MLflow registry, and certify the new model is in production. For neural networks: full retraining is prohibitively expensive at scale — document residual memorization risk, apply differential privacy training to future models, and consult legal on whether the documented retrain meets the erasure requirement. Store the erasure request and the subsequent retrain run_id in an immutable audit log.' }
+              ]
+            }
+          },
+          {
+            term: 'EU AI Act & Audit Logging',
+            desc: 'Classify AI system risk tier; build compliant audit trails for high-risk systems',
+            detail: {
+              overview: 'The EU AI Act (effective August 2026) classifies AI systems by risk: Unacceptable (biometric mass surveillance — prohibited), High-risk (credit scoring, HR screening, medical devices — requires conformity assessment, human oversight, audit logs, transparency documentation), Limited-risk (chatbots — disclosure required), Minimal-risk (spam filters — no requirements). High-risk systems must maintain audit logs for the lifetime of the system plus 10 years. Logs must capture: input data summary, model version, output, confidence, human review decision, and timestamp — all immutable and tamper-evident.',
+              code: {
+                label: 'audit_log.py',
+                lines: `import json, hashlib, boto3
+from datetime import datetime, timezone
+
+def write_audit_log(event: dict, bucket: str = "ml-audit-logs") -> str:
+    """Append-only audit log to S3 with content hash for tamper detection."""
+    event["timestamp"] = datetime.now(timezone.utc).isoformat()
+    event["schema_version"] = "1.0"
+    payload = json.dumps(event, sort_keys=True)
+    content_hash = hashlib.sha256(payload.encode()).hexdigest()
+
+    s3 = boto3.client("s3")
+    key = f"audit/{event['timestamp'][:10]}/{content_hash}.json"
+    s3.put_object(
+        Bucket=bucket, Key=key, Body=payload,
+        # Server-side encryption + Object Lock (WORM) for immutability
+        ServerSideEncryption="aws:kms",
+        # ObjectLockMode="COMPLIANCE", ObjectLockRetainUntilDate=...
+    )
+    return key`
+              },
+              pitfalls: [
+                { issue: 'Audit logs stored in the same system as model outputs — single point of failure', context: 'If the audit log database is corrupted during a production incident, the system cannot prove what decisions were made — a catastrophic compliance failure for a high-risk AI system.', fix: 'Write audit logs to a separate, independently operated append-only store (S3 with Object Lock COMPLIANCE mode, or a dedicated immutable log service). Never co-locate audit logs with operational databases that can be modified or deleted.' },
+                { issue: 'Audit log schema changes break downstream compliance reports', context: 'A field rename (user_id → customer_id) in the audit log schema in Q2 breaks the automated compliance report that parses logs for the annual audit — the report shows zero decisions for Q2.', fix: 'Version the audit log schema explicitly (schema_version field on every record). Maintain a schema registry. Compliance report parsers must handle all historical schema versions. Treat schema changes as breaking changes requiring a migration plan.' }
+              ],
+              qa: [
+                { q: 'Which AI systems qualify as "high-risk" under the EU AI Act?', a: 'High-risk: AI systems that are safety components of products regulated under EU law (medical devices, cars) OR standalone AI in: biometric identification, critical infrastructure management, educational/vocational access decisions, employment/worker management, essential services access (credit, insurance), law enforcement decisions, migration/asylum screening, administration of justice. If your ML system makes or influences credit approval, hiring, medical diagnosis, or criminal risk scoring for EU residents, it is high-risk and requires full conformity assessment.' },
+                { q: 'How do you implement a compliant audit trail for a credit scoring model?', a: 'Each prediction must log: (1) Input data fingerprint (hash of features, not raw PII), (2) Model version and run_id, (3) Output score and decision threshold, (4) Explanation summary (top 3 SHAP factors), (5) Human review flag and reviewer ID if applicable, (6) Timestamp (UTC, millisecond precision). Store in S3 Object Lock (COMPLIANCE mode, 10-year retention). Encrypt with customer-managed KMS key. Test the log integrity quarterly by re-hashing stored records and comparing to stored hashes. Grant read access only to compliance team via IAM — no one can delete or modify.' }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+];
+---
+<BaseLayout
+  title="MLOps — Sudheesh Knowledge Base"
+  description="MLOps reference: experiment tracking, CI/CD for ML, deployment patterns, monitoring, feature stores, and governance."
+  active="ai-engineering"
+>
+  <main class="page active mlo-page">
+
+    <section class="mlo-hero">
+      <div class="mlo-hero-inner">
+
+        <div class="mlo-hero-left">
+          <div class="mlo-eyebrow">
+            <span class="mlo-badge">AI Engineering</span>
+            <span class="mlo-badge-sep">/</span>
+            <span class="mlo-badge-count">MLOps</span>
+          </div>
+          <h1 class="mlo-hero-title">
+            <span class="mlo-ht-sans">ML</span>
+            <span class="mlo-ht-serif">Operations.</span>
+          </h1>
+          <p class="mlo-hero-desc">
+            A production guide to shipping ML systems that stay reliable: experiment tracking, CI/CD pipelines, deployment strategies, monitoring &amp; drift, feature stores, training pipelines, and governance — everything between a trained model and a system that works in production.
+          </p>
+          <div class="mlo-hero-tools">
+            {tools.map(t => <span class="mlo-tool-pill">{t}</span>)}
+          </div>
+        </div>
+
+        <nav class="mlo-hero-index" aria-label="MLOps stage index">
+          {layers.map(layer => (
+            <div class="mlo-idx-layer">
+              <div class="mlo-idx-layer-label" data-layer={layer.id}>
+                {layer.label}
+                <span class="mlo-idx-range">{layer.range}</span>
+              </div>
+              {layer.stages.map(stage => (
+                <a class="mlo-idx-item" href={`#stage-${stage.num}`}>
+                  <span class="mlo-idx-num">{stage.num}</span>
+                  <span class="mlo-idx-title">{stage.title}</span>
+                </a>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+      </div>
+    </section>
+
+    <div class="mlo-body">
+      {layers.map(layer => (
+        <section class="mlo-layer" data-layer={layer.id}>
+
+          <div class="mlo-layer-head">
+            <div class="mlo-lh-line"></div>
+            <div class="mlo-lh-label">
+              <span class="mlo-lh-name">{layer.label}</span>
+              <span class="mlo-lh-range">{layer.range}</span>
+            </div>
+            <div class="mlo-lh-line"></div>
+          </div>
+
+          <div class="mlo-track">
+            {layer.stages.map(stage => (
+              <article class="mlo-stage" id={`stage-${stage.num}`}>
+
+                <div class="mlo-stage-gutter">
+                  <div class="mlo-stage-dot"></div>
+                  <div class="mlo-stage-num">{stage.num}</div>
+                </div>
+
+                <div class="mlo-stage-content">
+                  <h2 class="mlo-stage-title">{stage.title}</h2>
+                  <p class="mlo-stage-intro">{stage.intro}</p>
+
+                  <div class="mlo-spec">
+                    {stage.points.map(point => (
+                      <div class="mlo-spec-item">
+                        <button class="mlo-spec-row" onclick="mloToggle(this)" type="button">
+                          <span class="mlo-spec-term">{point.term}</span>
+                          <span class="mlo-spec-desc">{point.desc}</span>
+                          <span class="mlo-spec-chevron" aria-hidden="true">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                              <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                          </span>
+                        </button>
+
+                        <div class="mlo-det">
+                          <nav class="mlo-det-tabs">
+                            <button class="mlo-det-tab mlo-det-tab--active" onclick="mloTab(this,'overview')"   type="button">Overview</button>
+                            <button class="mlo-det-tab"                      onclick="mloTab(this,'code')"       type="button">Code</button>
+                            <button class="mlo-det-tab"                      onclick="mloTab(this,'production')" type="button">In Production</button>
+                            <button class="mlo-det-tab"                      onclick="mloTab(this,'qa')"         type="button">Interview Q&amp;A</button>
+                          </nav>
+                          <div class="mlo-det-body">
+
+                            <div class="mlo-det-pane mlo-det-pane--active" data-pane="overview">
+                              <p class="mlo-det-overview">{point.detail.overview}</p>
+                            </div>
+
+                            <div class="mlo-det-pane" data-pane="code">
+                              <div class="mlo-code">
+                                <div class="mlo-code-bar">
+                                  <span class="mlo-code-lang">{point.detail.code.label}</span>
+                                  <div class="mlo-code-dots"><span></span><span></span><span></span></div>
+                                </div>
+                                <pre class="mlo-code-pre"><code>{point.detail.code.lines}</code></pre>
+                              </div>
+                            </div>
+
+                            <div class="mlo-det-pane" data-pane="production">
+                              <div class="mlo-pitfalls">
+                                {point.detail.pitfalls.map(pit => (
+                                  <div class="mlo-pitfall">
+                                    <div class="mlo-pitfall-head">
+                                      <span class="mlo-pit-badge">Pitfall</span>
+                                      <strong>{pit.issue}</strong>
+                                    </div>
+                                    <p>{pit.context}</p>
+                                    <div class="mlo-pit-fix">
+                                      <span>Fix</span>
+                                      <em>{pit.fix}</em>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div class="mlo-det-pane" data-pane="qa">
+                              <div class="mlo-qa-list">
+                                {point.detail.qa.map(item => (
+                                  <div class="mlo-qa-item">
+                                    <button class="mlo-qa-q" onclick="mloQA(this)" type="button">
+                                      <span>{item.q}</span>
+                                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                      </svg>
+                                    </button>
+                                    <div class="mlo-qa-a"><p>{item.a}</p></div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <blockquote class="mlo-insight">{stage.insight}</blockquote>
+                </div>
+
+              </article>
+            ))}
+          </div>
+
+        </section>
+      ))}
+
+      <div class="mlo-end">
+        <p class="mlo-end-eyebrow">Operating principle</p>
+        <h2 class="mlo-end-title">Automation compounds trust.</h2>
+        <p class="mlo-end-sub">Every manual deploy, every un-monitored model, every untested rollback is technical debt that accumulates until an incident forces repayment. Build the automation once, enforce it consistently, and production becomes boring — which is exactly the goal.</p>
+      </div>
+    </div>
+
+  </main>
+</BaseLayout>
+
+<style is:global>
+.mlo-page { background: var(--linen); padding-top: 0; }
+.mlo-hero { padding-top: var(--nav-h); border-bottom: 1px solid var(--linen3); }
+.mlo-hero-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 36px 80px 52px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.mlo-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
+.mlo-badge {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--terra);
+  background: var(--terra-pale);
+  border: 1px solid rgba(196,97,74,0.22);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.mlo-badge-sep   { color: var(--linen3); font-size: 0.8rem; }
+.mlo-badge-count { font-family: var(--mono); font-size: 0.62rem; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; }
+.mlo-hero-title  { display: flex; flex-direction: column; margin-bottom: 24px; line-height: 0.93; }
+.mlo-ht-sans {
+  font-family: var(--sans);
+  font-size: clamp(3rem, 5.5vw, 5.6rem);
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.045em;
+}
+.mlo-ht-serif {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(3rem, 5.5vw, 5.6rem);
+  color: var(--terra);
+  letter-spacing: -0.03em;
+}
+.mlo-hero-desc  { font-size: clamp(0.95rem, 1.2vw, 1.08rem); color: var(--muted); line-height: 1.75; max-width: 520px; margin-bottom: 28px; }
+.mlo-hero-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.mlo-tool-pill  {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  color: var(--muted2);
+  background: var(--linen2);
+  border: 1px solid var(--linen3);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.mlo-hero-index { border-left: 1px solid var(--linen3); padding-left: clamp(28px, 4vw, 56px); display: flex; flex-direction: column; gap: 28px; }
+.mlo-idx-layer-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mlo-idx-range  { font-weight: 400; color: var(--muted2); letter-spacing: 0.06em; }
+.mlo-idx-item   { display: flex; align-items: baseline; gap: 12px; padding: 5px 8px; border-radius: 6px; text-decoration: none; transition: background 0.14s; }
+.mlo-idx-item:hover { background: var(--linen2); }
+.mlo-idx-num    { font-family: var(--mono); font-size: 0.58rem; color: var(--muted2); flex-shrink: 0; letter-spacing: 0.06em; }
+.mlo-idx-title  { font-size: 0.8rem; color: var(--muted); line-height: 1.4; transition: color 0.14s; }
+.mlo-idx-item:hover .mlo-idx-title { color: var(--ink); }
+
+/* layer colour tokens — used in hero index labels + stage dots + tab accents + insight border */
+[data-layer="tracking"]    { color: var(--sage); }
+[data-layer="cicd"]        { color: var(--terra); }
+[data-layer="deployment"]  { color: var(--amber); }
+[data-layer="monitoring"]  { color: var(--ink); }
+[data-layer="features"]    { color: var(--sage); }
+[data-layer="reliability"] { color: var(--terra); }
+
+.mlo-body       { max-width: 1280px; margin: 0 auto; padding: 0 80px 140px; }
+.mlo-layer      { padding-top: 96px; }
+.mlo-layer-head { display: flex; align-items: center; gap: 18px; margin-bottom: 60px; }
+.mlo-lh-line    { flex: 1; height: 1px; background: var(--linen3); }
+.mlo-lh-label   { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.mlo-lh-name    { font-family: var(--mono); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; }
+.mlo-lh-range   { font-family: var(--mono); font-size: 0.6rem; color: var(--muted2); letter-spacing: 0.08em; }
+.mlo-track      { position: relative; }
+.mlo-track::before { content: ''; position: absolute; left: 27px; top: 12px; bottom: 60px; width: 1px; background: var(--linen3); z-index: 0; }
+.mlo-stage      { display: flex; align-items: flex-start; gap: 40px; position: relative; padding-bottom: 80px; opacity: 0; transform: translateY(24px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.mlo-stage.mlo-visible { opacity: 1; transform: translateY(0); }
+.mlo-stage-gutter { flex: 0 0 56px; width: 56px; display: flex; flex-direction: column; align-items: center; padding-top: 4px; gap: 8px; position: relative; z-index: 1; }
+.mlo-stage-dot  { width: 10px; height: 10px; border-radius: 50%; background: var(--linen); border: 2px solid var(--linen3); flex-shrink: 0; transition: background 0.35s, border-color 0.35s; }
+[data-layer="tracking"]    .mlo-stage.mlo-visible .mlo-stage-dot { background: var(--sage-pale);  border-color: var(--sage); }
+[data-layer="cicd"]        .mlo-stage.mlo-visible .mlo-stage-dot { background: var(--terra-pale); border-color: var(--terra); }
+[data-layer="deployment"]  .mlo-stage.mlo-visible .mlo-stage-dot { background: var(--amber-pale); border-color: var(--amber); }
+[data-layer="monitoring"]  .mlo-stage.mlo-visible .mlo-stage-dot { background: var(--linen2);     border-color: var(--ink3); }
+[data-layer="features"]    .mlo-stage.mlo-visible .mlo-stage-dot { background: var(--sage-pale);  border-color: var(--sage); }
+[data-layer="reliability"] .mlo-stage.mlo-visible .mlo-stage-dot { background: var(--terra-pale); border-color: var(--terra); }
+.mlo-stage-num  { font-family: var(--mono); font-size: 0.64rem; font-weight: 700; color: var(--muted2); letter-spacing: 0.1em; line-height: 1; position: sticky; top: calc(var(--nav-h) + 40px); }
+.mlo-stage-content { flex: 1; min-width: 0; width: 0; }
+.mlo-stage-title { font-family: var(--sans); font-size: clamp(1.2rem, 2vw, 1.55rem); font-weight: 800; letter-spacing: -0.033em; color: var(--ink); line-height: 1.12; margin-bottom: 8px; }
+.mlo-stage-intro { font-size: 0.92rem; color: var(--muted2); font-style: italic; line-height: 1.65; margin-bottom: 24px; }
+
+/* spec accordion */
+.mlo-spec        { border: 1px solid var(--linen3); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+.mlo-spec-item   { border-bottom: 1px solid var(--linen3); }
+.mlo-spec-item:last-child { border-bottom: none; }
+.mlo-spec-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 40px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  font-family: var(--sans);
+}
+.mlo-spec-term    { padding: 11px 14px; font-size: 0.8rem; font-weight: 700; color: var(--ink); background: var(--linen2); border-right: 1px solid var(--linen3); line-height: 1.45; display: flex; align-items: center; }
+.mlo-spec-desc    { padding: 11px 16px; font-size: 0.8rem; color: var(--muted); line-height: 1.55; background: var(--linen); display: flex; align-items: center; }
+.mlo-spec-chevron { display: flex; align-items: center; justify-content: center; background: var(--linen); color: var(--linen3); transition: color 0.14s; }
+.mlo-spec-row:hover .mlo-spec-term { background: var(--linen3); }
+.mlo-spec-row:hover .mlo-spec-desc { background: var(--linen2); }
+.mlo-spec-item--open .mlo-spec-chevron svg { transform: rotate(180deg); }
+.mlo-det { max-height: 0; overflow: hidden; transition: max-height 0.42s cubic-bezier(0.4,0,0.2,1); background: var(--white); }
+.mlo-spec-item--open > .mlo-det { max-height: 2000px; }
+.mlo-det-tabs { display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--linen3); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.mlo-det-tabs::-webkit-scrollbar { display: none; }
+.mlo-det-tab { font-family: var(--mono); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.04em; color: var(--muted2); background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 16px; cursor: pointer; margin-bottom: -1px; white-space: nowrap; }
+.mlo-det-tab--active { color: var(--terra); border-bottom-color: var(--terra); }
+[data-layer="tracking"]    .mlo-det-tab--active { color: var(--sage);  border-bottom-color: var(--sage); }
+[data-layer="cicd"]        .mlo-det-tab--active { color: var(--terra); border-bottom-color: var(--terra); }
+[data-layer="deployment"]  .mlo-det-tab--active { color: var(--amber); border-bottom-color: var(--amber); }
+[data-layer="features"]    .mlo-det-tab--active { color: var(--sage);  border-bottom-color: var(--sage); }
+[data-layer="reliability"] .mlo-det-tab--active { color: var(--terra); border-bottom-color: var(--terra); }
+.mlo-det-pane           { display: none; padding: 22px 24px; }
+.mlo-det-pane--active   { display: block; }
+.mlo-det-overview       { font-size: 0.875rem; color: var(--muted); line-height: 1.85; max-width: 760px; margin: 0; white-space: pre-wrap; }
+
+/* code */
+.mlo-code               { border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+.mlo-code-bar           { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #1c1c1e; }
+.mlo-code-lang          { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.11em; text-transform: uppercase; color: var(--terra2); }
+.mlo-code-dots          { display: flex; gap: 5px; align-items: center; }
+.mlo-code-dots span     { width: 10px; height: 10px; border-radius: 50%; }
+.mlo-code-dots span:nth-child(1) { background: #FF5F57; }
+.mlo-code-dots span:nth-child(2) { background: #FEBC2E; }
+.mlo-code-dots span:nth-child(3) { background: #28C840; }
+.mlo-code-pre  { margin: 0; padding: 20px 24px; background: #111113; overflow-x: auto; font-family: var(--mono); font-size: 0.78rem; line-height: 1.85; color: #C8D0E0; }
+.mlo-code-pre code { font-family: inherit; font-size: inherit; color: inherit; background: none; padding: 0; white-space: pre; }
+
+/* pitfalls */
+.mlo-pitfalls  { display: flex; flex-direction: column; gap: 14px; }
+.mlo-pitfall   { border: 1px solid var(--linen3); border-radius: 8px; overflow: hidden; }
+.mlo-pitfall-head { display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: var(--linen2); border-bottom: 1px solid var(--linen3); }
+.mlo-pit-badge { font-family: var(--mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); background: var(--amber-pale); border: 1px solid rgba(184,122,40,0.28); padding: 2px 7px; border-radius: 3px; }
+.mlo-pitfall strong { font-size: 0.82rem; color: var(--ink); line-height: 1.3; }
+.mlo-pitfall p { font-size: 0.81rem; color: var(--muted); line-height: 1.72; padding: 11px 16px; margin: 0; }
+.mlo-pit-fix   { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px; background: var(--sage-pale); border-top: 1px solid rgba(74,107,80,0.16); }
+.mlo-pit-fix span { font-family: var(--mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sage); background: rgba(74,107,80,0.12); border: 1px solid rgba(74,107,80,0.25); padding: 2px 7px; border-radius: 3px; }
+.mlo-pit-fix em { font-size: 0.81rem; color: var(--ink2); line-height: 1.65; }
+
+/* Q&A */
+.mlo-qa-list   { display: flex; flex-direction: column; gap: 8px; }
+.mlo-qa-item   { border: 1px solid var(--linen3); border-radius: 8px; overflow: hidden; }
+.mlo-qa-q      { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; padding: 12px 16px; background: var(--linen2); border: none; cursor: pointer; font-family: var(--sans); font-size: 0.82rem; font-weight: 600; color: var(--ink); line-height: 1.45; }
+.mlo-qa-q:hover { background: var(--linen3); }
+.mlo-qa-q svg  { flex-shrink: 0; color: var(--muted2); transition: transform 0.22s ease; }
+.mlo-qa-item--open .mlo-qa-q svg { transform: rotate(180deg); }
+.mlo-qa-a      { max-height: 0; overflow: hidden; transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1); }
+.mlo-qa-item--open .mlo-qa-a { max-height: 800px; }
+.mlo-qa-a p    { padding: 14px 16px; font-size: 0.82rem; color: var(--muted); line-height: 1.78; border-top: 1px solid var(--linen3); background: var(--white); margin: 0; }
+
+/* key insight blockquote */
+.mlo-insight   { font-family: var(--display); font-style: italic; font-size: clamp(0.92rem, 1.1vw, 1.04rem); color: var(--muted); line-height: 1.7; border-left: 2px solid var(--linen3); padding-left: 16px; margin: 0; }
+[data-layer="tracking"]    .mlo-insight { border-left-color: var(--sage); }
+[data-layer="cicd"]        .mlo-insight { border-left-color: var(--terra); }
+[data-layer="deployment"]  .mlo-insight { border-left-color: var(--amber); }
+[data-layer="monitoring"]  .mlo-insight { border-left-color: var(--ink3); }
+[data-layer="features"]    .mlo-insight { border-left-color: var(--sage); }
+[data-layer="reliability"] .mlo-insight { border-left-color: var(--terra); }
+
+/* end section */
+.mlo-end       { text-align: center; padding: 96px 0 0; border-top: 1px solid var(--linen3); margin-top: 40px; }
+.mlo-end-eyebrow { font-family: var(--mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted2); margin-bottom: 16px; }
+.mlo-end-title { font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(2.2rem, 4vw, 3.4rem); color: var(--ink); line-height: 1.05; letter-spacing: -0.025em; margin-bottom: 10px; }
+.mlo-end-sub   { font-size: 0.92rem; color: var(--muted2); margin: 0 auto; max-width: 620px; line-height: 1.75; }
+
+/* responsive */
+@media (max-width: 1100px) {
+  .mlo-hero-inner, .mlo-body { padding-left: 40px; padding-right: 40px; }
+}
+@media (max-width: 860px) {
+  .mlo-hero-inner { grid-template-columns: 1fr; gap: 40px; padding: 48px 32px 44px; }
+  .mlo-hero-index { border-left: none; border-top: 1px solid var(--linen3); padding-left: 0; padding-top: 28px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px 32px; }
+  .mlo-body { padding-left: 32px; padding-right: 32px; }
+}
+@media (max-width: 560px) {
+  .mlo-ht-sans, .mlo-ht-serif { font-size: clamp(2.4rem, 10vw, 3.2rem); }
+  .mlo-stage { gap: 20px; }
+  .mlo-stage-gutter { flex: 0 0 40px; width: 40px; }
+  .mlo-track::before { left: 19px; }
+  .mlo-spec-row { grid-template-columns: minmax(0,1fr) 36px; }
+  .mlo-spec-term { grid-column: 1 / -1; border-right: none; border-bottom: 1px solid var(--linen3); }
+  .mlo-det-pane { padding: 16px; }
+  .mlo-code-pre { padding: 14px 16px; font-size: 0.72rem; }
+  .mlo-hero-index { grid-template-columns: 1fr; }
+  .mlo-hero-inner, .mlo-body { padding-left: 20px; padding-right: 20px; }
+}
+</style>
+
+<script is:inline>
+function mloToggle(row) {
+  var item   = row.closest('.mlo-spec-item');
+  var isOpen = item.classList.contains('mlo-spec-item--open');
+  var spec   = row.closest('.mlo-spec');
+  spec.querySelectorAll('.mlo-spec-item--open').forEach(function(el) { el.classList.remove('mlo-spec-item--open'); });
+  if (!isOpen) item.classList.add('mlo-spec-item--open');
+}
+function mloTab(btn, pane) {
+  var det = btn.closest('.mlo-det');
+  det.querySelectorAll('.mlo-det-tab').forEach(function(t) { t.classList.remove('mlo-det-tab--active'); });
+  det.querySelectorAll('.mlo-det-pane').forEach(function(p) { p.classList.remove('mlo-det-pane--active'); });
+  btn.classList.add('mlo-det-tab--active');
+  var target = det.querySelector('[data-pane="' + pane + '"]');
+  if (target) target.classList.add('mlo-det-pane--active');
+}
+function mloQA(btn) {
+  var item   = btn.closest('.mlo-qa-item');
+  var isOpen = item.classList.contains('mlo-qa-item--open');
+  var list   = btn.closest('.mlo-qa-list');
+  list.querySelectorAll('.mlo-qa-item--open').forEach(function(el) { el.classList.remove('mlo-qa-item--open'); });
+  if (!isOpen) item.classList.add('mlo-qa-item--open');
+}
+(function() {
+  var stages = document.querySelectorAll('.mlo-stage');
+  if (!stages.length) return;
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) { e.target.classList.add('mlo-visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.05 });
+  stages.forEach(function(s) { io.observe(s); });
+})();
+</script>
