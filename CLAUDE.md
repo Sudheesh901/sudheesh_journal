@@ -550,57 +550,508 @@ Apply the same pattern as MLOps: dot colour, tab active colour, insight border c
 ## Pre-existing file
 `src/content/ai-engineering/system-design-for-ai.mdx` — MDX stub. **Do NOT delete.**
 
-## Architecture
-Same `lnlp-*` copy-and-rename pattern. Use prefix `sdi-` throughout:
-CSS classes: `sdi-*`, JS functions: `sdiToggle`, `sdiTab`, `sdiQA`.
-Data structure identical to Data & Databases and MLOps pages above.
+---
 
-## Tool Pills
-FastAPI · PostgreSQL · Redis · Kafka · Kubernetes · Nginx · Prometheus · pgvector · Docker
+## Design Philosophy — Why This Page Is Different
 
-## Layers & Stages (12 total)
+Every other page on this site uses the same UX: accordion spec table → tab panel (Overview / Code / Pitfalls / Q&A).
 
-| Stage | Layer | ID | Core Topics |
-|---|---|---|---|
-| 01 | Requirements & Scoping | `requirements` | Functional vs non-functional requirements, latency budgets, cost constraints, failure tolerance, quality definition, user personas |
-| 02 | Requirements & Scoping | `requirements` | Capacity estimation: QPS, storage sizing, bandwidth, GPU hours, back-of-envelope reasoning, traffic patterns (diurnal, bursty) |
-| 03 | Data Architecture | `data` | Data flow design: ingestion → validation → storage → indexing → serving → feedback; event-driven vs request-driven; data model design |
-| 04 | Data Architecture | `data` | Storage selection: OLTP vs OLAP vs vector store; read/write patterns; caching layer; consistency models (strong vs eventual); CAP theorem in practice |
-| 05 | Model Strategy & Serving | `model` | Model selection framework: rules vs ML vs LLM; build vs buy; API vs self-hosted; fine-tuning vs RAG vs prompt engineering; cost modelling |
-| 06 | Model Strategy & Serving | `model` | Serving architecture: API gateway, load balancer, inference service, streaming (SSE/WebSocket), timeouts, retries, circuit breakers, graceful degradation |
-| 07 | RAG & Agent Systems | `ragagent` | RAG system design: chunking strategy, embedding model selection, index design, retrieval pipeline, reranking, context assembly, citation |
-| 08 | RAG & Agent Systems | `ragagent` | Agent system design: tool definitions, orchestration patterns (ReAct, Plan-and-Execute), state management, guardrails, observability, failure modes |
-| 09 | Reliability & Scale | `reliability` | SLAs/SLOs/SLIs, circuit breakers, bulkheads, fallbacks, graceful degradation, retry budgets, chaos engineering principles |
-| 10 | Reliability & Scale | `reliability` | Scale patterns: horizontal vs vertical, CDN, read replicas, async processing, eventual consistency, backpressure, auto-scaling triggers |
-| 11 | Security | `security` | Prompt injection defence, PII detection/masking, RBAC, audit logging, data residency, rate limiting, input validation, secrets management |
-| 12 | Production Operations | `ops` | Observability stack design, incident response playbooks, capacity planning, cost optimisation, on-call runbooks, post-mortem culture |
+That pattern is wrong for system design content. System design is:
+- **Spatial** — architectures are diagrams, not bullet lists
+- **Relational** — components connect to each other, decisions cascade
+- **Comparative** — every decision is a tradeoff between options, not a single answer
+- **Progressive** — a design session follows a 6-step journey, not a flat reference
 
-## Build Sub-tasks (3 coding sessions)
+This page must feel like an **engineering design session**, not a textbook chapter.
 
-### Task A — Scaffold + Layers 1 & 2 (Stages 01–04)  [STATUS: not started]
+---
+
+## UX Architecture — The Design Canvas Pattern
+
+### Overall Page Layout
+
+Three zones, not one scrolling column:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  HERO  — title + 6-step framework ribbon (pills: Req→Data→Model…)   │
+├──────────────────────────────┬──────────────────────────────────────┤
+│  STAGE SELECTOR              │  ACTIVE STAGE PANEL                  │
+│  (vertical list, left rail)  │  (diagram + decision cards)          │
+│                              │                                      │
+│  01 Requirements             │  [Blueprint Diagram — full width]    │
+│  02 Capacity Estimation  ←── │                                      │
+│  03 Data Flow                │  [Decision Card Grid — 2 columns]    │
+│  04 Storage Selection        │   ┌──────────┐  ┌──────────┐        │
+│  05 Model Strategy           │   │ TRADEOFF │  │ TRADEOFF │        │
+│  06 Serving Arch             │   │  card    │  │  card    │        │
+│  07 RAG Design               │   └──────────┘  └──────────┘        │
+│  08 Agent Systems            │                                      │
+│  09 Reliability              │  [Expanded Detail Panel — slides in] │
+│  10 Scale Patterns           │   tabs: Tradeoffs | Code | Interview │
+│  11 Security                 │                                      │
+│  12 Prod Ops                 │                                      │
+└──────────────────────────────┴──────────────────────────────────────┘
+```
+
+### Key UX Differences from Other Pages
+
+| Other pages | This page |
+|---|---|
+| Vertical scroll through all stages | Click a stage in left rail → updates right panel (SPA-feel) |
+| Accordion spec table | Decision card grid (2-col, visual cards) |
+| Tab: Overview/Code/Pitfalls/Q&A | Tab: Tradeoffs table / Code / Interview Q |
+| ASCII diagrams inside code blocks | Blueprint diagram frame — first-class, full-width, styled |
+| All stages visible at once | One stage at a time — focus |
+| Insight blockquote at bottom | Design principle badge at top of diagram |
+
+---
+
+## Visual Design System
+
+### Color Palette (distinct from linen/sage/terra used elsewhere)
+
+This page uses an **engineering blueprint** palette — darker, more technical, precise.
+
+```css
+/* Blueprint palette — distinct from site-wide linen/sage/terra */
+--sd-bg:        #0d0f14;   /* near-black canvas */
+--sd-surface:   #13161e;   /* card/panel surface */
+--sd-border:    #1e2330;   /* subtle dividers */
+--sd-border-hi: #2d3448;   /* hover/active borders */
+--sd-grid:      rgba(99,119,170,0.06);  /* blueprint grid lines */
+--sd-ink:       #e8ecf4;   /* primary text */
+--sd-muted:     #7c88a8;   /* secondary text */
+--sd-dim:       #4a5470;   /* tertiary / labels */
+
+/* Layer accent colours (one per layer) */
+--sd-req:    #4f9cf9;   /* Requirements  — blue */
+--sd-data:   #34d399;   /* Data          — emerald */
+--sd-model:  #a78bfa;   /* Model         — violet */
+--sd-rag:    #fb923c;   /* RAG & Agents  — orange */
+--sd-rel:    #f43f5e;   /* Reliability   — rose */
+--sd-ops:    #facc15;   /* Ops & Security — amber */
+```
+
+The overall page background is dark. This creates a deliberate contrast with the rest of the site (linen/warm) — the system design page feels like a **whiteboard session at night**, an engineering artefact, not a study guide.
+
+### Blueprint Diagram Frame
+
+Every stage has a first-class architecture diagram. This is NOT a code block with monospace text. It is a styled `<div class="sd-blueprint">` with:
+- Dark background (`--sd-surface`)
+- Subtle grid-line texture (CSS `background-image: linear-gradient(...)`)
+- Monospace text rendered in `--sd-req` / `--sd-data` etc. colour per component type
+- A label strip at top: `ARCHITECTURE · Stage 03 · Data Flow Design`
+- Component boxes styled with coloured borders based on their type:
+  - Ingestion components → blue borders
+  - Storage components → emerald borders
+  - Serving components → violet borders
+  - Observability components → amber borders
+
+Blueprint diagram markup pattern:
+```html
+<div class="sd-blueprint" data-stage="03">
+  <div class="sd-bp-label">
+    <span class="sd-bp-badge">ARCHITECTURE</span>
+    <span class="sd-bp-stage">Stage 03 — Data Flow Design</span>
+    <span class="sd-bp-principle">Design principle embedded here</span>
+  </div>
+  <pre class="sd-bp-art">
+[  Ingestion  ]──▶[  Validation  ]──▶[  Transform  ]──▶[  Store  ]
+  Kafka/SQS          Pydantic            dbt/Spark        Postgres
+                                                            │
+                                                            ▼
+                                                      [  Serve  ]
+                                                       FastAPI
+  </pre>
+</div>
+```
+
+ASCII art style guide for diagrams:
+- Use `──▶` for data flow (right-to-left or top-to-bottom)
+- Use `│` and `├──` for vertical flows and branches
+- Label component type below the box (smaller, dimmer)
+- Keep diagrams to 72 characters wide max
+- Every component box in the diagram is visually annotated with a colour class via a wrapper technique
+
+### Decision Cards (replacing spec-item accordions)
+
+2-column CSS grid. Each card is a `<button class="sd-card">` with:
+
+```
+┌─────────────────────────────────────┐
+│  [BADGE: STORAGE]                   │
+│                                     │
+│  Which vector store for             │
+│  100M+ documents?                   │
+│                                     │
+│  pgvector vs Qdrant vs Pinecone     │ ← subtitle showing options
+│                                     │
+│  [●●●] Complexity  [▲▲○] Scale     │ ← visual indicators
+└─────────────────────────────────────┘
+```
+
+Active card: left border accent (layer colour), slightly elevated background.
+
+Card data fields:
+```js
+{
+  id: 'storage-vector',
+  badge: 'STORAGE',            // short keyword in monospace pill
+  question: 'Which vector store for 100M+ documents?',
+  options: 'pgvector · Qdrant · Pinecone',  // shown as subtitle
+  complexity: 2,    // 1–3 filled dots
+  scale: 3,         // 1–3 filled triangles
+  detail: {
+    tradeoffs: [    // HTML table rows
+      { approach: 'pgvector', when: '< 1M docs, existing Postgres stack', pro: 'Zero extra infra', con: 'Slow at scale, limited ANN algos' },
+      { approach: 'Qdrant',   when: '1M–100M docs, GPU-less server',      pro: 'HNSW, filtering, Rust speed', con: 'Extra service to operate' },
+      { approach: 'Pinecone', when: '> 100M docs, managed preferred',     pro: 'Serverless, no ops',  con: '$$$, vendor lock-in' },
+    ],
+    recommendation: 'Start with pgvector. Migrate to Qdrant when recall@5 drops below 0.75 or p99 search latency exceeds 50ms.',
+    code: { label: 'migration_check.py', lines: `...` },
+    qa: [ { q: '...', a: '...' } ]
+  }
+}
+```
+
+### Detail Panel (slides in from right, or expands below — below is simpler)
+
+When a card is clicked, a detail panel appears below the card grid with three tabs:
+
+**Tab 1 — Tradeoffs** (default)
+A proper HTML table — NOT a prose paragraph. Three columns:
+| Approach | Best for | The catch |
+|---|---|---|
+
+Plus a highlighted "Recommendation" row at the bottom.
+
+**Tab 2 — Code**
+Same code block style as other pages (dark pre, traffic-light dots, filename label).
+
+**Tab 3 — Interview Q**
+Same Q&A accordion as other pages, but minimum 3 questions per card, structured as:
+- Q1: "Walk me through how you'd choose between X and Y" (conceptual)
+- Q2: "You chose X — now your query latency spiked to 500ms — debug it" (applied)
+- Q3: "Design a system that serves 10M users — how does your storage choice change?" (scale)
+
+---
+
+## CSS Architecture
+
+Prefix: `sd-` throughout (not `sdi-`).
+JS functions: `sdSelect(stageId)`, `sdCard(cardEl)`, `sdTab(tabEl, paneName)`, `sdQA(btnEl)`.
+
+```
+.sd-page            — full page, background: var(--sd-bg)
+.sd-hero            — top section, dark gradient
+.sd-framework       — 6-step ribbon: clickable pills
+.sd-layout          — CSS grid: 220px left rail + 1fr right panel
+.sd-rail            — left stage selector
+.sd-rail-item       — clickable stage, shows num + title + layer dot
+.sd-rail-item--active — accent border left, light bg
+.sd-panel           — right content area
+.sd-blueprint       — diagram frame (grid bg, label strip, pre art)
+.sd-bp-label        — top strip of blueprint
+.sd-bp-badge        — monospace pill (ARCHITECTURE)
+.sd-bp-art          — pre with the ASCII diagram
+.sd-cards           — 2-column grid of decision cards
+.sd-card            — individual decision card (button)
+.sd-card--active    — expanded state
+.sd-card-badge      — STORAGE / ROUTING / CACHING pill
+.sd-card-question   — bold question text
+.sd-card-options    — subtitle showing the alternatives
+.sd-card-indicators — complexity + scale dots
+.sd-detail          — expanded detail area below cards
+.sd-detail-tabs     — Tradeoffs | Code | Interview
+.sd-tradeoffs       — HTML table
+.sd-tradeoff-rec    — recommendation highlighted row
+.sd-code            — same code block pattern as other pages
+.sd-qa-list         — same Q&A accordion as other pages
+```
+
+### The 6-Step Framework Ribbon
+
+A horizontal strip of 6 pills at the top of the page, always visible. Clicking a pill scrolls/filters stages to that step:
+
+```
+[ Requirements ] [ Data ] [ Model ] [ Serving ] [ Evaluation ] [ Operations ]
+```
+
+Each pill is coloured by its layer accent. The active pill (matching the current stage's step) is filled; others are outlined.
+
+### Left Rail — Stage Selector
+
+12 items, always visible (not collapsed). Each item:
+```
+  ● 01  Requirements Framing
+  ● 02  Capacity Estimation
+  ──────────────────────── (divider between layers)
+  ● 03  Data Flow Design
+  ...
+```
+
+Layer colour dot. Active item has accent left border. Clicking triggers `sdSelect('03')` which:
+1. Removes `--active` from all rail items
+2. Adds `--active` to clicked item
+3. Swaps the right panel content (no page scroll needed — pure JS state)
+4. Updates the URL hash (`#stage-03`) for shareability
+
+---
+
+## JS Architecture
+
+No external dependencies. Pure vanilla JS in an `is:inline` script.
+
+```js
+// State
+let activeStage = '01';
+let activeCard  = null;
+let activePane  = 'tradeoffs';
+
+function sdSelect(stageId) { ... }  // switch active stage
+function sdCard(el) { ... }         // toggle card open/closed
+function sdTab(el, pane) { ... }    // switch detail tab
+function sdQA(el) { ... }           // toggle Q&A answer
+
+// On load: activate first stage, set up keyboard nav
+document.addEventListener('DOMContentLoaded', () => {
+  sdSelect('01');
+  // Keyboard: left/right arrow navigates stages
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') sdSelectNext();
+    if (e.key === 'ArrowLeft')  sdSelectPrev();
+  });
+});
+```
+
+Key behaviour notes:
+- Stage switching is **instant** (no animation needed — just display:none / display:block)
+- Card open/close: smooth max-height transition on the detail panel (same as other pages)
+- No IntersectionObserver needed (content is not scrolled into view — it's swapped)
+- URL hash updates silently (`history.replaceState`) for shareability without scroll jump
+
+---
+
+## Data Structure
+
+```js
+const stages = [
+  {
+    id: '01',
+    title: 'Requirements Framing',
+    layer: 'requirements',     // maps to CSS accent colour
+    step: 'Requirements',      // for the 6-step ribbon
+    principle: 'A system designed without explicit constraints will be optimised for the wrong ones.',
+    diagram: `...ASCII art...`,
+    cards: [
+      {
+        id: 'func-nonfunc',
+        badge: 'REQUIREMENTS',
+        question: 'How do you separate functional from non-functional requirements?',
+        options: 'Latency · Throughput · Cost · Quality · Failure tolerance',
+        complexity: 1,
+        scale: 1,
+        detail: {
+          tradeoffs: [
+            { approach: '...', when: '...', pro: '...', con: '...' },
+          ],
+          recommendation: '...',
+          code: { label: '...', lines: `...` },
+          qa: [
+            { q: '...', a: '...' },
+          ]
+        }
+      },
+      // 3–4 cards per stage
+    ]
+  },
+  // ... 11 more stages
+];
+```
+
+---
+
+## Stages & Cards (12 stages × 3–4 cards each = ~42 decision cards)
+
+### Stage 01 — Requirements Framing (layer: requirements)
+**Diagram**: Empty box → annotated with FRs and NFRs on each side, SLA/budget/users labelled
+
+Cards:
+1. **REQUIREMENTS** — Functional vs non-functional: what belongs in each category?
+2. **CONSTRAINTS** — How do you translate a vague "fast and reliable" into SLOs?
+3. **PERSONAS** — How does user type (consumer vs enterprise vs internal) change your architecture?
+4. **FAILURE TOLERANCE** — Strong consistency vs eventual consistency: when does each matter for AI systems?
+
+### Stage 02 — Capacity Estimation (layer: requirements)
+**Diagram**: Back-of-envelope calculation layout — users → QPS → storage → GPU hours → cost/month
+
+Cards:
+1. **SCALE** — Back-of-envelope: estimate QPS, storage, bandwidth from user counts
+2. **GPU SIZING** — How many A100s for a 70B model at 100 RPS?
+3. **COST MODEL** — API cost vs self-hosted cost: the break-even calculation
+4. **TRAFFIC PATTERNS** — Diurnal load, bursty events, sustained load: how each changes autoscaling design
+
+### Stage 03 — Data Flow Design (layer: data)
+**Diagram**: Ingestion → Validation → Transform → Store → Serve → Feedback loop
+
+Cards:
+1. **FLOW** — Event-driven vs request-driven data pipelines: when to use each
+2. **VALIDATION** — Where does schema validation live: at ingestion, at storage, or at serving?
+3. **FEEDBACK LOOP** — How does production data flow back to training? The three patterns
+4. **CONSISTENCY** — Strong vs eventual consistency in AI data pipelines: the hidden traps
+
+### Stage 04 — Storage Selection (layer: data)
+**Diagram**: Decision tree — query pattern → consistency need → scale → recommended store
+
+Cards:
+1. **OLTP vs OLAP** — When a relational DB is wrong for ML workloads
+2. **VECTOR STORES** — pgvector vs Qdrant vs Pinecone: the tradeoff matrix
+3. **CACHING LAYER** — Where caching belongs in an AI system (semantic cache vs prediction cache)
+4. **CAP THEOREM** — How CAP applies to AI feature stores and what it means for training-serving skew
+
+### Stage 05 — Model Strategy (layer: model)
+**Diagram**: Decision tree — task complexity × budget × latency → model tier recommendation
+
+Cards:
+1. **BUILD vs BUY** — Fine-tune vs RAG vs prompt engineering: the decision framework
+2. **API vs SELF-HOST** — The unit economics calculation for each choice
+3. **MODEL TIERS** — Router → cheap model → expensive model: cascading for cost control
+4. **EVALUATION FIRST** — How to define "good enough" before choosing a model
+
+### Stage 06 — Serving Architecture (layer: model)
+**Diagram**: User → CDN → API Gateway → Load Balancer → Inference Service → (Vector DB, LLM API)
+
+Cards:
+1. **API GATEWAY** — What belongs at the gateway vs the inference service
+2. **STREAMING** — SSE vs WebSocket vs polling: latency and infrastructure tradeoffs
+3. **CIRCUIT BREAKERS** — Retry budget, fallback chain, timeout hierarchy for LLM APIs
+4. **GRACEFUL DEGRADATION** — Tier 1/2/3 fallback: cached → cheap model → rule-based
+
+### Stage 07 — RAG System Design (layer: ragagent)
+**Diagram**: Query → Embed → Retrieve (Vector DB + BM25) → Rerank → Assemble Context → Generate → Cite
+
+Cards:
+1. **CHUNKING** — Fixed-size vs semantic vs parent-child: the retrieval precision tradeoff
+2. **RETRIEVAL** — Dense vs sparse vs hybrid: when BM25 beats embeddings
+3. **RERANKING** — Cross-encoder reranking: when the cost is worth it
+4. **CONTEXT ASSEMBLY** — Token budget, position effects, citation pattern
+
+### Stage 08 — Agent System Design (layer: ragagent)
+**Diagram**: User → Orchestrator → [Tool calls in parallel] → Result synthesis → Response
+
+Cards:
+1. **ORCHESTRATION** — ReAct vs Plan-and-Execute vs DAG: when each pattern fits
+2. **TOOL DESIGN** — What makes a good LLM tool definition: latency, idempotency, error handling
+3. **STATE MANAGEMENT** — Short-term (context window) vs long-term (memory store) agent state
+4. **FAILURE MODES** — Infinite loops, tool hallucination, cascading failures: design guards
+
+### Stage 09 — Reliability (layer: reliability)
+**Diagram**: SLO stack → Error budget → Alert thresholds → Incident triggers → Runbook
+
+Cards:
+1. **SLOs** — How to define SLIs/SLOs/SLAs for an LLM product (latency + quality + cost)
+2. **CIRCUIT BREAKERS** — State machine: Closed → Open → Half-open; how to configure thresholds
+3. **BULKHEADS** — Isolating failure domains: per-tenant, per-feature, per-priority-tier
+4. **CHAOS ENGINEERING** — The 4 chaos experiments every ML serving system needs
+
+### Stage 10 — Scale Patterns (layer: reliability)
+**Diagram**: Single region → Multi-region active-active → Global load balancer
+
+Cards:
+1. **HORIZONTAL vs VERTICAL** — When adding replicas beats adding RAM for AI workloads
+2. **ASYNC PROCESSING** — Queue-based offloading: which AI tasks belong async
+3. **BACKPRESSURE** — How backpressure propagates through an AI pipeline and where to shed load
+4. **READ REPLICAS** — Feature store, vector index, and model registry: replication strategies
+
+### Stage 11 — Security (layer: ops)
+**Diagram**: Trust boundary diagram — public → API gateway → auth → service mesh → data stores
+
+Cards:
+1. **PROMPT INJECTION** — Defence layers: classifier → instruction hierarchy → canary token → output filter
+2. **PII & DATA RESIDENCY** — Where PII masking happens and why it must be at the ingestion layer
+3. **RBAC** — Role-based access for AI systems: who can update prompts, models, indexes
+4. **AUDIT LOGGING** — What to log, what not to log, how to satisfy GDPR + SOC2 simultaneously
+
+### Stage 12 — Production Operations (layer: ops)
+**Diagram**: 4-layer observability stack — infra → data → model → product metrics
+
+Cards:
+1. **OBSERVABILITY STACK** — Infra + data + model + product: the 4-layer monitoring design
+2. **INCIDENT RESPONSE** — Detect → Isolate → Mitigate → Communicate → Post-mortem
+3. **CAPACITY PLANNING** — How to project GPU/storage/API costs 6 months out
+4. **COST OPTIMISATION** — The 5 levers: caching, routing, compression, batching, self-hosting
+
+---
+
+## Build Sub-tasks (4 coding sessions — not 3, because scaffold is substantial)
+
+### Task S0 — Scaffold only [STATUS: not started]
 - Create `src/pages/ai-engineering/system-design-for-ai.astro`
-- Full scaffold: hero, tool pills, stage-index nav, BaseLayout, CSS (`sdi-*`), JS (`sdiToggle/sdiTab/sdiQA/scroll-reveal`)
-- Layer 1 — Requirements & Scoping (stages 01–02)
-- Layer 2 — Data Architecture (stages 03–04)
+- Full page structure: hero, 6-step ribbon, 2-col layout (rail + panel)
+- CSS: full `sd-*` design system (dark palette, blueprint frame, card grid, tradeoff table)
+- JS: `sdSelect`, `sdCard`, `sdTab`, `sdQA` functions + keyboard nav
+- Data: `stages` array with ALL 12 stages as stubs (empty cards arrays)
+- Verify: `npm run build` — 0 errors, page renders with rail + empty panel
 
-### Task B — Layers 3 & 4 (Stages 05–08)  [STATUS: not started]
-- Layer 3 — Model Strategy & Serving (stages 05–06)
-- Layer 4 — RAG & Agent Systems (stages 07–08)
+### Task A — Stages 01–03 (Requirements × 2 + Data Flow) [STATUS: not started]
+- Fill stage 01: Requirements Framing (4 cards with full detail)
+- Fill stage 02: Capacity Estimation (4 cards)
+- Fill stage 03: Data Flow Design (4 cards)
+- Verify build after each stage
 
-### Task C — Layers 5 & 6 (Stages 09–12)  [STATUS: not started]
-- Layer 5 — Reliability & Scale (stages 09–10)
-- Layer 6 — Security & Production Operations (stages 11–12)
-- Nav: `/ai-engineering/system-design-for-ai` already correct in `src/components/Nav.astro`
+### Task B — Stages 04–06 (Storage + Model Strategy × 2) [STATUS: not started]
+- Fill stage 04: Storage Selection (4 cards)
+- Fill stage 05: Model Strategy (4 cards)
+- Fill stage 06: Serving Architecture (4 cards)
+- Verify build
+
+### Task C — Stages 07–09 (RAG + Agents + Reliability) [STATUS: not started]
+- Fill stage 07: RAG System Design (4 cards)
+- Fill stage 08: Agent System Design (4 cards)
+- Fill stage 09: Reliability (4 cards)
+- Verify build
+
+### Task D — Stages 10–12 + Nav [STATUS: not started]
+- Fill stage 10: Scale Patterns (4 cards)
+- Fill stage 11: Security (4 cards)
+- Fill stage 12: Production Operations (4 cards)
+- Nav: `/ai-engineering/system-design-for-ai` already correct — verify
+- Final build: must show 30 pages
+
+---
 
 ## Files
 - New:   `src/pages/ai-engineering/system-design-for-ai.astro`
 - Keep:  `src/content/ai-engineering/system-design-for-ai.mdx` (do not delete)
 - Nav:   already correct — no change needed
 
-## Content Rules
-1. Every stage intro frames a real system design decision or interview question scenario
-2. Include ASCII diagrams in Overview where helpful: data flow diagrams, request paths, component relationships
-3. Code: Python (FastAPI), SQL, YAML configs — realistic production patterns, not toy examples
-4. Pitfalls: 2 per spec item — architectural anti-patterns or interview traps with concrete fixes
-5. Interview Q&A: min 2 per item — framed as "Design a system that..." or "How would you handle..."; answers structured as decision → tradeoff → production consideration
-6. Connect every stage to the 6-step design framework: Requirements → Data Flow → Model → Serving → Evaluation → Operations
+---
+
+## Critical Build Notes
+
+### Template Literal Escaping
+Same rule as LLMOps: escape `\${VAR}`, `\${{ secrets.KEY }}` inside JS backtick template literals.
+
+### Dark Page on Light Site
+The page uses `--sd-bg: #0d0f14` while the rest of the site uses `var(--linen)`. Add `body { background: var(--sd-bg); }` scoped to `.sd-page` via `is:global`. No impact on other pages because `.sd-page` class is only on this page's `<main>`.
+
+### Stage Switching — No Scroll Jump
+`sdSelect()` must call `history.replaceState(null,'',\`#stage-\${id}\`)` — NOT `window.location.hash = ...` (the latter causes a scroll jump to the element).
+
+### Responsive Behaviour
+- ≥ 1024px: 2-column layout (220px rail + 1fr panel)
+- 640–1023px: rail collapses to a horizontal scroll strip above the panel
+- < 640px: rail becomes a `<select>` dropdown (accessible, no horizontal scroll needed)
+
+---
+
+## Content Rules (Different from Other Pages)
+
+1. **Diagram first** — every stage opens with a readable architecture diagram, not a wall of text. The diagram IS the overview.
+2. **Tradeoffs are tables** — never prose pitfalls. Each card's tradeoff tab is a 3-column HTML table: Approach | Best for | The catch. Always include a "Recommendation" row.
+3. **Cards answer a specific decision question** — the card title IS the question. Not "Vector Stores" but "Which vector store for 100M+ documents?"
+4. **Code is production-realistic** — FastAPI, SQL, YAML configs. No pseudocode. No `# ... rest of code`.
+5. **Interview Q is scale-aware** — every Q3 per card scales the question by 10–100×: "Now design it for 50M users."
+6. **Numbers anchor every recommendation** — < 1M docs, > 100 RPS, p99 < 200ms, $0.005/request, 72-hour MTTD. Concrete thresholds, not just "it depends."
+7. **Design principles per stage** — one memorable sentence shown in the blueprint label strip. Readable at a glance, not at the bottom of a scroll.
